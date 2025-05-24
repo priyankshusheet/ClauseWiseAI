@@ -17,7 +17,10 @@ const Index = () => {
       <Footer />
       
       {/* Floating Chat Button */}
-      <button className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-50 flex items-center justify-center">
+      <button 
+        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-50 flex items-center justify-center"
+        onClick={() => window.location.href = '/chat'}
+      >
         <span className="text-xl">💬</span>
       </button>
     </div>

@@ -2,14 +2,15 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Home, Upload, BookOpen, Info } from 'lucide-react';
+import { Home, Upload, MessageCircle, BookOpen, Info } from 'lucide-react';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
-    { name: 'Home', href: '#home', icon: Home },
-    { name: 'Upload Policy', href: '#upload', icon: Upload },
+    { name: 'Home', href: '/', icon: Home },
+    { name: 'AI Chat', href: '/chat', icon: MessageCircle },
+    { name: 'Upload & Analyze', href: '/upload', icon: Upload },
     { name: 'Learn', href: '#learn', icon: BookOpen },
     { name: 'FAQ', href: '#faq', icon: Info },
   ];
@@ -45,7 +46,10 @@ const Navigation = () => {
             <Button variant="outline" className="text-primary-600 border-primary-200 hover:bg-primary-50">
               Sign In
             </Button>
-            <Button className="bg-primary-600 hover:bg-primary-700 text-white">
+            <Button 
+              className="bg-primary-600 hover:bg-primary-700 text-white"
+              onClick={() => window.location.href = '/chat'}
+            >
               Start Chat
             </Button>
           </div>
@@ -76,7 +80,10 @@ const Navigation = () => {
                   <Button variant="outline" className="w-full text-primary-600 border-primary-200">
                     Sign In
                   </Button>
-                  <Button className="w-full bg-primary-600 hover:bg-primary-700 text-white">
+                  <Button 
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white"
+                    onClick={() => window.location.href = '/chat'}
+                  >
                     Start Chat
                   </Button>
                 </div>
