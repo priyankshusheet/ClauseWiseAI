@@ -1,5 +1,5 @@
 
-import { Upload, Search, Chat, Check } from 'lucide-react';
+import { Upload, Search, MessageCircle, Check } from 'lucide-react';
 
 const HowItWorksSection = () => {
   const steps = [
@@ -22,7 +22,7 @@ const HowItWorksSection = () => {
       step: '02'
     },
     {
-      icon: Chat,
+      icon: MessageCircle,
       title: 'Chat',
       description: 'Ask questions about specific terms or clauses',
       details: 'Get explanations in simple language',
