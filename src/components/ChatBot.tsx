@@ -18,7 +18,7 @@ const ChatBot = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: "Hi! I'm ClauseWise, your AI financial companion. I can help you understand complex terms and conditions, analyze policies, and answer questions about financial documents. How can I assist you today?",
+      content: "Hi! I'm ClauseWise, your AI financial companion. I can help you understand complex terms and conditions, analyze policies, and answer questions about financial documents. How can I assist you today? 😊",
       isUser: false,
       timestamp: new Date()
     }
@@ -41,16 +41,16 @@ const ChatBot = () => {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.type === 'application/pdf' || file.type.includes('text')) {
+      if (file.type === 'application/pdf' || file.type.includes('text') || file.name.toLowerCase().includes('.doc')) {
         setUploadedFile(file);
         toast({
-          title: "File uploaded successfully!",
+          title: "File uploaded successfully! 📄",
           description: `${file.name} is ready for analysis.`,
         });
       } else {
         toast({
           title: "Unsupported file type",
-          description: "Please upload a PDF or text document.",
+          description: "Please upload a PDF, DOC, or text document.",
           variant: "destructive",
         });
       }
@@ -72,7 +72,12 @@ const ChatBot = () => {
     setIsLoading(true);
 
     try {
-      // Call the AI analysis function
+      console.log('Sending message to AI:', {
+        message: inputMessage,
+        hasDocument: !!uploadedFile,
+        fileName: uploadedFile?.name,
+      });
+
       const { data, error } = await supabase.functions.invoke('ai-chat-analysis', {
         body: {
           message: inputMessage,
@@ -81,11 +86,16 @@ const ChatBot = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+
+      console.log('AI response:', data);
 
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.response || "I'm here to help! Could you please provide more details about what you'd like me to analyze?",
+        content: data.response || "I'm here to help! Could you please provide more details about what you'd like me to analyze? 😊",
         isUser: false,
         timestamp: new Date()
       };
@@ -97,8 +107,18 @@ const ChatBot = () => {
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        content: "I'm experiencing some technical difficulties right now. Please try again in a moment! I'm here to help you understand financial documents and policies. 😊",
+        isUser: false,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      
       toast({
-        title: "Error",
+        title: "Connection Error",
         description: "Failed to get AI response. Please try again.",
         variant: "destructive",
       });
@@ -142,7 +162,7 @@ const ChatBot = () => {
             className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
           >
             <div className={`flex items-start space-x-2 max-w-[80%] ${message.isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                 message.isUser 
                   ? 'bg-primary-100' 
                   : 'bg-gradient-to-br from-primary-500 to-secondary-500'
@@ -180,7 +200,7 @@ const ChatBot = () => {
                 <CardContent className="p-3">
                   <div className="flex items-center space-x-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm text-gray-600">Analyzing...</span>
+                    <span className="text-sm text-gray-600">Analyzing your request...</span>
                   </div>
                 </CardContent>
               </Card>
@@ -200,7 +220,7 @@ const ChatBot = () => {
               variant="ghost"
               size="sm"
               onClick={() => setUploadedFile(null)}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 ml-auto"
             >
               ✕
             </Button>
@@ -223,6 +243,7 @@ const ChatBot = () => {
             size="icon"
             onClick={() => fileInputRef.current?.click()}
             className="flex-shrink-0"
+            title="Upload document"
           >
             <Upload className="w-4 h-4" />
           </Button>

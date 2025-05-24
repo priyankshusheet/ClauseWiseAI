@@ -3,6 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Upload, ArrowDown } from 'lucide-react';
 
 const HeroSection = () => {
+  const handleChatClick = () => {
+    window.location.href = '/chat';
+  };
+
+  const handleUploadClick = () => {
+    window.location.href = '/upload';
+  };
+
   return (
     <section id="home" className="pt-16 bg-gradient-to-br from-primary-50 via-white to-secondary-50 min-h-screen flex items-center">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -30,7 +38,7 @@ const HeroSection = () => {
               <Button 
                 size="lg" 
                 className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                onClick={() => window.location.href = '/chat'}
+                onClick={handleChatClick}
               >
                 💬 Start Chat
               </Button>
@@ -38,7 +46,7 @@ const HeroSection = () => {
                 size="lg" 
                 variant="outline" 
                 className="border-2 border-primary-200 text-primary-600 hover:bg-primary-50 px-8 py-4 rounded-xl font-semibold text-lg"
-                onClick={() => window.location.href = '/upload'}
+                onClick={handleUploadClick}
               >
                 <Upload className="w-5 h-5 mr-2" />
                 Upload Policy
@@ -92,9 +100,9 @@ const HeroSection = () => {
 
                   <div className="flex items-center space-x-2 text-gray-400">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce-gentle"></div>
-                      <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce-gentle" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce-gentle" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                      <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                     <span className="text-xs">ClauseWise is typing...</span>
                   </div>
@@ -110,7 +118,7 @@ const HeroSection = () => {
 
         {/* Scroll indicator */}
         <div className="text-center mt-16">
-          <ArrowDown className="w-6 h-6 text-gray-400 mx-auto animate-bounce-gentle" />
+          <ArrowDown className="w-6 h-6 text-gray-400 mx-auto animate-bounce" />
         </div>
       </div>
     </section>

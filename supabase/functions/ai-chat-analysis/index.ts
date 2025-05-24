@@ -16,23 +16,37 @@ serve(async (req) => {
 
   try {
     const { message, hasDocument, fileName } = await req.json();
+    
+    console.log('Processing request:', { message, hasDocument, fileName });
 
-    let systemPrompt = `You are ClauseWise, an AI financial companion specialized in explaining complex financial documents, insurance policies, credit card terms, and legal jargon in simple, easy-to-understand language. 
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
 
-Key guidelines:
+    let systemPrompt = `You are ClauseWise, an expert AI financial companion specialized in analyzing complex financial documents, insurance policies, credit card terms, and legal agreements. You help users understand financial jargon in simple, clear language.
+
+Key capabilities:
 - Explain complex financial terms in simple language
-- Highlight potential risks, hidden fees, and important clauses
-- Be friendly but professional
+- Identify hidden fees, penalties, and auto-renewal traps
+- Highlight risky clauses and coverage exclusions
+- Provide risk assessments and consumer protection advice
+- Support document analysis with specific warnings
 - Use emojis occasionally to make responses engaging
-- Focus on consumer protection and financial literacy
-- When analyzing documents, provide specific warnings about auto-renewal, penalties, and exclusions
-- Always encourage users to read full documents and consult professionals for major decisions`;
+- Be friendly but professional
+
+Guidelines:
+- Always prioritize consumer protection and financial literacy
+- Warn about potential risks like auto-renewal, late fees, exclusions
+- Encourage users to read full documents and consult professionals for major decisions
+- Provide actionable insights and clear explanations`;
 
     let userMessage = message;
-    if (hasDocument) {
-      systemPrompt += `\n\nThe user has uploaded a document: "${fileName}". Provide analysis and insights based on what they're asking about this document.`;
-      userMessage = `I've uploaded a document called "${fileName}". ${message || 'Can you help me understand the key terms and any potential risks?'}`;
+    if (hasDocument && fileName) {
+      systemPrompt += `\n\nThe user has uploaded a document: "${fileName}". Analyze this document for potential risks, hidden clauses, and provide clear insights.`;
+      userMessage = `I've uploaded a document called "${fileName}". ${message || 'Can you help me understand the key terms, risks, and any red flags in this document?'}`;
     }
+
+    console.log('Calling OpenAI API...');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -41,22 +55,31 @@ Key guidelines:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
         ],
-        max_tokens: 1000,
+        max_tokens: 1200,
         temperature: 0.7,
+        top_p: 0.9,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('OpenAI API error:', response.status, errorText);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    const aiResponse = data.choices[0]?.message?.content;
+
+    if (!aiResponse) {
+      throw new Error('No response from OpenAI');
+    }
+
+    console.log('AI response generated successfully');
 
     return new Response(JSON.stringify({ response: aiResponse }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -64,9 +87,12 @@ Key guidelines:
 
   } catch (error) {
     console.error('Error in ai-chat-analysis function:', error);
+    
+    const fallbackResponse = "I'm experiencing technical difficulties right now. Please try again in a moment. I'm here to help you understand financial documents, insurance policies, and credit card terms! 😊\n\nIn the meantime, feel free to ask me about:\n• Insurance policy terms\n• Credit card fees and conditions\n• Investment product risks\n• Financial jargon explanations";
+
     return new Response(JSON.stringify({ 
-      error: 'Failed to process request',
-      response: "I'm having trouble processing your request right now. Please try asking me about financial terms, insurance policies, or credit card agreements - I'm here to help explain complex financial language! 😊"
+      error: error.message,
+      response: fallbackResponse
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
