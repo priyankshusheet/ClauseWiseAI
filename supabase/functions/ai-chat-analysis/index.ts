@@ -17,6 +17,20 @@ const financialKnowledgeBase = {
       cons: ["High annual fee", "No cashback option", "Limited acceptance"],
       hiddenFees: "Foreign transaction fees: 2.7%, Late payment: up to $40"
     },
+    "American Express Platinum": {
+      annualFee: "$695",
+      rewardsRate: "5x on flights, 5x on hotels, 1x everything else",
+      pros: ["Premium travel benefits", "Centurion Lounge access", "Hotel elite status"],
+      cons: ["Very high annual fee", "Limited everyday spending rewards"],
+      hiddenFees: "Additional card fees: $175/year, Guest lounge access: $50"
+    },
+    "American Express Green": {
+      annualFee: "$150",
+      rewardsRate: "3x on travel, 3x on dining, 1x everything else",
+      pros: ["No foreign transaction fees", "Monthly Uber credit", "Travel insurance"],
+      cons: ["Limited bonus categories", "Annual fee for basic card"],
+      hiddenFees: "Late payment: up to $40, Returned payment: up to $40"
+    },
     "Chase Sapphire Preferred": {
       annualFee: "$95",
       rewardsRate: "2x on travel & dining, 1x everything else",
@@ -124,24 +138,42 @@ serve(async (req) => {
     
     console.log('Processing request:', { message, hasDocument, fileName });
 
-    // Search knowledge base for relevant information
+    // Enhanced search logic for knowledge base
     const searchQuery = message.toLowerCase();
     let relevantInfo = "";
+    let foundProducts = [];
     
-    // Search through all financial products
+    // Search through all financial products with better matching
     Object.entries(financialKnowledgeBase).forEach(([category, products]) => {
       Object.entries(products).forEach(([productName, details]) => {
-        if (searchQuery.includes(productName.toLowerCase()) || 
-            searchQuery.includes(category.toLowerCase()) ||
-            Object.values(details).some(value => 
-              typeof value === 'string' && value.toLowerCase().includes(searchQuery)
-            )) {
-          relevantInfo += `\n\n${category.toUpperCase()} - ${productName}:\n`;
-          relevantInfo += `Cost: ${details.costRange || details.annualFee || details.expenseRatio}\n`;
-          relevantInfo += `Coverage/Features: ${details.coverage || details.rewardsRate || details.riskLevel}\n`;
-          relevantInfo += `Pros: ${details.pros.join(', ')}\n`;
-          relevantInfo += `Cons: ${details.cons.join(', ')}\n`;
-          relevantInfo += `Hidden Costs/Fees: ${details.hiddenFees || details.hiddenCosts}\n`;
+        const productNameLower = productName.toLowerCase();
+        const categoryLower = category.toLowerCase();
+        
+        // Check if search matches product name, category, or details
+        const matchesProduct = productNameLower.includes(searchQuery) || 
+                              searchQuery.includes(productNameLower) ||
+                              productNameLower.split(' ').some(word => searchQuery.includes(word));
+        
+        const matchesCategory = categoryLower.includes(searchQuery) || 
+                               searchQuery.includes(categoryLower);
+        
+        const matchesDetails = Object.values(details).some(value => {
+          if (typeof value === 'string') {
+            return value.toLowerCase().includes(searchQuery);
+          } else if (Array.isArray(value)) {
+            return value.some(item => item.toLowerCase().includes(searchQuery));
+          }
+          return false;
+        });
+
+        if (matchesProduct || matchesCategory || matchesDetails) {
+          foundProducts.push({ category, productName, details });
+          relevantInfo += `\n\n📋 ${category.toUpperCase()} - ${productName}:\n`;
+          relevantInfo += `💰 Cost: ${details.costRange || details.annualFee || details.expenseRatio}\n`;
+          relevantInfo += `🎯 Features: ${details.coverage || details.rewardsRate || details.riskLevel}\n`;
+          relevantInfo += `✅ Pros: ${Array.isArray(details.pros) ? details.pros.join(', ') : details.pros}\n`;
+          relevantInfo += `❌ Cons: ${Array.isArray(details.cons) ? details.cons.join(', ') : details.cons}\n`;
+          relevantInfo += `⚠️ Hidden Costs: ${details.hiddenFees || details.hiddenCosts}\n`;
         }
       });
     });
@@ -164,9 +196,9 @@ Guidelines:
 - Provide actionable insights and clear explanations
 
 KNOWLEDGE BASE CONTEXT:
-${relevantInfo || "No specific product information found in knowledge base."}
+${relevantInfo || "No specific product information found in knowledge base for this query."}
 
-Use this knowledge base information to provide accurate, detailed responses about financial products. Always mention specific fees, pros, cons, and hidden costs when available.`;
+Use this knowledge base information to provide accurate, detailed responses about financial products. Always mention specific fees, pros, cons, and hidden costs when available. If you found relevant information, provide detailed explanations based on the data above.`;
 
     let userMessage = message;
     if (hasDocument && fileName) {
@@ -174,67 +206,71 @@ Use this knowledge base information to provide accurate, detailed responses abou
       userMessage = `I've uploaded a document called "${fileName}". ${message || 'Can you help me understand the key terms, risks, and any red flags in this document?'}`;
     }
 
-    console.log('Using Groq API (free tier)...');
+    console.log('Using xAI Grok API...');
 
-    // Using Groq API (free tier) instead of paid APIs
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    // Using xAI Grok API
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer gsk_demo_key_for_testing', // Demo key for testing
+        'Authorization': 'Bearer xai-REDACTED',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama3-8b-8192',
+        model: 'grok-beta',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
         ],
         max_tokens: 1200,
         temperature: 0.7,
-        top_p: 0.9,
       }),
     });
 
     if (!response.ok) {
-      console.log('Groq API not available, using local knowledge base response');
+      console.log('xAI Grok API not available, using enhanced knowledge base response');
       
-      // Fallback to knowledge base response if API fails
+      // Enhanced fallback response with better product matching
       let fallbackResponse = "I'm ClauseWise, your financial companion! 😊\n\n";
       
-      if (relevantInfo) {
-        fallbackResponse += "Based on my knowledge base, here's what I found:\n";
+      if (relevantInfo && foundProducts.length > 0) {
+        fallbackResponse += `I found ${foundProducts.length} relevant financial product(s) for your query:\n`;
         fallbackResponse += relevantInfo;
         fallbackResponse += "\n\n⚠️ Always read the fine print and consider consulting with a financial advisor for major decisions!";
       } else {
-        // General financial advice based on the query
-        if (searchQuery.includes('credit card')) {
-          fallbackResponse += "🏦 Credit Card Tips:\n";
-          fallbackResponse += "• Watch for annual fees ($0-$695+)\n";
-          fallbackResponse += "• Check APR rates (15-29%)\n";
-          fallbackResponse += "• Look for hidden fees: foreign transaction (0-3%), balance transfer (3-5%)\n";
-          fallbackResponse += "• Understand reward structures and redemption options\n";
-          fallbackResponse += "• Be aware of promotional rate expiration dates";
-        } else if (searchQuery.includes('insurance')) {
-          fallbackResponse += "🛡️ Insurance Guidelines:\n";
-          fallbackResponse += "• Compare deductibles and coverage limits\n";
-          fallbackResponse += "• Check for exclusions and waiting periods\n";
-          fallbackResponse += "• Understand claim procedures and timelines\n";
-          fallbackResponse += "• Look for auto-renewal clauses\n";
-          fallbackResponse += "• Verify network providers (for health insurance)";
-        } else if (searchQuery.includes('mutual fund')) {
-          fallbackResponse += "📈 Mutual Fund Considerations:\n";
-          fallbackResponse += "• Expense ratios (0.03%-2.00%)\n";
-          fallbackResponse += "• Load fees (front-end, back-end)\n";
-          fallbackResponse += "• Management fees and 12b-1 fees\n";
-          fallbackResponse += "• Risk level and historical performance\n";
-          fallbackResponse += "• Tax implications and turnover rates";
+        // Provide specific guidance based on search terms
+        if (searchQuery.includes('american express') || searchQuery.includes('amex')) {
+          fallbackResponse += "🏦 American Express Credit Cards:\n\n";
+          fallbackResponse += "📋 CREDIT CARDS - American Express Gold:\n";
+          fallbackResponse += "💰 Cost: $250 annual fee\n";
+          fallbackResponse += "🎯 Features: 4x on dining & groceries (up to $25k), 3x on flights, 1x everything else\n";
+          fallbackResponse += "✅ Pros: High rewards on dining/groceries, Uber credits, Airport lounge access\n";
+          fallbackResponse += "❌ Cons: High annual fee, No cashback option, Limited acceptance\n";
+          fallbackResponse += "⚠️ Hidden Costs: Foreign transaction fees: 2.7%, Late payment: up to $40\n\n";
+          fallbackResponse += "Other American Express cards available: Platinum ($695/year), Green ($150/year)";
+        } else if (searchQuery.includes('credit card')) {
+          fallbackResponse += "🏦 Credit Card Information:\n";
+          fallbackResponse += "• American Express Gold: $250/year, 4x dining/groceries\n";
+          fallbackResponse += "• Chase Sapphire Preferred: $95/year, 2x travel/dining\n";
+          fallbackResponse += "• Discover it Cash Back: $0/year, 5% rotating categories\n";
+          fallbackResponse += "\n💡 Key things to watch for:\n";
+          fallbackResponse += "• Annual fees ($0-$695+)\n";
+          fallbackResponse += "• APR rates (15-29%)\n";
+          fallbackResponse += "• Foreign transaction fees (0-3%)\n";
+          fallbackResponse += "• Balance transfer fees (3-5%)";
+        } else if (searchQuery.includes('gold')) {
+          fallbackResponse += "✨ American Express Gold Card Details:\n\n";
+          fallbackResponse += "💰 Annual Fee: $250\n";
+          fallbackResponse += "🎯 Rewards: 4x points on dining & groceries (up to $25,000/year), 3x on flights\n";
+          fallbackResponse += "✅ Benefits: Monthly Uber credits, Grubhub+ membership, Airport lounge access\n";
+          fallbackResponse += "❌ Drawbacks: High annual fee, Limited merchant acceptance, No cashback option\n";
+          fallbackResponse += "⚠️ Hidden Fees: 2.7% foreign transaction fees, Late payment up to $40";
         } else {
           fallbackResponse += "I can help you understand:\n";
-          fallbackResponse += "• Credit card terms and hidden fees\n";
+          fallbackResponse += "• Credit cards (American Express, Chase, Discover)\n";
           fallbackResponse += "• Health, auto, life, and travel insurance policies\n";
           fallbackResponse += "• Mutual fund costs and structures\n";
           fallbackResponse += "• Investment risks and terms\n\n";
-          fallbackResponse += "What specific financial product would you like me to explain?";
+          fallbackResponse += "Try asking about specific products like 'American Express Gold' or 'Chase Sapphire'!";
         }
       }
       
@@ -259,7 +295,7 @@ Use this knowledge base information to provide accurate, detailed responses abou
   } catch (error) {
     console.error('Error in ai-chat-analysis function:', error);
     
-    const fallbackResponse = "I'm ClauseWise, your financial companion! 😊\n\nI can help you understand financial documents, insurance policies, and credit card terms. I have comprehensive information about:\n\n🏦 Credit Cards: American Express, Chase, Discover and their fees\n🛡️ Insurance: Health (HMO/PPO), Auto, Life, Travel policies\n📈 Investments: Mutual funds, index funds, and their costs\n\nWhat would you like me to explain about financial products or policies?";
+    const fallbackResponse = "I'm ClauseWise, your financial companion! 😊\n\nI can help you understand financial documents, insurance policies, and credit card terms. I have comprehensive information about:\n\n🏦 Credit Cards: American Express (Gold, Platinum, Green), Chase, Discover\n🛡️ Insurance: Health (HMO/PPO), Auto, Life, Travel policies\n📈 Investments: Mutual funds, index funds, and their costs\n\nWhat would you like me to explain about financial products or policies?";
 
     return new Response(JSON.stringify({ 
       error: error.message,
