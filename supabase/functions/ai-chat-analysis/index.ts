@@ -2,7 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,8 +19,8 @@ serve(async (req) => {
     
     console.log('Processing request:', { message, hasDocument, fileName });
 
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!deepseekApiKey) {
+      throw new Error('Deepseek API key not configured');
     }
 
     let systemPrompt = `You are ClauseWise, an expert AI financial companion specialized in analyzing complex financial documents, insurance policies, credit card terms, and legal agreements. You help users understand financial jargon in simple, clear language.
@@ -46,16 +46,16 @@ Guidelines:
       userMessage = `I've uploaded a document called "${fileName}". ${message || 'Can you help me understand the key terms, risks, and any red flags in this document?'}`;
     }
 
-    console.log('Calling OpenAI API...');
+    console.log('Calling Deepseek API...');
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${deepseekApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'deepseek-chat',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
@@ -68,15 +68,15 @@ Guidelines:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+      console.error('Deepseek API error:', response.status, errorText);
+      throw new Error(`Deepseek API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0]?.message?.content;
 
     if (!aiResponse) {
-      throw new Error('No response from OpenAI');
+      throw new Error('No response from Deepseek');
     }
 
     console.log('AI response generated successfully');
