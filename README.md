@@ -1,4 +1,4 @@
-<img width="1440" alt="Screenshot 2025-05-31 at 12 14 56 AM" src="https://github.com/user-attachments/assets/17880def-b66d-44b4-9a63-07f8363d1071" /># 📜 ClauseWise AI – Decode Financial Documents with AI
+# 📜 ClauseWise AI – Decode Financial Documents with AI
 
 [![Vercel Deploy](https://img.shields.io/badge/Live-Demo-blue?logo=vercel)](https://clausewiseai.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
@@ -127,12 +127,13 @@ ClauseWise AI is a **smart, full-stack financial document analyzer** powered by 
 ---
 
 ## 📸 Screenshots
-<img width="1440" alt="Screenshot 2025-05-31 at 12 11 25 AM" src="https://github.com/user-attachments/assets/613e914d-55ef-4f39-99cc-863948d91531" />
-<img width="1440" alt="Screenshot 2025-05-31 at 12 11 36 AM" src="https://github.com/user-attachments/assets/04d67d3d-50c8-4335-97e5-a2f8dfb73c81" />
-<img width="1440" alt="Screenshot 2025-05-31 at 12 11 45 AM" src="https://github.com/user-attachments/assets/cad7ef05-145a-48ff-a017-88aa6e4b52d9" />
-<img width="1440" alt="Screenshot 2025-05-31 at 12 14 56 AM" src="https://github.com/user-attachments/assets/0b8a3e08-27ff-4d44-9d49-836b16020a33" />
-<img width="1440" alt="Screenshot 2025-05-31 at 12 15 12 AM" src="https://github.com/user-attachments/assets/72a2128e-c96f-472a-9613-be5f9c5b6535" />
-<img width="1440" alt="Screenshot 2025-05-31 at 12 15 29 AM" src="https://github.com/user-attachments/assets/44deb3c5-abb3-48cf-a779-45233d370505" />
+<img width="1440" alt="Screenshot 2025-05-31 at 12 11 25 AM" src="https://github.com/user-attachments/assets/ffac37e0-415e-4ab2-afca-6e07ce5ab475" />
+<img width="1440" alt="Screenshot 2025-05-31 at 12 11 36 AM" src="https://github.com/user-attachments/assets/5ec8a3d0-5724-42cd-a602-b814bba01bb9" />
+<img width="1440" alt="Screenshot 2025-05-31 at 12 11 45 AM" src="https://github.com/user-attachments/assets/979a7738-1a85-4267-9772-c702a7eaaa8f" />
+<img width="1440" alt="Screenshot 2025-05-31 at 12 14 56 AM" src="https://github.com/user-attachments/assets/75ff3fbf-41a9-4cc6-a057-bfa61a5f87e3" />
+<img width="1440" alt="Screenshot 2025-05-31 at 12 15 12 AM" src="https://github.com/user-attachments/assets/8607e502-af6a-4503-98f2-7b29b8d24c6d" />
+<img width="1440" alt="Screenshot 2025-05-31 at 12 15 29 AM" src="https://github.com/user-attachments/assets/3543403f-c479-4f36-b860-081956281268" />
+
 
 ---
 
