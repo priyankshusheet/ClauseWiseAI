@@ -107,8 +107,9 @@ ClauseWise AI is a **smart, full-stack financial document analyzer** powered by 
 ---
 
 ## 📸 Screenshots
-
-> _Add screenshots or replace this section with image embeds._
+<img width="1440" alt="Screenshot 2025-05-31 at 12 11 25 AM" src="https://github.com/user-attachments/assets/613e914d-55ef-4f39-99cc-863948d91531" />
+<img width="1440" alt="Screenshot 2025-05-31 at 12 11 36 AM" src="https://github.com/user-attachments/assets/04d67d3d-50c8-4335-97e5-a2f8dfb73c81" />
+<img width="1440" alt="Screenshot 2025-05-31 at 12 11 45 AM" src="https://github.com/user-attachments/assets/cad7ef05-145a-48ff-a017-88aa6e4b52d9" />
 
 ---
 
