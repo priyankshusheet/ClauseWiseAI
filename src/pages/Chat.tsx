@@ -1,77 +1,77 @@
 
 import React from 'react';
 import Navigation from '@/components/Navigation';
-import ChatBot from '@/components/ChatBot';
+import ChatInterface from '@/components/ChatInterface';
 import Footer from '@/components/Footer';
 
 const Chat = () => {
+  const features = [
+    {
+      icon: '🔍',
+      title: 'Document Analysis',
+      description: 'Advanced parsing of insurance policies, credit agreements, and financial documents.',
+      bgColor: 'bg-blue-100'
+    },
+    {
+      icon: '📄',
+      title: 'File Processing',
+      description: 'Support for PDF, DOC, and text files with instant analysis capabilities.',
+      bgColor: 'bg-green-100'
+    },
+    {
+      icon: '💬',
+      title: 'Interactive Q&A',
+      description: 'Natural conversation interface for understanding complex financial terms.',
+      bgColor: 'bg-purple-100'
+    }
+  ];
+
+  const quickTips = [
+    { icon: '🎯', text: 'Ask about hidden fees in your credit card agreement' },
+    { icon: '📋', text: 'Upload insurance policies for comprehensive risk analysis' },
+    { icon: '🔍', text: 'Request plain-English explanations of complex clauses' },
+    { icon: '⚠️', text: 'Get alerts about auto-renewal and penalty terms' }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <Navigation />
       
       <div className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Chat with ClauseWise AI
+              Financial Document Assistant
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Your intelligent financial companion is ready to help you understand complex policies and terms. 
-              Ask questions or upload documents for instant analysis! 🤖✨
+              Your intelligent companion for understanding financial documents and policies.
+              Upload files or ask questions to get started.
             </p>
           </div>
 
-          {/* Feature Cards */}
           <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
-                <span className="text-2xl">🔍</span>
+            {features.map((feature, index) => (
+              <div key={index} className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+                <div className={`w-12 h-12 ${feature.bgColor} rounded-xl flex items-center justify-center mb-4`}>
+                  <span className="text-2xl">{feature.icon}</span>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-gray-600 text-sm">{feature.description}</p>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Smart Analysis</h3>
-              <p className="text-gray-600 text-sm">AI-powered analysis of insurance policies, credit card terms, and financial documents.</p>
-            </div>
-            
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
-                <span className="text-2xl">📄</span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Document Upload</h3>
-              <p className="text-gray-600 text-sm">Upload PDFs and documents for instant clause analysis and risk assessment.</p>
-            </div>
-            
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
-                <span className="text-2xl">💬</span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Natural Language</h3>
-              <p className="text-gray-600 text-sm">Ask questions in plain English and get easy-to-understand explanations.</p>
-            </div>
+            ))}
           </div>
 
-          {/* Chat Interface */}
-          <ChatBot />
+          <ChatInterface />
 
-          {/* Quick Start Tips */}
-          <div className="mt-8 bg-gradient-to-r from-primary-50 to-secondary-50 rounded-xl p-6">
-            <h3 className="font-semibold text-gray-900 mb-4 text-center">💡 Quick Start Tips</h3>
+          <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
+            <h3 className="font-semibold text-gray-900 mb-4 text-center">Quick Start Guide</h3>
             <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-700">
-              <div className="flex items-start space-x-2">
-                <span>🎯</span>
-                <span>Try asking: "What are the hidden fees in this credit card policy?"</span>
-              </div>
-              <div className="flex items-start space-x-2">
-                <span>📋</span>
-                <span>Upload your insurance policy for instant risk analysis</span>
-              </div>
-              <div className="flex items-start space-x-2">
-                <span>🔍</span>
-                <span>Ask: "Explain this clause in simple terms"</span>
-              </div>
-              <div className="flex items-start space-x-2">
-                <span>⚠️</span>
-                <span>Get alerts about auto-renewal traps and penalty clauses</span>
-              </div>
+              {quickTips.map((tip, index) => (
+                <div key={index} className="flex items-start space-x-2">
+                  <span>{tip.icon}</span>
+                  <span>{tip.text}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

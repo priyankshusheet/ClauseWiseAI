@@ -7,6 +7,10 @@ import TestimonialsSection from '@/components/TestimonialsSection';
 import Footer from '@/components/Footer';
 
 const Index = () => {
+  const handleChatRedirect = () => {
+    window.location.href = '/chat';
+  };
+
   return (
     <div className="min-h-screen">
       <Navigation />
@@ -16,11 +20,10 @@ const Index = () => {
       <TestimonialsSection />
       <Footer />
       
-      {/* Floating Chat Button */}
       <button 
-        className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-50 flex items-center justify-center group"
-        onClick={() => window.location.href = '/chat'}
-        aria-label="Open Chat"
+        className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-50 flex items-center justify-center group"
+        onClick={handleChatRedirect}
+        aria-label="Start Chat"
       >
         <div className="text-2xl transition-transform group-hover:scale-110">💬</div>
       </button>

@@ -7,24 +7,25 @@ import { Send, Upload, FileText, Bot, User, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-interface Message {
+interface ChatMessage {
   id: string;
   content: string;
   isUser: boolean;
   timestamp: Date;
 }
 
-const ChatBot = () => {
-  const [messages, setMessages] = useState<Message[]>([
+const ChatInterface = () => {
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      content: "Hi! I'm ClauseWise, your AI financial companion. I can help you understand complex terms and conditions, analyze policies, and answer questions about financial documents. How can I assist you today? 😊",
+      content: "Hello! I'm your financial document assistant. I can help you understand insurance policies, credit card terms, and other financial documents. How can I help you today?",
       isUser: false,
       timestamp: new Date()
     }
   ]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const [inputValue, setInputValue] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,79 +39,74 @@ const ChatBot = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.type === 'application/pdf' || file.type.includes('text') || file.name.toLowerCase().includes('.doc')) {
+      const validTypes = ['application/pdf', 'text/plain'];
+      const validExtensions = ['.pdf', '.txt', '.doc', '.docx'];
+      
+      const isValidType = validTypes.includes(file.type) || 
+        validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+      
+      if (isValidType) {
         setUploadedFile(file);
         toast({
-          title: "File uploaded successfully! 📄",
-          description: `${file.name} is ready for analysis.`,
+          title: "File selected",
+          description: `${file.name} ready for analysis`,
         });
       } else {
         toast({
-          title: "Unsupported file type",
-          description: "Please upload a PDF, DOC, or text document.",
+          title: "Invalid file type",
+          description: "Please select a PDF, DOC, or text file",
           variant: "destructive",
         });
       }
     }
   };
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim() && !uploadedFile) return;
+  const processMessage = async () => {
+    if (!inputValue.trim() && !uploadedFile) return;
 
-    const userMessage: Message = {
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
-      content: uploadedFile ? `📄 Uploaded: ${uploadedFile.name}\n${inputMessage}` : inputMessage,
+      content: uploadedFile ? `File: ${uploadedFile.name}\n${inputValue}` : inputValue,
       isUser: true,
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
-    setIsLoading(true);
+    setInputValue('');
+    setIsProcessing(true);
 
     try {
-      console.log('Sending message to AI:', {
-        message: inputMessage,
-        hasDocument: !!uploadedFile,
-        fileName: uploadedFile?.name,
-      });
-
       const { data, error } = await supabase.functions.invoke('ai-chat-analysis', {
         body: {
-          message: inputMessage,
+          message: inputValue,
           hasDocument: !!uploadedFile,
           fileName: uploadedFile?.name,
         }
       });
 
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('AI response:', data);
-
-      const aiResponse: Message = {
+      const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: data.response || "I'm here to help! Could you please provide more details about what you'd like me to analyze? 😊",
+        content: data.response || "I'm here to help with your financial documents. Could you provide more details?",
         isUser: false,
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, aiResponse]);
+      setMessages(prev => [...prev, assistantMessage]);
       setUploadedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Message processing error:', error);
       
-      const errorMessage: Message = {
+      const errorMessage: ChatMessage = {
         id: (Date.now() + 2).toString(),
-        content: "I'm experiencing some technical difficulties right now. Please try again in a moment! I'm here to help you understand financial documents and policies. 😊",
+        content: "I'm experiencing technical difficulties. Please try again in a moment.",
         isUser: false,
         timestamp: new Date()
       };
@@ -119,88 +115,78 @@ const ChatBot = () => {
       
       toast({
         title: "Connection Error",
-        description: "Failed to get AI response. Please try again.",
+        description: "Unable to process your request. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      sendMessage();
+      processMessage();
     }
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
     <div className="flex flex-col h-[600px] max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-gray-200">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-secondary-50 rounded-t-xl">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-xl">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
             <Bot className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">ClauseWise AI</h3>
-            <p className="text-sm text-gray-600">Financial Document Assistant</p>
+            <h3 className="font-semibold text-gray-900">Financial Assistant</h3>
+            <p className="text-sm text-gray-600">Document Analysis Expert</p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            ● Online
-          </span>
-        </div>
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          ● Available
+        </span>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
-          >
+          <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex items-start space-x-2 max-w-[80%] ${message.isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                message.isUser 
-                  ? 'bg-primary-100' 
-                  : 'bg-gradient-to-br from-primary-500 to-secondary-500'
+                message.isUser ? 'bg-blue-100' : 'bg-gradient-to-br from-blue-500 to-purple-500'
               }`}>
                 {message.isUser ? (
-                  <User className="w-4 h-4 text-primary-600" />
+                  <User className="w-4 h-4 text-blue-600" />
                 ) : (
                   <Bot className="w-4 h-4 text-white" />
                 )}
               </div>
-              <Card className={`${
-                message.isUser 
-                  ? 'bg-primary-500 text-white' 
-                  : 'bg-gray-50 border-gray-200'
-              }`}>
+              <Card className={`${message.isUser ? 'bg-blue-500 text-white' : 'bg-gray-50 border-gray-200'}`}>
                 <CardContent className="p-3">
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <p className={`text-xs mt-1 ${
-                    message.isUser ? 'text-primary-100' : 'text-gray-500'
-                  }`}>
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <p className={`text-xs mt-1 ${message.isUser ? 'text-blue-100' : 'text-gray-500'}`}>
+                    {formatTime(message.timestamp)}
                   </p>
                 </CardContent>
               </Card>
             </div>
           </div>
         ))}
-        {isLoading && (
+        
+        {isProcessing && (
           <div className="flex justify-start">
             <div className="flex items-start space-x-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                 <Bot className="w-4 h-4 text-white" />
               </div>
               <Card className="bg-gray-50 border-gray-200">
                 <CardContent className="p-3">
                   <div className="flex items-center space-x-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm text-gray-600">Analyzing your request...</span>
+                    <span className="text-sm text-gray-600">Processing your request...</span>
                   </div>
                 </CardContent>
               </Card>
@@ -210,12 +196,11 @@ const ChatBot = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* File Upload Preview */}
       {uploadedFile && (
-        <div className="px-4 py-2 bg-accent-50 border-t border-gray-200">
+        <div className="px-4 py-2 bg-yellow-50 border-t border-gray-200">
           <div className="flex items-center space-x-2 text-sm">
-            <FileText className="w-4 h-4 text-accent-600" />
-            <span className="text-gray-700">Ready to analyze: {uploadedFile.name}</span>
+            <FileText className="w-4 h-4 text-yellow-600" />
+            <span className="text-gray-700">File ready: {uploadedFile.name}</span>
             <Button
               variant="ghost"
               size="sm"
@@ -228,13 +213,12 @@ const ChatBot = () => {
         </div>
       )}
 
-      {/* Input Area */}
       <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
         <div className="flex items-end space-x-2">
           <input
             type="file"
             ref={fileInputRef}
-            onChange={handleFileUpload}
+            onChange={handleFileSelect}
             accept=".pdf,.txt,.doc,.docx"
             className="hidden"
           />
@@ -249,28 +233,28 @@ const ChatBot = () => {
           </Button>
           <div className="flex-1">
             <Input
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask about policies, terms, or upload a document..."
-              className="min-h-[40px] resize-none"
-              disabled={isLoading}
+              placeholder="Ask about financial documents or upload a file..."
+              className="min-h-[40px]"
+              disabled={isProcessing}
             />
           </div>
           <Button
-            onClick={sendMessage}
-            disabled={(!inputMessage.trim() && !uploadedFile) || isLoading}
+            onClick={processMessage}
+            disabled={(!inputValue.trim() && !uploadedFile) || isProcessing}
             className="flex-shrink-0"
           >
             <Send className="w-4 h-4" />
           </Button>
         </div>
         <p className="text-xs text-gray-500 mt-2 text-center">
-          ClauseWise can help explain complex financial terms, analyze policies, and answer questions about documents.
+          Specialized in financial document analysis and policy explanations.
         </p>
       </div>
     </div>
   );
 };
 
-export default ChatBot;
+export default ChatInterface;
