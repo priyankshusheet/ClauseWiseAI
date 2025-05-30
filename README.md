@@ -1,73 +1,128 @@
-# Welcome to your ClauseWiseAI project
+# 📜 ClauseWise AI – Decode Financial Documents with AI
 
-## Project info
+[![Vercel Deploy](https://img.shields.io/badge/Live-Demo-blue?logo=vercel)](https://clausewiseai.vercel.app)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![React](https://img.shields.io/badge/Built%20With-React-blue.svg?logo=react)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Enabled-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
 
-**URL**: https://clausewiseai.dev/projects/f56bf0f3-3293-415f-b7b4-4d5dafd25f25
+ClauseWise AI is a **smart, full-stack financial document analyzer** powered by AI. Built for modern users, it simplifies insurance policies, credit card T&Cs, and mutual fund jargon using **natural language processing**, an intuitive **chat-based UI**, and a polished design system.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🔍 Live Demo
 
-**Use ClauseWiseAI**
+🌐 [View the App](https://clausewiseai.vercel.app)
 
-Simply visit the [ClauseWiseAI Project](https://clausewiseai.dev/projects/f56bf0f3-3293-415f-b7b4-4d5dafd25f25) and start prompting.
+---
 
-Changes made via ClauseWiseAI will be committed automatically to this repo.
+## 🧪 Tech Stack
 
-**Use your preferred IDE**
+### 💻 Frontend
+- **React 18**
+- **TypeScript**
+- **Vite**
+- **Tailwind CSS**
+- **Shadcn/UI**
+- **Lucide React**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in ClauseWiseAI.
+### 🤖 AI & Backend
+- **Supabase Edge Functions (Deno)**
+- **xAI Grok API**
+- **React Query (TanStack)**
+- **Custom Toast Notifications**
+- **File Parsing Logic**
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## ✨ Features
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 🤖 ClauseWise ChatBot
+- Conversational UI tailored for financial Q&A
+- Role-based replies with dynamic avatars
+- Intelligent clause explanations using xAI
+- Real-time responses, errors, and fallbacks
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 📄 Document Uploader
+- Drag & drop PDF, DOC, and TXT files
+- Smart extraction and clause detection
+- Highlights hidden clauses and exclusions
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 📊 Financial Knowledge Base
+- Cards: Amex Gold, Chase Sapphire, Discover
+- Insurance: HMO, PPO, Travel, Auto
+- Mutual Funds: Index & Active Funds
+- Click to auto-fill documents & test AI
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 🧠 Smart Financial Insights
+- Hidden clauses, renewal traps, and fine print
+- Translates legalese to plain English
+- Dynamic highlights with interactive chat triggers
+
+### 🎨 Modern UI/UX
+- Gradient background, card-style layouts
+- Minimalist, accessible, and fully responsive
+- Sticky chat icon and polished animations
+
+---
+
+## 📱 User Experience Highlights
+
+- Upload, chat, and analyze in a single flow
+- Clean transitions with real-time feedback
+- Toast messages for upload and errors
+- Smart prompts to guide users
+
+---
+
+## 💡 Skills Demonstrated
+
+### Frontend
+- Type-safe component architecture
+- Responsive UI using Tailwind & Shadcn
+- Declarative routing and protected pages
+- Animation & iconography with Lucide + smooth UX
+
+### AI & Serverless
+- Supabase Edge Functions using Deno runtime
+- API integration with xAI Grok for NLP
+- File parsing logic and clause extraction
+- Reusable chat logic and bot context system
+
+### Clean Architecture
+- Modular folder structure
+- State handling with React Query
+- Toast, error, and loading management
+- Extendable for future document types
+
+---
+
+## 🗂 Project Structure
+
+- `components/` – Chat UI, loaders, file cards
+- `pages/` – Upload, Chat, Home
+- `edge-functions/` – Serverless xAI handler
+- `lib/` – Utilities & mock data
+- `data/` – Knowledge base files
+
+---
+
+## 📸 Screenshots
+
+> _Add screenshots or replace this section with image embeds._
+
+---
+
+## 🚀 Getting Started
+
+```bash
+# Clone the repo
+git clone https://github.com/priyankshusheet/clausewise-ai.git
+
+# Navigate into the project directory
+cd clausewise-ai
+
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [ClauseWiseAI](https://clausewiseai.dev/projects/f56bf0f3-3293-415f-b7b4-4d5dafd25f25) and click on Share -> Publish.
-
-## Can I connect a custom domain to my ClauseWiseAI project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.clausewiseai.dev/tips-tricks/custom-domain#step-by-step-guide)
