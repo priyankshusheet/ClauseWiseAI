@@ -98,11 +98,31 @@ ClauseWise AI is a **smart, full-stack financial document analyzer** powered by 
 
 ## 🗂 Project Structure
 
-- `components/` – Chat UI, loaders, file cards
-- `pages/` – Upload, Chat, Home
-- `edge-functions/` – Serverless xAI handler
-- `lib/` – Utilities & mock data
-- `data/` – Knowledge base files
+
+- `public/` – Static assets like favicon, placeholder image, and robots.txt
+- `src/`
+  - `components/` – Core UI sections and reusable elements
+    - `ui/` – Atomic UI components (Button, Modal, Tabs, etc.) from shadcn/ui
+    - Other UI Sections – `HeroSection`, `ChatInterface`, `Footer`, etc.
+  - `hooks/` – Custom React hooks (`useToast`, `useMobile`)
+  - `integrations/supabase/` – Supabase client and types for backend interaction
+  - `lib/` – Utility functions (`utils.ts`)
+  - `pages/` – Route-based pages (`Index.tsx`, `Chat.tsx`, `Upload.tsx`, etc.)
+- `supabase/`
+  - `functions/` – Edge functions for AI chat and document analysis
+    - `ai-chat-analysis/` – AI-based chat interpretation logic
+    - `document-analysis/` – OCR or file-based analysis logic
+  - `config.toml` – Supabase function configuration
+- `App.tsx` / `main.tsx` – Root component and app initialization
+- `App.css` / `index.css` – Global styling
+- `index.html` – HTML template for Vite
+- `vite.config.ts` – Vite configuration
+- `tailwind.config.ts` / `postcss.config.js` – Tailwind CSS configuration
+- `tsconfig.*.json` – TypeScript config files
+- `package.json` / `bun.lockb` / `package-lock.json` – Project dependencies
+- `.gitignore` / `eslint.config.js` – Git and ESLint configuration
+- `LICENSE` / `README.md` – Licensing and project documentation
+
 
 ---
 
