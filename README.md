@@ -1,4 +1,4 @@
-# 📜 ClauseWise AI – Decode Financial Documents with AI
+<img width="1440" alt="Screenshot 2025-05-31 at 12 14 56 AM" src="https://github.com/user-attachments/assets/17880def-b66d-44b4-9a63-07f8363d1071" /># 📜 ClauseWise AI – Decode Financial Documents with AI
 
 [![Vercel Deploy](https://img.shields.io/badge/Live-Demo-blue?logo=vercel)](https://clausewiseai.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
@@ -110,6 +110,9 @@ ClauseWise AI is a **smart, full-stack financial document analyzer** powered by 
 <img width="1440" alt="Screenshot 2025-05-31 at 12 11 25 AM" src="https://github.com/user-attachments/assets/613e914d-55ef-4f39-99cc-863948d91531" />
 <img width="1440" alt="Screenshot 2025-05-31 at 12 11 36 AM" src="https://github.com/user-attachments/assets/04d67d3d-50c8-4335-97e5-a2f8dfb73c81" />
 <img width="1440" alt="Screenshot 2025-05-31 at 12 11 45 AM" src="https://github.com/user-attachments/assets/cad7ef05-145a-48ff-a017-88aa6e4b52d9" />
+<img width="1440" alt="Screenshot 2025-05-31 at 12 14 56 AM" src="https://github.com/user-attachments/assets/0b8a3e08-27ff-4d44-9d49-836b16020a33" />
+<img width="1440" alt="Screenshot 2025-05-31 at 12 15 12 AM" src="https://github.com/user-attachments/assets/72a2128e-c96f-472a-9613-be5f9c5b6535" />
+<img width="1440" alt="Screenshot 2025-05-31 at 12 15 29 AM" src="https://github.com/user-attachments/assets/44deb3c5-abb3-48cf-a779-45233d370505" />
 
 ---
 
