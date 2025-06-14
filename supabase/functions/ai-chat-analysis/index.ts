@@ -12,201 +12,1032 @@ const corsHeaders = {
 
 // Expanded database of representative products and T&C examples
 const financialKnowledge = {
+  // --- CREDIT CARDS ---
   creditCards: {
+    // Entry-Level
+    "sbi simplysave": {
+      company: "SBI Card",
+      type: "Entry-Level",
+      fees: { annual: 499, foreign: 3.5 },
+      rewards: "1 reward point on every ₹150 spent",
+      features: [
+        "Fuel surcharge waiver",
+        "Flexipay EMI",
+        "Worldwide acceptance"
+      ],
+      terms: [
+        "Annual fee reversal on spending ₹1L in a year",
+        "Add-on cards available",
+        "Late fee as per statement"
+      ],
+      exclusions: [
+        "No rewards on fuel, wallet, or EMI transactions"
+      ]
+    },
+    "icici platinum chip": {
+      company: "ICICI Bank",
+      type: "Entry-Level",
+      fees: { annual: 199, foreign: 3.5 },
+      rewards: "2 PAYBACK points per ₹100 retail spends",
+      features: [
+        "Chip & PIN protection",
+        "Dining discounts"
+      ],
+      terms: [
+        "No annual fee on select accounts",
+        "2.5% fuel surcharge waiver"
+      ],
+      exclusions: [
+        "No free airport lounge",
+        "No cashback on EMI"
+      ]
+    },
+    "axis my zone": {
+      company: "Axis Bank",
+      type: "Entry-Level",
+      fees: { annual: 500, foreign: 3.5 },
+      rewards: "4 EDGE points per ₹200",
+      features: [
+        "BOGO on movie tickets",
+        "Swiggy & Paytm Movie cashback"
+      ],
+      terms: [
+        "Annual fee waiver at ₹30,000 spend"
+      ],
+      exclusions: [
+        "Minimum purchase for cashback"
+      ]
+    },
+    // Rewards
+    "hdfc millennia": {
+      company: "HDFC Bank",
+      type: "Rewards",
+      fees: { annual: 1000, foreign: 3.5 },
+      rewards: "5% cashback on Amazon/Flipkart, 1% on offline",
+      features: [
+        "Airport lounge access",
+        "Fuel surcharge waiver"
+      ],
+      terms: [
+        "₹1,00,000 spend for fee waiver",
+        "Max cashback ₹1,000/month"
+      ]
+    },
+    "amazon pay icici": {
+      company: "ICICI Bank",
+      type: "Rewards/Co-branded",
+      fees: { annual: 0, foreign: 3.5 },
+      rewards: "5% (Prime), 3% (non-Prime) on Amazon, 1% elsewhere",
+      features: [
+        "No joining/annual fee",
+        "Direct Amazon Pay cashback"
+      ],
+      terms: [
+        "Primary use on Amazon for maximum benefit"
+      ]
+    },
+    "axis ace": {
+      company: "Axis Bank",
+      type: "Rewards/Cashback",
+      fees: { annual: 499, foreign: 3.5 },
+      rewards: "5% cashback on Google Pay utility, 2% elsewhere",
+      features: [
+        "Lounge access 4/yr",
+        "Unlimited cashback"
+      ],
+      terms: [
+        "Joining bonus ₹500",
+        "Fee reversal on ₹2L spend"
+      ]
+    },
+    // Travel
     "hdfc regalia": {
       company: "HDFC Bank",
+      type: "Travel/Premium",
       fees: { annual: 2500, foreign: 2.5 },
-      apr: "23.88%",
-      rewards: "4 points per Rs. 150 spent",
-      features: ["Lounge access", "Air accident cover", "Dining offers"],
-      terms: [
-        "Annual fee waived on Rs. 3L annual spend",
-        "Fuel surcharge waiver: 1%",
-        "Foreign transaction mark-up: 2.5%",
-        "Interest-free period: 50 days"
+      rewards: "4 points per ₹150 spent",
+      features: [
+        "Lounge access (air/rail)",
+        "Insurance: air accident, lost card"
       ],
-      exclusions: [
-        "No reward points on fuel, EMI, and wallet loads",
-        "Late fee as per outstanding amount slab"
+      terms: [
+        "Waiver on spending ₹3L/yr",
+        "2% forex markup"
       ]
     },
-    "sbi simplyclick": {
+    "axis atlas": {
+      company: "Axis Bank",
+      type: "Travel",
+      fees: { annual: 5000, foreign: 2.0 },
+      rewards: "5 edge miles for ₹100 spent",
+      features: [
+        "Global lounge access",
+        "Dedicated concierge"
+      ],
+      terms: [
+        "High annual fee, multipliers on travel expenses"
+      ]
+    },
+    "sbi elite": {
       company: "SBI Card",
-      fees: { annual: 499, foreign: 3.5 },
-      apr: "27%",
-      rewards: "10x points on online spending",
-      features: ["Amazon vouchers", "E-commerce rewards"],
-      terms: [
-        "Annual fee reversed at 1L annual spends",
-        "1% fuel surcharge waiver up to Rs. 100/month",
-        "Flexipay EMI option available"
+      type: "Travel/Premium",
+      fees: { annual: 4999, foreign: 1.99 },
+      rewards: "Rewards on travel & movies",
+      features: [
+        "Complimentary hotel memberships",
+        "Lounge visits: domestic/international"
       ],
-      exclusions: [
-        "No lounge access",
-        "No international reward multiplier"
+      terms: [
+        "Fee reversal at ₹10L spend"
       ]
     },
-    "amex gold": {
-      company: "American Express",
-      fees: { annual: 250, foreign: 0 },
-      apr: '21.24% - 27.24%',
-      rewards: '4x points on dining and groceries',
-      benefits: ['Airport lounge access', 'Travel insurance', 'Purchase protection'],
-      risks: ['High annual fee', 'No preset spending limit may affect credit utilization'],
+    "club vistara sbi": {
+      company: "SBI Card",
+      type: "Travel/Co-branded",
+      fees: { annual: 1499, foreign: 3.5 },
+      rewards: "Vistara points for airline spends",
+      features: [
+        "Lounge visits",
+        "Air accident insurance"
+      ]
+    },
+    // Fuel
+    "indianoil axis bank": {
+      company: "Axis Bank",
+      type: "Fuel",
+      fees: { annual: 500, foreign: 3.5 },
+      rewards: "4% value back on IOCL fuel bills",
       terms: [
-        "No pre-set spending limit; flexible payments.",
-        "Late payments incur 29.99% APR penalty.",
-        "Purchase protection up to $1,000 per occurrence."
+        "Annual fee waiver: ₹50,000 spend"
+      ]
+    },
+    "bpcl sbi card": {
+      company: "SBI Card",
+      type: "Fuel",
+      fees: { annual: 499, foreign: 3.5 },
+      rewards: "13X points on BPCL fuel, 3.25% value back",
+      features: [
+        "1% fuel surcharge waiver"
+      ]
+    },
+    // Cashback
+    "axis flipkart": {
+      company: "Axis Bank",
+      type: "Cashback",
+      fees: { annual: 500, foreign: 3.5 },
+      rewards: "5% cashback at Flipkart, 4% at partners, 1.5% elsewhere",
+      features: [
+        "Four airport lounge visits",
+        "Dining offers"
+      ]
+    },
+    "hdfc moneyback plus": {
+      company: "HDFC Bank",
+      type: "Cashback",
+      fees: { annual: 500, foreign: 3.5 },
+      rewards: "Cashpoints for retail spends",
+      terms: [
+        "Joining fee waived at ₹50,000 spend"
+      ]
+    },
+    "hsbc cashback": {
+      company: "HSBC Bank",
+      type: "Cashback",
+      fees: { annual: 999, foreign: 3.5 },
+      rewards: "1.5% cashback on all spends",
+      features: [
+        "Amazon, Flipkart, Swiggy offer"
+      ]
+    },
+    // Premium
+    "hdfc infinia": {
+      company: "HDFC Bank",
+      type: "Premium",
+      fees: { annual: 12500, foreign: 2.0 },
+      rewards: "5 reward points per ₹150",
+      features: [
+        "Unlimited lounge access"
+      ],
+      terms: [
+        "Invitation only"
+      ]
+    },
+    "axis magnus": {
+      company: "Axis Bank",
+      type: "Premium",
+      fees: { annual: 12000, foreign: 2.0 },
+      rewards: "12 Edge reward points per ₹200",
+      features: [
+        "Unlimited global lounge (Priority Pass)",
+        "Dining/concierge"
+      ]
+    },
+    "sbi aurum": {
+      company: "SBI Card",
+      type: "Premium",
+      fees: { annual: 9999, foreign: 1.99 },
+      rewards: "5X rewards on all spends",
+      features: [
+        "Taj Epicure membership",
+        "Personal relationship manager"
+      ]
+    },
+    "icici emeralde": {
+      company: "ICICI Bank",
+      type: "Premium",
+      fees: { annual: 12000, foreign: 2.5 },
+      rewards: "Reward points per spend slab",
+      features: [
+        "Airport lounge (domestic/international)",
+        "Spa access"
+      ]
+    },
+    // Co-branded
+    "flipkart axis": {
+      company: "Axis Bank",
+      type: "Co-branded",
+      fees: { annual: 500, foreign: 3.5 },
+      rewards: "5% on Flipkart, 1.5% elsewhere",
+      terms: [
+        "Annual fee waived at ₹2L spend"
+      ]
+    },
+    "irctc sbi": {
+      company: "SBI Card",
+      type: "Co-branded",
+      fees: { annual: 500, foreign: 3.5 },
+      rewards: "1.8% value back on train bookings",
+      features: [
+        "Fuel surcharge waiver",
+        "Exclusive rail surcharges"
+      ]
+    },
+    "swiggy hdfc": {
+      company: "HDFC Bank",
+      type: "Co-branded",
+      fees: { annual: 500, foreign: 3.5 },
+      rewards: "10% cashback at Swiggy",
+      features: [
+        "Dining offers",
+        "Discounts on partner platforms"
       ]
     }
-    // ... add more representative cards as needed
+    // ... add more as needed
   },
+
+  // --- MUTUAL FUNDS ---
   mutualFunds: {
-    "sbi bluechip fund": {
-      company: "SBI Mutual Fund",
-      type: "Large Cap Equity",
-      expenseRatio: "0.90%",
-      exitLoad: "1% if redeemed <1 year",
-      minInvestment: 500,
+    // Large Cap
+    "nippon india large cap": {
+      company: "Nippon MF",
+      type: "Large Cap",
+      expenseRatio: "1.25%",
+      exitLoad: "1% if < 1 year",
+      minInvestment: 100,
       features: [
-        "Diversified across top 100 companies",
-        "Focus on stability and reputable brands"
+        "Invests in large blue chip stocks"
       ],
       terms: [
-        "NAV calculated at market close",
-        "No entry load fee",
-        "SIP option available monthly"
-      ],
-      risks: [
-        "Market risk due to equity fluctuations",
-        "Returns not guaranteed"
+        "SIP allowed; no entry load"
       ]
     },
-    "hdfc hybrid equity fund": {
-      company: "HDFC Mutual Fund",
-      type: "Aggressive Hybrid",
-      expenseRatio: "1.30%",
-      exitLoad: "1% <1 year",
+    "axis bluechip": {
+      company: "Axis MF",
+      type: "Large Cap",
+      expenseRatio: "1.60%",
+      exitLoad: "1% < 1 year",
       minInvestment: 500,
       features: [
-        "Mix of equity (60-80%) and debt (20-40%)",
-        "Regular income potential"
-      ],
-      terms: [
-        "SIP and lump-sum available",
-        "No entry load",
-        "Redemption proceeds in T+3 days"
+        "Top 100 Indian listed companies",
+        "Long-term wealth creation"
       ]
     },
-    // ... add more representative funds as needed
+    "icici prudential bluechip": {
+      company: "ICICI MF",
+      type: "Large Cap",
+      expenseRatio: "1.20%",
+      exitLoad: "1%",
+      minInvestment: 100,
+      features: [
+        "Invests in high market cap companies"
+      ]
+    },
+    // Mid Cap
+    "motilal oswal midcap": {
+      company: "Motilal Oswal MF",
+      type: "Mid Cap",
+      expenseRatio: "1.51%",
+      exitLoad: "1%",
+      minInvestment: 500,
+      features: [
+        "Focus on mid cap growth"
+      ]
+    },
+    "kotak emerging equity": {
+      company: "Kotak MF",
+      type: "Mid Cap",
+      expenseRatio: "1.24%",
+      exitLoad: "1%",
+      minInvestment: 500,
+      features: [
+        "Diversification in mid cap stocks"
+      ]
+    },
+    // Small Cap
+    "sbi small cap": {
+      company: "SBI MF",
+      type: "Small Cap",
+      expenseRatio: "1.27%",
+      exitLoad: "1% <1yr",
+      minInvestment: 500,
+      features: [
+        "Long term small cap pick"
+      ]
+    },
+    "nippon india small cap": {
+      company: "Nippon MF",
+      type: "Small Cap",
+      expenseRatio: "1.34%",
+      exitLoad: "1%",
+      minInvestment: 100,
+      features: [
+        "Best performer 5 year CAGR"
+      ]
+    },
+    "quant small cap": {
+      company: "Quant MF",
+      type: "Small Cap",
+      expenseRatio: "0.64%",
+      exitLoad: "1%",
+      minInvestment: 500,
+      features: [
+        "Active management"
+      ]
+    },
+    // Flexi Cap
+    "parag parikh flexi cap": {
+      company: "PPFAS",
+      type: "Flexi Cap",
+      expenseRatio: "0.79%",
+      exitLoad: "2% <1yr",
+      minInvestment: 1000,
+      features: [
+        "International equity exposure"
+      ]
+    },
+    "hdfc flexi cap": {
+      company: "HDFC MF",
+      type: "Flexi Cap",
+      expenseRatio: "1.11%",
+      exitLoad: "1%",
+      minInvestment: 100,
+      features: [
+        "Market cap agnostic"
+      ]
+    },
+    // ELSS (Tax Saving)
+    "axis long term equity": {
+      company: "Axis MF",
+      type: "ELSS",
+      expenseRatio: "1.68%",
+      lockin: "3 yrs",
+      minInvestment: 500,
+      features: [
+        "Tax benefit under sec 80C"
+      ]
+    },
+    "quant elss": {
+      company: "Quant MF",
+      type: "ELSS",
+      expenseRatio: "0.7%",
+      lockin: "3 yrs",
+      minInvestment: 500,
+      features: [
+        "Aggressive growth, tax benefit"
+      ]
+    },
+    "mirae asset tax saver": {
+      company: "Mirae Asset MF",
+      type: "ELSS",
+      expenseRatio: "0.91%",
+      lockin: "3 yrs",
+      minInvestment: 500,
+      features: [
+        "Balanced portfolio"
+      ]
+    },
+    // Index Funds
+    "hdfc nifty 50 index": {
+      company: "HDFC MF",
+      type: "Index",
+      expenseRatio: "0.20%",
+      exitLoad: "NIL",
+      features: [
+        "Tracks Nifty 50 performance"
+      ]
+    },
+    "uti nifty next 50": {
+      company: "UTI MF",
+      type: "Index",
+      expenseRatio: "0.29%",
+      exitLoad: "0.25% <7d",
+      features: [
+        "Tracks Nifty Next 50"
+      ]
+    },
+    "icici nifty 500": {
+      company: "ICICI MF",
+      type: "Index",
+      expenseRatio: "0.27%",
+      exitLoad: "0.25% <1m",
+      features: [
+        "Well-diversified"
+      ]
+    },
+    // Debt
+    "sbi magnum short term": {
+      company: "SBI MF",
+      type: "Debt",
+      expenseRatio: "0.69%",
+      exitLoad: "NIL",
+      features: [
+        "Short duration bonds"
+      ]
+    },
+    "hdfc corporate bond": {
+      company: "HDFC MF",
+      type: "Debt",
+      expenseRatio: "0.56%",
+      exitLoad: "NIL",
+      features: [
+        "Corporate bonds investments"
+      ]
+    },
+    // Hybrid
+    "icici balanced advantage": {
+      company: "ICICI MF",
+      type: "Hybrid",
+      expenseRatio: "1.06%",
+      exitLoad: "1% <12m",
+      features: [
+        "Dynamic asset allocation"
+      ]
+    },
+    "sbi equity hybrid": {
+      company: "SBI MF",
+      type: "Hybrid",
+      expenseRatio: "0.96%",
+      exitLoad: "1% <1yr",
+      features: [
+        "Equity + debt"
+      ]
+    }
+    // ... add more top funds as needed
   },
-  // Health Insurance (expanded)
+
+  // --- HEALTH INSURANCE ---
   healthInsurance: {
-    "max bupa health companion": {
-      company: "Niva Bupa",
+    // Star Health
+    "star family health optima": {
+      company: "Star Health",
       type: "Family Floater",
-      sumInsured: [500000, 1000000, 2500000],
-      premium: "₹6,500 - ₹12,000/year (30yr, family of 3)",
+      sumInsured: [300000, 500000, 1000000],
+      premium: "₹6,500 - ₹14,000/year (family)",
       keyFeatures: [
-        "Re-instatement of sum insured",
-        "Day care procedures covered",
-        "No room rent capping"
+        "Auto restoration of sum insured",
+        "Pre & post hospitalization covered",
+        "Road ambulance cover"
       ],
       terms: [
-        "2-year waiting for pre-existing diseases",
-        "Sub-limits: None for most covers",
-        "50% NCB for claim free year"
+        "Waiting period: 30 days (illness), 2-4 years (PED)",
+        "5 year renewability"
       ],
       exclusions: [
-        "No cover for cosmetic surgery",
-        "War and hazardous sports"
+        "War, cosmetic treatments",
+        "Donor expenses not covered"
       ]
     },
-    "apollo munich optima restore": {
+    "star comprehensive health": {
+      company: "Star Health",
+      type: "Individual/Family",
+      sumInsured: [500000, 1000000, 2500000],
+      premium: "₹7,000 - ₹22,000/year",
+      keyFeatures: [
+        "Maternity benefit",
+        "No capping on room rent"
+      ],
+      terms: [
+        "PED waiting: 3 years",
+        "Day care covered"
+      ]
+    },
+    // HDFC ERGO
+    "optima restore": {
       company: "HDFC ERGO",
       type: "Family Floater",
       sumInsured: [300000, 500000, 1000000],
-      premium: "₹7,000 - ₹15,000/year (family, age 30)",
+      premium: "₹7,500 - ₹18,000/year",
       keyFeatures: [
-        "Restore benefit on partial utilization",
-        "E-opinion for critical illness",
-        "No claim bonus: 50% up to 100%"
+        "Restore benefit",
+        "Critical illness cover"
       ],
       terms: [
-        "24-month waiting for pre-existing disease",
-        "Initial 30-days waiting for illness cover",
-        "Entry age: 91 days onwards"
-      ]
-    }
-    // ... add more as required
-  },
-  lifeInsurance: {
-    "lic jeevan amar": {
-      company: "LIC",
-      type: "Term Plan",
-      sumAssured: "₹50 lakhs - ₹5 crores",
-      premium: "Low for non-smokers",
-      keyFeatures: [
-        "Flexible payout: Lump sum or monthly",
-        "Death benefit covers all causes (except suicide within first year)"
-      ],
-      terms: [
-        "Policy term: 10–40 years",
-        "Grace period for lapsed premium: 30 days",
-        "Revival allowed within 5 years"
+        "24m waiting for pre-existing diseases"
       ]
     },
-    "hdfc click2protect life": {
-      company: "HDFC Life",
-      type: "Term Plan",
-      payoutOptions: ["Lump sum", "Monthly income"],
-      accidentalBenefit: true,
-      riders: ["Critical illness", "Waiver of premium"],
-      terms: [
-        "12-TO-40 year term",
-        "Waiting period: suicide exclusion, 1 year",
-        "Grace period: 30 days"
+    "health suraksha": {
+      company: "HDFC ERGO",
+      type: "Individual",
+      sumInsured: [200000, 500000, 1000000],
+      premium: "₹6,000 - ₹15,000/year",
+      keyFeatures: [
+        "No room rent capping",
+        "AYUSH cover"
+      ]
+    },
+    // Niva Bupa
+    "reassure 2.0": {
+      company: "Niva Bupa",
+      type: "Family Floater",
+      sumInsured: [500000, 1000000, 2500000],
+      premium: "₹7,500 - ₹17,000/year",
+      keyFeatures: [
+        "Reinstatement benefit",
+        "No sub limits"
+      ]
+    },
+    "health companion": {
+      company: "Niva Bupa",
+      type: "Individual/Family",
+      sumInsured: [500000, 1000000],
+      premium: "₹6,500 - ₹12,000/year",
+      keyFeatures: [
+        "Day care covered",
+        "No room capping"
+      ]
+    },
+    // Care Health
+    "care advantage": {
+      company: "Care Health",
+      type: "Individual/Family",
+      sumInsured: [300000, 1000000],
+      premium: "₹7,000 - ₹15,000/year",
+      keyFeatures: [
+        "Cashless at 20K+ hospitals"
+      ]
+    },
+    "care supreme": {
+      company: "Care Health",
+      type: "Individual/Family",
+      sumInsured: [500000, 2000000],
+      premium: "₹9,000 - ₹30,000/year",
+      keyFeatures: [
+        "500+ day care procedures",
+        "Health checkup included"
+      ]
+    },
+    // Tata AIG
+    "medicare": {
+      company: "Tata AIG",
+      type: "Individual/Family",
+      sumInsured: [200000, 1000000],
+      premium: "₹6,000+",
+      keyFeatures: [
+        "Cover for alternative medicine",
+        "Health check-up benefit"
+      ]
+    },
+    "medicare premier": {
+      company: "Tata AIG",
+      type: "Premium",
+      sumInsured: [500000, 3000000],
+      premium: "₹10,000+",
+      keyFeatures: [
+        "Maternity cover",
+        "No sub-limits"
+      ]
+    },
+    // Aditya Birla
+    "activ health platinum": {
+      company: "Aditya Birla Health",
+      type: "Premium",
+      sumInsured: [500000, 2000000, 5000000],
+      premium: "₹12,000+",
+      keyFeatures: [
+        "Healthy returns bonus",
+        "Chronic management program"
+      ]
+    },
+    // ICICI Lombard
+    "complete health insurance": {
+      company: "ICICI Lombard",
+      type: "Family/Individual",
+      sumInsured: [200000, 500000, 1000000],
+      premium: "₹7,000+",
+      keyFeatures: [
+        "Sum insured recharge",
+        "Wellness program"
       ]
     }
-    // ... more plans
+    // ... add more as needed
   },
+
+  // --- LIFE INSURANCE ---
+  lifeInsurance: {
+    // Term Insurance
+    "hdfc click2protect life": {
+      company: "HDFC Life",
+      type: "Term",
+      sumAssured: "₹50L - ₹5Cr",
+      premium: "Low",
+      keyFeatures: [
+        "Lump Sum or monthly pay"
+      ],
+      terms: [
+        "Death due to any cause except suicide 1st year"
+      ]
+    },
+    "max life smart secure": {
+      company: "Max Life",
+      type: "Term",
+      sumAssured: "₹50L+",
+      premium: "Affordable",
+      keyFeatures: [
+        "Accident benefit rider"
+      ]
+    },
+    "icici iprotect smart": {
+      company: "ICICI Prudential",
+      type: "Term",
+      sumAssured: "₹50L - ₹10Cr",
+      premium: "Affordable",
+      keyFeatures: [
+        "Inbuilt terminal illness benefit"
+      ]
+    },
+    // Whole Life
+    "lic jeevan umang": {
+      company: "LIC",
+      type: "Whole Life",
+      sumAssured: "₹2L+",
+      premium: "Varies",
+      keyFeatures: [
+        "Lifelong cover with bonuses"
+      ]
+    },
+    "tata aia whole life": {
+      company: "Tata AIA",
+      type: "Whole Life",
+      sumAssured: "₹5L+",
+      keyFeatures: [
+        "Guaranteed payments till age 100"
+      ]
+    },
+    // Endowment
+    "lic jeevan labh": {
+      company: "LIC",
+      type: "Endowment",
+      sumAssured: "₹2L+",
+      keyFeatures: [
+        "Guaranteed bonuses"
+      ]
+    },
+    "hdfc sanchay plus": {
+      company: "HDFC Life",
+      type: "Endowment",
+      sumAssured: "Flexible",
+      keyFeatures: [
+        "Guaranteed income on maturity"
+      ]
+    },
+    // Money Back
+    "lic new money back": {
+      company: "LIC",
+      type: "Money Back",
+      sumAssured: "₹1L+",
+      keyFeatures: [
+        "Regular payouts"
+      ]
+    },
+    "sbi life smart money back": {
+      company: "SBI Life",
+      type: "Money Back",
+      sumAssured: "₹1L+",
+      keyFeatures: [
+        "Guaranteed money back at intervals"
+      ]
+    },
+    // ULIPs (refer to ULIPs section for more)
+    "hdfc click2wealth": {
+      company: "HDFC Life",
+      type: "ULIP",
+      sumAssured: "Varies",
+      keyFeatures: [
+        "Low charges, flexible premium"
+      ]
+    },
+    "icici pru signature": {
+      company: "ICICI Prudential",
+      type: "ULIP",
+      sumAssured: "Varies",
+      keyFeatures: [
+        "Loyalty additions, high allocation"
+      ]
+    }
+    // ... add more as needed
+  },
+
+  // --- LOANS ---
   loans: {
+    // Home Loans
+    "hdfc home loan": {
+      company: "HDFC Ltd",
+      type: "Home Loan",
+      minAmount: 500000,
+      maxAmount: 100000000,
+      tenure: "1–30 years",
+      interestRate: "8.5% - 9.5%",
+      processingFee: "Up to 0.5%",
+      terms: [
+        "Floating/fixed options",
+        "No prepayment penalty (individuals)"
+      ]
+    },
+    "sbi home loan": {
+      company: "SBI",
+      type: "Home Loan",
+      minAmount: 500000,
+      maxAmount: 100000000,
+      tenure: "1–30 years",
+      interestRate: "8.5%",
+      processingFee: "0.4% (Max ₹10K)",
+      terms: [
+        "Zero prepayment for floating loans"
+      ]
+    },
+    "lic housing loan": {
+      company: "LIC Housing",
+      type: "Home Loan",
+      terms: [
+        "Low processing fee",
+        "Flexible tenure"
+      ]
+    },
+    "axis home loan": {
+      company: "Axis Bank",
+      type: "Home Loan",
+      terms: [
+        "Attractive floating rate"
+      ]
+    },
+    // Personal Loans
     "hdfc personal loan": {
       company: "HDFC Bank",
-      type: "Unsecured personal",
+      type: "Personal Loan",
       minAmount: 50000,
       maxAmount: 4000000,
       tenure: "12–60 months",
       interestRate: "10.5% - 21%",
       processingFee: "2.5%",
       terms: [
-        "No part prepayment in first 12 months",
-        "Foreclosure charges: 4%",
-        "Late payment penalty: ₹300 - ₹600"
+        "No part prepayment first 12 months",
+        "Foreclosure charges: 4%"
+      ]
+    },
+    "icici personal loan": {
+      company: "ICICI Bank",
+      type: "Personal Loan",
+      terms: [
+        "Quick disbursal",
+        "Flexible tenure",
+        "Processing fees extra"
+      ]
+    },
+    "tata capital personal loan": {
+      company: "Tata Capital",
+      type: "Personal Loan",
+      terms: [
+        "Loan up to ₹25L",
+        "Minimal documentation"
+      ]
+    },
+    "bajaj finserv personal loan": {
+      company: "Bajaj Finserv",
+      type: "Personal Loan",
+      terms: [
+        "Loan up to ₹25L",
+        "Fast approval"
+      ]
+    },
+    // Education Loans
+    "sbi global ed-vantage": {
+      company: "SBI",
+      type: "Education Loan",
+      tenure: "Up to 15 yrs",
+      interestRate: "8.5–10.5%",
+      terms: [
+        "For study abroad",
+        "Tax benefits on interest"
+      ]
+    },
+    "icici education loan": {
+      company: "ICICI Bank",
+      type: "Education Loan",
+      terms: [
+        "No collateral for small amounts"
+      ]
+    },
+    "avanse education loan": {
+      company: "Avanse",
+      type: "Education Loan",
+      terms: [
+        "Quick digital process"
+      ]
+    },
+    // Car Loans
+    "hdfc car loan": {
+      company: "HDFC Bank",
+      type: "Car Loan",
+      terms: [
+        "100% on-road funding"
+      ]
+    },
+    "sbi car loan": {
+      company: "SBI",
+      type: "Car Loan",
+      terms: [
+        "7–5 years tenure",
+        "Affordable EMIs"
+      ]
+    },
+    "axis auto loan": {
+      company: "Axis Bank",
+      type: "Car Loan",
+      terms: [
+        "Easy application"
+      ]
+    },
+    // Gold Loans
+    "muthoot gold loan": {
+      company: "Muthoot Finance",
+      type: "Gold Loan",
+      terms: [
+        "Up to 75% LTV",
+        "Quick disbursal"
+      ]
+    },
+    "manappuram gold loan": {
+      company: "Manappuram",
+      type: "Gold Loan",
+      terms: [
+        "Minimal paperwork"
+      ]
+    },
+    "hdfc gold loan": {
+      company: "HDFC Bank",
+      type: "Gold Loan",
+      terms: [
+        "Attractive interest"
+      ]
+    },
+    // Business Loans
+    "lendingkart business loan": {
+      company: "Lendingkart",
+      type: "Business Loan",
+      terms: [
+        "Fast online approval"
+      ]
+    },
+    "bajaj finserv business loan": {
+      company: "Bajaj Finserv",
+      type: "Business Loan",
+      terms: [
+        "Collateral free",
+        "Flexible tenure"
+      ]
+    },
+    "sbi business loan": {
+      company: "SBI",
+      type: "Business Loan",
+      terms: [
+        "Easy eligibility",
+        "Minimal documentation"
       ]
     }
-    // ... more representative loans
+    // ... add more as needed
   },
+
+  // --- ULIPs ---
   ulips: {
-    "icici prudential wealth builder ii": {
+    "hdfc click 2 wealth": {
+      company: "HDFC Life",
+      lockin: 5,
+      minPremium: 24000,
+      fundChoices: ["Equity", "Debt", "Balanced"],
+      charges: [
+        "Premium allocation: 2%",
+        "Policy admin: Rs. 60/month (first 5 yrs)"
+      ],
+      features: [
+        "Loyalty additions after year 6",
+        "Partial withdrawal allowed"
+      ],
+      terms: [
+        "Returns market-linked",
+        "Mortality & admin charges applicable"
+      ]
+    },
+    "hdfc pro growth plus": {
+      company: "HDFC Life",
+      lockin: 5,
+      fundChoices: ["Equity", "Balanced"],
+      terms: [
+        "Tax-free maturity benefit"
+      ]
+    },
+    "icici prudential lifetime classic": {
       company: "ICICI Prudential",
       lockin: 5,
       minPremium: 30000,
       fundChoices: ["Equity", "Debt", "Balanced"],
-      charges: [
-        "Premium allocation: 2% first year",
-        "Policy admin: Rs. 60/month first 5 years"
-      ],
       features: [
-        "Loyalty additions from year 6",
-        "Partial withdrawals after 5 years"
-      ],
-      terms: [
-        "Market-linked returns",
-        "Mortality charges deducted monthly"
+        "Loyalty additions",
+        "Partial withdrawal after 5 years"
+      ]
+    },
+    "icici pru signature": {
+      company: "ICICI Prudential",
+      lockin: 5,
+      minPremium: 60000,
+      fundChoices: ["Multi Cap", "Debt", "Hybrid"],
+      features: [
+        "High allocation, tax benefit"
+      ]
+    },
+    "sbi ewealth insurance": {
+      company: "SBI Life",
+      lockin: 5,
+      fundChoices: ["Growth", "Balanced"],
+      features: [
+        "Online only"
+      ]
+    },
+    "sbi smart wealth assure": {
+      company: "SBI Life",
+      lockin: 5,
+      features: [
+        "Choice of fund allocation"
+      ]
+    },
+    "bajaj future gain": {
+      company: "Bajaj Allianz",
+      lockin: 5,
+      minPremium: 25000,
+      fundChoices: ["Equity Growth", "Pure Stock"],
+      features: [
+        "Loyalty reward from year 6"
+      ]
+    },
+    "bajaj goal assure": {
+      company: "Bajaj Allianz",
+      features: [
+        "Return of mortality charge"
+      ]
+    },
+    "max online savings plan": {
+      company: "Max Life",
+      lockin: 5,
+      features: [
+        "Multiple switches"
+      ]
+    },
+    "max smart wealth plan": {
+      company: "Max Life",
+      lockin: 5,
+      features: [
+        "Comprehensive family cover"
+      ]
+    },
+    "aditya birla wealth aspire": {
+      company: "Aditya Birla Sun Life",
+      features: [
+        "Top-up premium allowed"
+      ]
+    },
+    "tata aia fortune pro": {
+      company: "Tata AIA",
+      lockin: 5,
+      features: [
+        "Death & maturity benefit"
+      ]
+    },
+    "tata aia wealth maxima": {
+      company: "Tata AIA",
+      features: [
+        "0% premium allocation charge after Year 11"
       ]
     }
-    // ... add more ULIP products
+    // ... add more as needed
   }
 };
 
