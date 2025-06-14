@@ -1041,11 +1041,12 @@ const financialKnowledge = {
   }
 };
 
+// Update searchKnowledge to prefer card.fullDetails if available for credit cards
 const searchKnowledge = (query: string) => {
   const lowerQuery = query.toLowerCase();
   const results = [];
-  
-  // Search credit cards
+
+  // Credit Cards — return fullDetails if present
   for (const [cardName, details] of Object.entries(financialKnowledge.creditCards)) {
     if (
       lowerQuery.includes(cardName) ||
@@ -1053,7 +1054,12 @@ const searchKnowledge = (query: string) => {
       lowerQuery.includes('credit card') ||
       lowerQuery.includes('cc')
     ) {
-      results.push(`${details.company} "${cardName}"\nFeatures: ${details.features ? details.features.join(', ') : details.benefits?.join(', ') ?? ""}\nRewards: ${details.rewards}\nAPR: ${details.apr}\nFees: Annual ₹${details.fees.annual}, Foreign ${details.fees.foreign}%\nTerms: ${(details.terms ?? []).join('; ')}\nRisks/Exclusions: ${(details.exclusions ?? details.risks ?? []).join('; ')}`);
+      // If there is a fullDetails property, return that (instead of summary string)
+      if (details.fullDetails) {
+        results.push(details.fullDetails);
+      } else {
+        results.push(`${details.company} "${cardName}"\nFeatures: ${details.features ? details.features.join(', ') : details.benefits?.join(', ') ?? ""}\nRewards: ${details.rewards}\nAPR: ${details.apr}\nFees: Annual ₹${details.fees.annual}, Foreign ${details.fees.foreign}%\nTerms: ${(details.terms ?? []).join('; ')}\nRisks/Exclusions: ${(details.exclusions ?? details.risks ?? []).join('; ')}`);
+      }
     }
   }
 
