@@ -1,6 +1,4 @@
 
-import Tesseract from 'tesseract.js';
-
 export interface OCRResult {
   text: string;
   confidence: number;
@@ -28,8 +26,11 @@ export class OCRService {
     const startTime = Date.now();
     
     try {
+      // Dynamic import to handle cases where tesseract.js might not be available
+      const Tesseract = await import('tesseract.js');
+      
       const result = await Tesseract.recognize(file, 'eng', {
-        logger: (m) => console.log('OCR Progress:', m)
+        logger: (m: any) => console.log('OCR Progress:', m)
       });
 
       const processingTime = Date.now() - startTime;
@@ -41,7 +42,7 @@ export class OCRService {
       };
     } catch (error) {
       console.error('OCR extraction failed:', error);
-      throw new Error('Failed to extract text from image');
+      throw new Error('Failed to extract text from image. OCR service unavailable.');
     }
   }
 
