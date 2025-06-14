@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +35,7 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
   const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
   const [sections, setSections] = useState<DocumentSection[]>([]);
   const [hiddenClauses, setHiddenClauses] = useState<string[]>([]);
+  const [simpleSummary, setSimpleSummary] = useState<string | null>(null);
 
   const startOCRAnalysis = async () => {
     setIsProcessing(true);
@@ -51,6 +51,10 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
       const result = await ocrService.processDocument(file);
       setOcrResult(result);
       setProgress(40);
+      
+      // NEW STEP: simple summary
+      const summary = generateSimpleSummary(result.text);
+      setSimpleSummary(summary);
       
       // Step 2: Identify sections
       setCurrentStep('Identifying document sections...');
@@ -70,7 +74,6 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
       
       setCurrentStep('Analysis complete!');
       
-      // Call the completion handler
       onAnalysisComplete({
         extractedText: result.text,
         sections: documentSections,
@@ -85,6 +88,22 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const generateSimpleSummary = (fullText: string): string => {
+    if (!fullText) return "No text could be extracted from this document.";
+
+    // Take first ~3 sentences/lines, filter out boilerplate/legal headers
+    const lines = fullText
+      .replace(/\r/g, '')
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 20); // Ignore very short lines
+    const summaryCandidates = lines.slice(0, 3);
+    let summary = summaryCandidates.join(' ');
+    if (summary.length > 450) summary = summary.substring(0, 450) + '...';
+    if (!summary) summary = "Couldn't extract a simple summary from this document.";
+    return "In simple terms: " + summary;
   };
 
   const formatTime = (ms: number) => {
@@ -145,6 +164,21 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
                 in {formatTime(ocrResult.processingTime)}
               </AlertDescription>
             </Alert>
+
+            {/* --- NEW: SIMPLE SUMMARY --- */}
+            {simpleSummary && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <FileText className="w-4 h-4" />
+                    <span>What does this document say?</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-800 text-base">{simpleSummary}</p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Document Sections */}
             {sections.length > 0 && (
