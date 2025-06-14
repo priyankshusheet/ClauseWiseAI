@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -10,7 +11,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
-// Expanded database of representative products and T&C examples
+// Comprehensive financial products database with detailed information
 const financialKnowledge = {
   // --- CREDIT CARDS ---
   creditCards: {
@@ -18,271 +19,464 @@ const financialKnowledge = {
     "sbi simplysave": {
       company: "SBI Card",
       type: "Entry-Level",
-      fees: { annual: 499, foreign: 3.5 },
-      rewards: "1 reward point on every ₹150 spent",
-      features: [
-        "Fuel surcharge waiver",
-        "Flexipay EMI",
-        "Worldwide acceptance"
-      ],
-      terms: [
-        "Annual fee reversal on spending ₹1L in a year",
-        "Add-on cards available",
-        "Late fee as per statement"
-      ],
-      exclusions: [
-        "No rewards on fuel, wallet, or EMI transactions"
-      ]
+      fullDetails: `SBI SimplySAVE Card
+
+📋 Terms & Conditions
+• Joining/Renewal Fee: ₹499 + GST; renewal fee waived from the 2nd year onwards if annual spends ≥ ₹1 lakh
+• Interest Rate: 3.50% per month (~42% p.a.) on outstanding balances
+• Late Payment Fee: Rs. 0–1,300 based on your due amount
+• Fuel Surcharge Waiver: 1% waiver (Rs. 500–3,000 txn) up to ₹100 per statement cycle
+• Reward Point Rate: 10 points per ₹150 on dining, movies, grocery, dept. store; 1 point/₹150 on others. 4 points = ₹1 value
+
+✅ Benefits
+• Welcome Bonus: 2,000 points (~₹500) on spends ≥ ₹2,000 within 60 days
+• Accelerated Rewards: 10x reward points on day-to-day spends
+• Fuel Savings: Waiver on petrol transactions
+• Fee Waiver: Based on milestone spends
+• FlexiPay & Balance Transfer: EMI conversions available
+• Contactless & Global Use: Accepted worldwide
+
+➕ Pros
+• Simple and effective for everyday expenses
+• Low barrier to entry with easy eligibility
+• Milestone waiver makes annual fee negligible
+• Fuel surcharge waiver adds value
+• Basic EMIs and contactless convenience
+
+➖ Cons
+• High interest rates on carryover dues
+• Limited to specific redemption catalog
+• No premium perks (e.g., lounge access)
+• Low reward on non-specified categories
+• Late payment penalties can be steep`
     },
-    "icici platinum chip": {
-      company: "ICICI Bank",
-      type: "Entry-Level",
-      fees: { annual: 199, foreign: 3.5 },
-      rewards: "2 PAYBACK points per ₹100 retail spends",
-      features: [
-        "Chip & PIN protection",
-        "Dining discounts"
-      ],
-      terms: [
-        "No annual fee on select accounts",
-        "2.5% fuel surcharge waiver"
-      ],
-      exclusions: [
-        "No free airport lounge",
-        "No cashback on EMI"
-      ]
-    },
-    "axis my zone": {
-      company: "Axis Bank",
-      type: "Entry-Level",
-      fees: { annual: 500, foreign: 3.5 },
-      rewards: "4 EDGE points per ₹200",
-      features: [
-        "BOGO on movie tickets",
-        "Swiggy & Paytm Movie cashback"
-      ],
-      terms: [
-        "Annual fee waiver at ₹30,000 spend"
-      ],
-      exclusions: [
-        "Minimum purchase for cashback"
-      ]
-    },
-    // Rewards
-    "hdfc millennia": {
+    "hdfc regalia": {
       company: "HDFC Bank",
-      type: "Rewards",
-      fees: { annual: 1000, foreign: 3.5 },
-      rewards: "5% cashback on Amazon/Flipkart, 1% on offline",
-      features: [
-        "Airport lounge access",
-        "Fuel surcharge waiver"
-      ],
-      terms: [
-        "₹1,00,000 spend for fee waiver",
-        "Max cashback ₹1,000/month"
-      ]
-    },
-    "amazon pay icici": {
-      company: "ICICI Bank",
-      type: "Rewards/Co-branded",
-      fees: { annual: 0, foreign: 3.5 },
-      rewards: "5% (Prime), 3% (non-Prime) on Amazon, 1% elsewhere",
-      features: [
-        "No joining/annual fee",
-        "Direct Amazon Pay cashback"
-      ],
-      terms: [
-        "Primary use on Amazon for maximum benefit"
-      ]
+      type: "Travel/Premium",
+      fullDetails: `HDFC Regalia Credit Card (typical premium offering)
+
+📋 Terms & Conditions
+• Joining/Renewal Fee: ₹2,500 + GST; waived if ≥ ₹3 lakh annual spend
+• Reward Rate: 4 pts per ₹150; milestone bonuses of 10,000 pts at ₹5 lakh and 5,000 additional at ₹8 lakh spend
+• Foreign Currency Mark-up: 2% + GST
+• Lounge Access Triggers: 2 domestic lounge visits per quarter if quarterly spends ≥ ₹1 lakh; 6 international lounge visits via Priority Pass
+• Insurance Covers: Air accidental death ₹1 crore; overseas hospital ₹15 lakh; credit liability ₹9 lakh
+
+✅ Benefits
+• Travel Perks: Domestic and international lounge access, Priority Pass
+• Dining Offers: 25% off at select partner restaurants, 1+1 buffet deals
+• Milestone Rewards: Gift vouchers and bonus reward points based on spending
+• Insurance Coverage: Comprehensive travel and liability protection
+• Low Fx mark-up: 2% charge on foreign spends, competitive for premium cards
+
+➕ Pros
+• High reward rate with bonus on milestone spends
+• Travel-lifestyle perks—lounges, discounts
+• Robust insurance bundled in
+• Fee waiver achievable with normal spend
+• Easier to redeem via SmartBuy
+
+➖ Cons
+• Lounge access is conditional on spending thresholds
+• FX markup still adds up on frequent travel
+• Large spends needed to realize milestone benefits
+• Some benefits are geofenced or clubbed with select merchants
+• Quarterly controls may restrict casual users`
     },
     "axis ace": {
       company: "Axis Bank",
       type: "Rewards/Cashback",
-      fees: { annual: 499, foreign: 3.5 },
-      rewards: "5% cashback on Google Pay utility, 2% elsewhere",
-      features: [
-        "Lounge access 4/yr",
-        "Unlimited cashback"
-      ],
-      terms: [
-        "Joining bonus ₹500",
-        "Fee reversal on ₹2L spend"
-      ]
+      fullDetails: `Axis ACE Credit Card
+
+📋 Terms & Conditions
+• Joining/Renewal Fee: ₹499 + GST; first year fee waived with ₹10k spent within 45 days, and waived annually if yearly spends ≥ ₹2 lakh
+• Finance Charge: 3.75% per month (~55.5% p.a.)
+• Late Payment Fee: ₹500–1,200 depending on overdue amount
+• Cashback Exclusions: No cashback on fuel, EMI/wallet/cash advance/rent/insurance/education/government services/financial payments
+• Cashback Categories & Rates:
+  - 5% on utility bills and recharge via Google Pay
+  - 4% on food delivery via partner apps
+  - 2% on all other eligible spends
+• Lounge Access: 4 free domestic airport lounges per year with ₹50k spend in prior 3 months
+
+✅ Benefits
+• High cashback: Unlimited 5% on Google Pay utility/recharges, 4% on food delivery
+• Lounge privileges: Up to 4 domestic lounge visits annually
+• Fuel surcharge waiver: 1% waiver on ₹400–4,000 fuel transactions (GST extra)
+• Dining offers: Up to 15–20% off at select restaurants via EazyDiner
+• EMI conversion: Available for purchases ₹2,500+
+
+➕ Pros
+• Best-in-class cashback on everyday spends (utility, food, recharges)
+• Fee waiver achievable with moderate spends
+• Lounge access adds travel convenience
+• Broad EMI and dining benefits
+
+➖ Cons
+• High interest (55% p.a.) on carry-over balances
+• Stringent exclusions on cashback earn (rent, fuel TXNs, etc.)
+• Forex markup ~3.5% on international transactions
+• Some benefits (fee waiver, lounge) tied to fairly high spend thresholds`
     },
-    // Travel
-    "hdfc regalia": {
+    "hdfc millennia": {
       company: "HDFC Bank",
-      type: "Travel/Premium",
-      fees: { annual: 2500, foreign: 2.5 },
-      rewards: "4 points per ₹150 spent",
-      features: [
-        "Lounge access (air/rail)",
-        "Insurance: air accident, lost card"
-      ],
-      terms: [
-        "Waiver on spending ₹3L/yr",
-        "2% forex markup"
-      ]
+      type: "Rewards",
+      fullDetails: `HDFC Millennia Credit Card
+
+📋 Terms & Conditions
+• Joining/Renewal Fee: ₹1,000 + GST; renewal fee waived if annual spends ≥ ₹1 lakh
+• Finance Charge: 3.75% per month (~45% p.a.)
+• Late Payment Fee: ₹0–1,300 based on outstanding owed
+• Cashback Caps & Policy:
+  - 5% cashback on 10 partner merchants (Amazon, Flipkart, Zomato, etc.), capped at ₹1,000/month (~₹20k spend)
+  - 1% cashback on other spends (including EMIs, wallet), capped ₹1,000/month
+• Excludes fuel, rent, govt/educational spends
+• Lounge Access: 8 domestic airport lounge visits per year
+• Fuel Waiver: 1% waiver on fuel txns, capped ₹250/cycle
+• Zero Liability: On lost card with prompt reporting
+
+✅ Benefits
+• High-value cashback: 5% on major online merchants, 1% on other spends
+• Welcome points: ₹1,000 worth of cashpoints on activation
+• Lifestyle perks: 20% off dining via Dineout + lounge access
+• Fuel savings: 1% waiver on petrol purchases
+• Fraud protection: Global zero liability if card lost/stolen
+
+➕ Pros
+• Excellent cashback on online shopping — up to ₹12k/year
+• Welcome bonus covers first-year fee
+• Low fee with achievable waiver
+• Flexible redemption at 1 pt = ₹1
+• Includes lounge access and good dining offers
+
+➖ Cons
+• Cashback caps limit high spenders
+• Low 1% return on non-partner spends
+• Strict exclusions — no fuel rent govt spends earn
+• High interest on unpaid balance
+• Some benefits contingent on SmartPay usage`
     },
-    "axis atlas": {
+    "axis my zone": {
       company: "Axis Bank",
-      type: "Travel",
-      fees: { annual: 5000, foreign: 2.0 },
-      rewards: "5 edge miles for ₹100 spent",
-      features: [
-        "Global lounge access",
-        "Dedicated concierge"
-      ],
-      terms: [
-        "High annual fee, multipliers on travel expenses"
-      ]
+      type: "Entry-Level",
+      fullDetails: `Axis My Zone Credit Card
+
+📋 Terms & Conditions
+• Joining & Annual Fee: ₹500 + GST (can be waived via select channels)
+• Fee Waiver: Lifetime free offers through select channels; lounge access conditional on ₹50k spends in prior 3 months
+• Finance Charges: ~3.75%/month (~52.9–55.5% p.a.)
+• Late Payment Fee: ₹0–1,200 depending on overdue amount
+• Foreign Currency Markup: ~3.5%
+• Reward Rate: 4 EDGE points per ₹200; points not earned on movies, fuel, insurance, wallets, etc.
+• Fuel Surcharge Waiver: 1% waiver on ₹400–4,000 fuel spends, capped at ₹400/month
+
+✅ Benefits
+Entertainment & OTT:
+• 100% 2nd ticket free (max ₹200/month) for District/Zomato app
+• ₹120 off twice per month on Swiggy orders ≥ ₹500
+• SonyLIV Premium subscription (₹1,499) in first year; renewal possible after ₹1.5 lakh spends
+
+Lifestyle & Travel:
+• Up to ₹1,000 off at AJIO (min ₹2,999)
+• Dining discounts via EazyDiner (~15% up to ₹500)
+• 1 complimentary domestic lounge access/quarter upon meeting spend criteria
+
+Other:
+• Fuel surcharge waiver, EMI conversions, secure EMV chip protection
+
+➕ Pros
+• Strong entertainment value for movie buffs and OTT users
+• Meaningful discounts across Swiggy, AJIO, dining
+• Lounge access adds travel utility
+• EMV chip enhances transaction security
+
+➖ Cons
+• Limited rewards on non-eligible spends; many exclusions
+• Foreign markup high at ~3.5%
+• Spend thresholds needed to unlock some perks
+• Heavy reliance on discount offers rather than fixed cashback`
     },
-    "sbi elite": {
-      company: "SBI Card",
-      type: "Travel/Premium",
-      fees: { annual: 4999, foreign: 1.99 },
-      rewards: "Rewards on travel & movies",
-      features: [
-        "Complimentary hotel memberships",
-        "Lounge visits: domestic/international"
-      ],
-      terms: [
-        "Fee reversal at ₹10L spend"
-      ]
+    "amazon pay icici": {
+      company: "ICICI Bank",
+      type: "Rewards/Co-branded",
+      fullDetails: `Amazon Pay ICICI Credit Card
+
+📋 Terms & Conditions
+• Joining & Annual Fee: Nil
+• Finance Charges: ~3.75%/month (~45% p.a.)
+• Late Payment Fee: ₹0–1,200 based on overdue amount
+• Cash Advance Fees: 2.5% or ₹300 minimum
+• Foreign Currency Markup: ~3.5% (not ideal for international usage)
+
+✅ Benefits
+Cashback Rates:
+• 5% on Amazon.in (Prime members); 3% (non-Prime)
+• 2% on Amazon Pay partner spends (broad merchant base)
+• 1% on all other spends (redeemed as Amazon Pay balance)
+
+Welcome Offers:
+• Approx. ₹1,700 equivalent cashback/bonuses (e.g., ₹150 on first bill, ₹200 on first purchase)
+• 3 months complimentary EazyDiner Prime membership (~₹1,095)
+
+Other Perks:
+• Dining discounts via Culinary Treats (~15%)
+• 1% fuel surcharge waiver on petrol spends
+• No cap or expiry on cashback
+
+➕ Pros
+• High returns for Amazon loyalists, especially Prime users
+• No fee, no expiry—easy and economical to maintain
+• Simple cashback credited directly to Amazon Pay wallet
+• Rewards extend to utilities and recharges (via Amazon Pay)
+
+➖ Cons
+• Minimal benefits outside Amazon ecosystem
+• High forex markup deters international use
+• Non-Prime earn rate lower (3% vs 5%)
+• Cashback held if unusual spending pattern detected (according to some users)`
     },
-    "club vistara sbi": {
-      company: "SBI Card",
-      type: "Travel/Co-branded",
-      fees: { annual: 1499, foreign: 3.5 },
-      rewards: "Vistara points for airline spends",
-      features: [
-        "Lounge visits",
-        "Air accident insurance"
-      ]
-    },
-    // Fuel
-    "indianoil axis bank": {
-      company: "Axis Bank",
-      type: "Fuel",
-      fees: { annual: 500, foreign: 3.5 },
-      rewards: "4% value back on IOCL fuel bills",
-      terms: [
-        "Annual fee waiver: ₹50,000 spend"
-      ]
-    },
-    "bpcl sbi card": {
-      company: "SBI Card",
-      type: "Fuel",
-      fees: { annual: 499, foreign: 3.5 },
-      rewards: "13X points on BPCL fuel, 3.25% value back",
-      features: [
-        "1% fuel surcharge waiver"
-      ]
-    },
-    // Cashback
     "axis flipkart": {
       company: "Axis Bank",
-      type: "Cashback",
-      fees: { annual: 500, foreign: 3.5 },
-      rewards: "5% cashback at Flipkart, 4% at partners, 1.5% elsewhere",
-      features: [
-        "Four airport lounge visits",
-        "Dining offers"
-      ]
+      type: "Co-branded",
+      fullDetails: `Axis Flipkart Credit Card
+
+📋 Terms & Conditions
+• Joining Fee: ₹0 or ₹500 + GST depending on source; annual fee is waived with ₹2 lakh annual spend
+• Cashback Rates:
+  - 5% on Flipkart and Cleartrip
+  - 4% on preferred merchants (Swiggy, Uber, PVR, CultFit)
+  - 1% on all other eligible spends
+• Spend Exclusions: No cashback on fuel, gift cards, EMI, wallet loads, utilities, government services, educational fees, rentals, cash advance, etc.
+• Cashback Caps:
+  - Past: Unlimited
+  - Revised (from June 20 2025): ₹4,000/quarter each on Flipkart & Cleartrip
+  - Myntra now earns 7.5% up to ₹4,000/quarter
+• Lounge Access: 4 domestic lounge visits/year, conditional on ≥ ₹50k spend in last 3 months—but removed in June 2025 update
+• Fees & Charges:
+  - Late payment fee: ₹500–1,200 + ₹100 penalty for consecutive misses
+  - 1% fee on wallet/fuel/gaming/education transactions above thresholds
+• Forex markup: ~3.5%
+
+✅ Benefits
+• High cashback in e-commerce & lifestyle (overall ~5%, 4%, 1%)
+• Quarterly caps still generous for heavy Flipkart/Cleartrip/Myntra users
+• Welcome voucher (~₹600) on activation via Flipkart app
+• Lounge access (now revoked) previously added travel value
+
+➕ Pros
+• Optimized for Flipkart & related apps—great ROI for frequent shoppers
+• Significant cashback on Myntra with the 7.5% update
+• Conditional lounge access was a plus—still valid until June 20, 2025
+• Fee waiver makes it essentially zero-cost with moderate spend
+
+➖ Cons
+• Benefit cutbacks: lounge access gone and cashback caps introduced
+• Strict exclusions—many transactions earning no cashback
+• Complex fee structures on high wallet/fuel/gaming usage
+• No perks for international use (high fees, no lounge)`
     },
     "hdfc moneyback plus": {
       company: "HDFC Bank",
       type: "Cashback",
-      fees: { annual: 500, foreign: 3.5 },
-      rewards: "Cashpoints for retail spends",
-      terms: [
-        "Joining fee waived at ₹50,000 spend"
-      ]
+      fullDetails: `HDFC MoneyBack+ Credit Card
+
+📋 Terms & Conditions
+• Joining/Renewal Fee: ₹500 + GST; renewal waived if spends ≥ ₹50k in last year
+• Reward Structure:
+  - 10x CashPoints (20 pts/₹150) on select partners (Amazon, BigBasket, Flipkart, Reliance Smart, Swiggy), capped 2,500 pts/month (~₹625 value)
+  - 2 pts/₹150 on other spends (excl. fuel, rent, govt, wallet loads, EMI)
+• Milestone Bonus: Earn ₹500 gift voucher each quarter on ≥ ₹50k spend (max ₹2,000/year)
+• Fuel Waiver: 1% surcharge waiver (₹400–5,000 txn), max ₹250/cycle
+• Reward Redemption: CashPoints = ₹0.25 each (100 pts = ₹25). Min redeemable: 2,000 pts for cashback (~₹500)
+• Reward Caps/Exclusions: Online bonus capped monthly. No points on rent, govt, fuel, wallet/gift/voucher txns
+• Fees & Charges: Interest ~3.75% p.m., late fees ₹100–1,300, forex 3.5%, cash advance 2.5% min ₹500
+• Eligibility: Salaried/resident ≥ ₹20k net monthly or self-employed with ITR ≥ ₹6 LPA
+
+✅ Benefits
+• Outstanding rewards on e-commerce & food aggregator spends (10x up to ₹625/mo)
+• Quarterly vouchers worth ₹500 up to ₹2k annually
+• Fuel waiver and contactless feature included
+• Fee waiver on renewal with moderate usage
+
+➕ Pros
+• Strong returns on shopping & dining
+• Quarterly gifts make it feel like extra income
+• Redeem points flexibly for cashback or travel
+• Easy uptime fee waiver—spend ₹50k
+• Contactless convenience is a plus
+
+➖ Cons
+• Monthly cap on bonus uses limits high spenders
+• No rewards on EMI, wallets, payments like rent/govt
+• Moderate interest and fees if you carry balances
+• Reward point value low when not redeemed for cashback`
     },
     "hsbc cashback": {
       company: "HSBC Bank",
       type: "Cashback",
-      fees: { annual: 999, foreign: 3.5 },
-      rewards: "1.5% cashback on all spends",
-      features: [
-        "Amazon, Flipkart, Swiggy offer"
-      ]
+      fullDetails: `HSBC Cashback (Live+) Credit Card
+
+📋 Terms & Conditions
+• Joining & Annual Fee: ₹999; annual fee waived if annual spend ≥ ₹200,000
+• Finance Charges: ~3.49% per month (~41.9% p.a.)
+• Late Payment Fee: 100% of minimum due (₹250–1,200)
+• Foreign Currency Markup: ~3.5%
+• Welcome Bonus: ₹1,000 Amazon voucher on spending ₹10k in 30 days & ₹100 Amazon voucher for online application
+
+✅ Benefits
+• 10% cashback (capped ₹1,000/month) on dining, groceries, and food delivery
+• 1.5% unlimited cashback on other eligible spends
+• 4 domestic lounge visits/year (1 per quarter)
+• Zero liability for unauthorized transactions reported promptly
+
+➕ Pros
+• Exceptional 10% cashback on key everyday categories
+• Straightforward cashback credited within ~45 days
+• Entry-level premium pricing; fee can be easily waived with ₹2 lakh spend
+• Complimentary lounge visits add travel value
+
+➖ Cons
+• Cashback cap limits savings (~₹12,000/year)
+• High finance and forex charges if carrying balances or traveling
+• Cashback exclusions include wallets, fuel, rent, govt, etc.
+• Limited benefits beyond dining and groceries; might not suit varied lifestyle needs`
     },
-    // Premium
+    "sbi elite": {
+      company: "SBI Card",
+      type: "Travel/Premium",
+      fullDetails: `SBI Elite Credit Card
+
+📋 Terms & Conditions
+• Joining & Renewal Fee: ₹4,999 + GST; renewal waived if annual spend ≥ ₹1,000,000
+• Finance Charges: ~3.50% per month (~42% p.a.)
+• Late Payment Fee: ₹0–1,300 (based on overdue amount)
+• Fuel Surcharge Waiver: 1% on ₹500–4,000; waives up to ₹250 per statement cycle
+• Reward Rate:
+  - 5× points on dining, departmental stores, grocery
+  - 2 points per ₹100 on other spends (fuel excluded)
+• Milestone Bonuses:
+  - 10k points each at ₹300k & ₹400k annual spends
+  - 15k at ₹500k & ₹800k; fee reversal at ₹10 lakh spend
+• Welcome Gift: ₹5,000 e-voucher from lifestyle/travel brands
+• Movie Benefit: Up to ₹6,000 per year (2 tickets/month, ₹250 off each) via BookMyShow
+• Lounge Access:
+  - 2 domestic visits per quarter
+  - 6 international visits/year via Priority Pass
+• Foreign Markup: Low, at 1.99%
+• Insurance:
+  - ₹1 Cr air accidental death cover
+  - ₹1 L lost card liability; overseas hospital cover (~₹15 L)
+
+✅ Benefits
+• Rich lifestyle perks: lounge access, movie tickets, welcome vouchers
+• Strong reward structure: 5× multipliers + milestone bonuses up to 50k points
+• Complimentary Club Vistara Silver and hotel perks; golf benefits for MasterCard variants
+• Low forex markup makes it travel-friendly
+• Comprehensive insurance and concierge services
+
+➕ Pros
+• High value for frequent travelers and lifestyle spenders
+• Rewards and privileges justify the premium fee if used well
+• Lounge and travel benefits surpass many peers
+• Low international fees and excellent insurance coverage
+
+➖ Cons
+• Requires huge spending (₹10 L) for fee waiver
+• Substantial annual fee—better only for heavy users
+• Reward points less valuable if not redeemed optimally
+• Benefits like concierge and golf are niche, underutilized by many
+• Insurance/exclusion clauses need careful reading`
+    },
     "hdfc infinia": {
       company: "HDFC Bank",
       type: "Premium",
-      fees: { annual: 12500, foreign: 2.0 },
-      rewards: "5 reward points per ₹150",
-      features: [
-        "Unlimited lounge access"
-      ],
-      terms: [
-        "Invitation only"
-      ]
+      fullDetails: `HDFC Infinia Credit Card (Invite-only, Super-Premium)
+
+📋 Terms & Conditions
+• Joining/Renewal Fee: ₹12,500 + GST; waived if annual spends ≥ ₹10 lakh; renewal bonus of 12,500 reward points (~₹12,500) upon renewal
+• Reward Rate: 5 points/₹150 (~3.33% value); up to 10× (max 15,000 pts/month) on travel & shopping via SmartBuy
+• Reward Validity: 3 years; lapses if card unused for 365 days
+• Fuel Surcharge: 1% waiver (₹400–1 lakh), no points earned on fuel
+• Foreign Markup Fee: 2% + GST (~2.36%), plus optional 1% cashback via Global Value program
+• EMI & Cash Withdrawal: EMI conversion via Smart EMI; free cash withdrawals up to 40% of credit limit
+• Insurance: ₹3 cr accident cover, ₹50 L overseas hospitalization, ₹9 L credit shield
+• Lounge Access:
+  - Unlimited domestic visits (₹2 nominal per visit for Visa)
+  - Unlimited international Priority Pass access (& for add-ons; guests chargeable)
+• Golf Benefit: Unlimited rounds/lessons at ~20 domestic & 140 international courses
+• Concierge & Lifestyle: Club Marriott membership (1 yr), ITC benefits, dining discounts via Swiggy/SmartBuy
+
+✅ Benefits
+• High rewards on almost all spends; accelerated on SmartBuy
+• True unlimited lounge access and golf privileges
+• Strong insurance and low forex fees
+• Lifestyle perks include hotel & dining benefits, concierge support
+
+➕ Pros
+• Exceptional reward value (~3.3% baseline)
+• Enviable travel and lifestyle inclusions
+• Annual fee effectively nullified with usage
+• SMS-free EMI/cash withdrawal options
+
+➖ Cons
+• Invite-only; high income and credit score needed
+• Exclusions on fuel, EMI, wallets reduce some earnings
+• SmartBuy caps limit maximum bonus monthly
+• International markup still at 2.36% plus GST`
     },
     "axis magnus": {
       company: "Axis Bank",
       type: "Premium",
-      fees: { annual: 12000, foreign: 2.0 },
-      rewards: "12 Edge reward points per ₹200",
-      features: [
-        "Unlimited global lounge (Priority Pass)",
-        "Dining/concierge"
-      ]
-    },
-    "sbi aurum": {
-      company: "SBI Card",
-      type: "Premium",
-      fees: { annual: 9999, foreign: 1.99 },
-      rewards: "5X rewards on all spends",
-      features: [
-        "Taj Epicure membership",
-        "Personal relationship manager"
-      ]
-    },
-    "icici emeralde": {
-      company: "ICICI Bank",
-      type: "Premium",
-      fees: { annual: 12000, foreign: 2.5 },
-      rewards: "Reward points per spend slab",
-      features: [
-        "Airport lounge (domestic/international)",
-        "Spa access"
-      ]
-    },
-    // Co-branded
-    "flipkart axis": {
-      company: "Axis Bank",
-      type: "Co-branded",
-      fees: { annual: 500, foreign: 3.5 },
-      rewards: "5% on Flipkart, 1.5% elsewhere",
-      terms: [
-        "Annual fee waived at ₹2L spend"
-      ]
-    },
-    "irctc sbi": {
-      company: "SBI Card",
-      type: "Co-branded",
-      fees: { annual: 500, foreign: 3.5 },
-      rewards: "1.8% value back on train bookings",
-      features: [
-        "Fuel surcharge waiver",
-        "Exclusive rail surcharges"
-      ]
-    },
-    "swiggy hdfc": {
-      company: "HDFC Bank",
-      type: "Co-branded",
-      fees: { annual: 500, foreign: 3.5 },
-      rewards: "10% cashback at Swiggy",
-      features: [
-        "Dining offers",
-        "Discounts on partner platforms"
-      ]
+      fullDetails: `Axis Magnus Credit Card (Premium)
+
+📋 Terms & Conditions
+• Joining/Renewal Fee: ₹12,500 + GST; fully refunded via vouchers (Luxe, Postcard Hotels, or Yatra) after first txn; waived if spend ≥ ₹25 lakh annually
+• Reward Structure:
+  - 12 EDGE pts/₹200 for spends up to ₹1.5 L in a month
+  - 35 pts/₹200 on incremental spends
+  - 60 pts/₹200 on Travel EDGE portal (capped)
+• Spend Exclusions: No points on utilities, wallets, EMI, govt, insurance, fuel, gold, jewellery
+• Foreign Markup Fee: 2% on international transactions
+• Interest & Fees:
+  - 3% extended credit interest rate
+  - No cash withdrawal fees
+• Fuel Surcharge Waiver: 1% (₹400–4,000 transactions), capped ₹400/month
+• Lounge Access: Unlimited domestic & international (PP) access; domestic only if prior 3-month spend ≥ ₹50 k
+• Welcome Benefit: Vouchers worth ₹12,500 after first transaction
+• Insurance & Protection: Purchase cover ~₹2 L, credit shield ₹5 L, baggage protection, travel medical
+• Concierge Services: 24/7 assistance for travel, dining, events (note: concierge withdrawn in April 2024)
+
+✅ Benefits
+• Strong reward structure with tier-based bonuses
+• Vouchers offset the fee immediately
+• Excellent lounge access perks
+• Low forex fees and no withdrawal charges
+• Dining and travel advantages included
+
+➕ Pros
+• Unlimited lounge access domestically and abroad
+• High redemptive flexibility via EDGE points
+• Fee effectively nullified with spend/vouchers
+• Attractive offers on travel/dining
+• Good protection benefits
+
+➖ Cons
+• High annual fee and spends required
+• Many exclusions reduce earn potential
+• Concierge service withdrawn
+• Redemption caps apply
+• Don't fully benefit unless high card usage
+
+✅ Comparison: Infinia vs Magnus
+Feature | HDFC Infinia | Axis Magnus
+Annual Fee | ₹12.5 k (waivable with ₹10 L spend) | ₹12.5 k (fully rebated + waivable with ₹25 L spend)
+Rewards Rate | ~3.33% baseline, up to 10× SmartBuy | Tiered: 12–35 EDGE pts; travel 60 pts/₹200
+Lounge Access | Unlimited, domestic & Priority Pass | Unlimited with spend condition
+Forex Fee | ~2–2.36% (+1% cashback option) | 2%
+Key Extra Perks | Golf, concierge, Marriott, ITC deals | Vouchers, dining, shopping, travel concierge (until 2024)
+Ideal For | High-net-worth, travel & lifestyle seekers | Heavy spenders valuing travel & rewards
+Main Drawbacks | Invite-only; some reward caps | Concierge removed; earn exclusions`
     }
-    // ... add more as needed
   },
 
   // --- MUTUAL FUNDS ---
