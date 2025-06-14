@@ -14,6 +14,7 @@ import {
   Search
 } from 'lucide-react';
 import { OCRService, OCRResult, DocumentSection } from '@/services/ocrService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface OCRAnalysisProps {
   file: File;
@@ -28,63 +29,147 @@ interface OCRAnalysisResult {
   processingTime: number;
 }
 
+interface Insights {
+  proposal: string;
+  pros: string[];
+  cons: string[];
+  hiddenClauses: string[];
+  error?: string;
+}
+
 const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
   const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
   const [sections, setSections] = useState<DocumentSection[]>([]);
-  const [hiddenClauses, setHiddenClauses] = useState<string[]>([]);
   const [simpleSummary, setSimpleSummary] = useState<string | null>(null);
+  const [aiInsights, setAiInsights] = useState<Insights | null>(null);
+
+  const [hiddenClauses, setHiddenClauses] = useState<string[]>([]);
+  const [insightError, setInsightError] = useState<string | null>(null);
 
   const startOCRAnalysis = async () => {
     setIsProcessing(true);
     setProgress(0);
-    
+    setCurrentStep('');
+    setAiInsights(null);
+    setInsightError(null);
+
     try {
       const ocrService = OCRService.getInstance();
       
       // Step 1: Extract text
       setCurrentStep('Extracting text from document...');
       setProgress(20);
-      
       const result = await ocrService.processDocument(file);
       setOcrResult(result);
       setProgress(40);
       
-      // NEW STEP: simple summary
-      const summary = generateSimpleSummary(result.text);
-      setSimpleSummary(summary);
-      
-      // Step 2: Identify sections
-      setCurrentStep('Identifying document sections...');
+      // Step 2: Call AI for proposal, pros, cons, hidden clauses, etc.
+      setCurrentStep('Summarizing document...');
       setProgress(60);
-      
+
+      const analysisData = {
+        fileName: file.name,
+        fileType: file.type,
+        extractedText: result.text,
+        ocrConfidence: result.confidence,
+        analysisType: 'breakdown'
+      };
+
+      let aiResult: Insights = {
+        proposal: '',
+        pros: [],
+        cons: [],
+        hiddenClauses: [],
+      };
+
+      try {
+        // Call custom AI summary endpoint
+        // We'll use the existing function and parse its response for our keys.
+        const { data, error } = await supabase.functions.invoke('document-analysis', { body: analysisData });
+        if (error) {
+          throw error;
+        }
+
+        // Try to parse results into proposal, pros/cons, hidden clauses
+        // For maximum robustness, we heuristically extract these fields.
+        let proposal = '';
+        let pros: string[] = [];
+        let cons: string[] = [];
+        let detectedClauses: string[] = [];
+
+        // Try to extract as much as possible based on field keys or text
+        if (typeof data === "object" && data !== null) {
+          if (data.summary) proposal = data.summary;
+          if (Array.isArray(data.findings)) {
+            // Heuristically split findings into pros/cons
+            const proList: string[] = [];
+            const conList: string[] = [];
+            (data.findings as string[]).forEach((item: string) => {
+              // Treat findings with "no issues"/"standard"/"favorable"/"simple"/"clear" as pros
+              if (
+                /no\s+issues|standard|favorable|simple|clear|well\-defined|transparent|easy|no additional/i.test(item)
+              ) {
+                proList.push(item);
+              } else {
+                conList.push(item);
+              }
+            });
+            pros = proList;
+            cons = conList;
+            detectedClauses = data.hiddenClauses || data.issues || [];
+            // If no explicit hidden clauses, treat "conList" as hidden clauses.
+            if (!detectedClauses.length) detectedClauses = conList;
+          }
+        }
+
+        // Fallback heuristics
+        if (!proposal && typeof data.summary === "string")
+          proposal = data.summary;
+        if (!pros.length && Array.isArray(data.pros))
+          pros = data.pros;
+        if (!cons.length && Array.isArray(data.cons))
+          cons = data.cons;
+        if (!detectedClauses.length && Array.isArray(data.hiddenClauses))
+          detectedClauses = data.hiddenClauses;
+
+        aiResult = { proposal, pros, cons, hiddenClauses: detectedClauses };
+      } catch (err: any) {
+        setInsightError("Could not analyze document with AI. Raw OCR text may be shown instead.");
+        aiResult = {
+          proposal: '',
+          pros: [],
+          cons: [],
+          hiddenClauses: [],
+          error: String(err.message || err)
+        };
+      }
+
+      setAiInsights(aiResult);
+      setProgress(90);
+
+      // Continue with section/hidden clause detection as before
+      setCurrentStep('Identifying document sections...');
+      setProgress(95);
       const documentSections = ocrService.identifyDocumentSections(result.text);
       setSections(documentSections);
-      setProgress(80);
-      
-      // Step 3: Analyze for hidden clauses
-      setCurrentStep('Analyzing for hidden clauses...');
-      setProgress(90);
-      
-      const foundHiddenClauses = ocrService.analyzeForHiddenClauses(result.text);
-      setHiddenClauses(foundHiddenClauses);
-      setProgress(100);
-      
+
       setCurrentStep('Analysis complete!');
-      
+      setProgress(100);
+
       onAnalysisComplete({
         extractedText: result.text,
         sections: documentSections,
-        hiddenClauses: foundHiddenClauses,
+        hiddenClauses: aiResult.hiddenClauses,
         confidence: result.confidence,
         processingTime: result.processingTime
       });
-      
     } catch (error) {
       console.error('OCR Analysis failed:', error);
       setCurrentStep('Analysis failed');
+      setInsightError('Failed to complete OCR analysis.');
     } finally {
       setIsProcessing(false);
     }
@@ -165,8 +250,8 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
               </AlertDescription>
             </Alert>
 
-            {/* --- NEW: SIMPLE SUMMARY --- */}
-            {simpleSummary && (
+            {/* --- AI SIMPLE LANGUAGE OUTPUT --- */}
+            {aiInsights && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -174,8 +259,49 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
                     <span>What does this document say?</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-gray-800 text-base">{simpleSummary}</p>
+                <CardContent className="space-y-4">
+                  {aiInsights.proposal && (
+                    <div>
+                      <h4 className="font-semibold mb-1">Proposal</h4>
+                      <p className="text-gray-800">{aiInsights.proposal}</p>
+                    </div>
+                  )}
+                  {!!aiInsights.pros?.length && (
+                    <div>
+                      <h4 className="font-semibold mb-1 text-green-700">Pros</h4>
+                      <ul className="list-disc pl-5 text-green-900">
+                        {aiInsights.pros.map((pro, i) => (
+                          <li key={i}>{pro}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {!!aiInsights.cons?.length && (
+                    <div>
+                      <h4 className="font-semibold mb-1 text-red-700">Cons</h4>
+                      <ul className="list-disc pl-5 text-red-900">
+                        {aiInsights.cons.map((con, i) => (
+                          <li key={i}>{con}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {!!aiInsights.hiddenClauses?.length && (
+                    <div>
+                      <h4 className="font-semibold mb-1 text-orange-600">Potential Hidden Clauses</h4>
+                      <ul className="list-disc pl-5 text-orange-900">
+                        {aiInsights.hiddenClauses.map((clause, i) => (
+                          <li key={i}>{clause}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {aiInsights.error && (
+                    <p className="text-sm text-red-600 mt-2">{aiInsights.error}</p>
+                  )}
+                  {insightError && (
+                    <p className="text-sm text-red-500">{insightError}</p>
+                  )}
                 </CardContent>
               </Card>
             )}
