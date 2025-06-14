@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -1273,7 +1274,7 @@ const searchKnowledge = (query: string) => {
     if (relevance > 0) {
       creditCardResults.push({
         relevance,
-        content: details.fullDetails || `${details.company} "${cardName}"\nFeatures: ${details.features ? details.features.join(', ') : details.benefits?.join(', ') ?? ""}\nRewards: ${details.rewards}\nAPR: ${details.apr}\nFees: Annual ₹${details.fees.annual}, Foreign ${details.fees.foreign}%\nTerms: ${(details.terms ?? []).join('; ')}\nRisks/Exclusions: ${(details.exclusions ?? details.risks ?? []).join('; ')}`
+        content: details.fullDetails || `${details.company} "${cardName}"\nFeatures: ${details.features ? details.features.join(', ') : details.benefits?.join(', ') ?? ""}\nRewards: ${details.rewards}\nAPR: ${details.apr}\nFees: Annual ₹${details.fees.annual}, Foreign ${details.fees.foreign}%\nTerms: ${(details.terms ?? []).join(', ')}\nRisks/Exclusions: ${(details.exclusions ?? details.risks ?? []).join(', ')}`
       });
     }
   }
@@ -1291,7 +1292,7 @@ const searchKnowledge = (query: string) => {
     if (relevance > 0) {
       mutualFundResults.push({
         relevance,
-        content: `${info.company} "${mfName}" [${info.type}]\nExpense Ratio: ${info.expenseRatio}, Exit Load: ${info.exitLoad}, Min Investment: ₹${info.minInvestment}\nFeatures: ${(info.features ?? []).join(", ")}\nTerms: ${(info.terms ?? []).join('; ')}\nRisks: ${(info.risks ?? []).join('; ')}`
+        content: `${info.company} "${mfName}" [${info.type}]\nExpense Ratio: ${info.expenseRatio}, Exit Load: ${info.exitLoad}, Min Investment: ₹${info.minInvestment}\nFeatures: ${(info.features ?? []).join(", ")}\nTerms: ${(info.terms ?? []).join(', ')}\nRisks: ${(info.risks ?? []).join(', ')}`
       });
     }
   }
@@ -1309,7 +1310,7 @@ const searchKnowledge = (query: string) => {
     if (relevance > 0) {
       healthInsuranceResults.push({
         relevance,
-        content: `${details.company} "${plan}" [${details.type}]\nSum Insured: ${Array.isArray(details.sumInsured) ? details.sumInsured.join(", ") : details.sumInsured}\nPremium: ${details.premium}\nKey Features: ${(details.keyFeatures ?? []).join(", ")}\nTerms: ${(details.terms ?? []).join("; ")}\nExclusions: ${(details.exclusions ?? []).join("; ")}`;
+        content: `${details.company} "${plan}" [${details.type}]\nSum Insured: ${Array.isArray(details.sumInsured) ? details.sumInsured.join(", ") : details.sumInsured}\nPremium: ${details.premium}\nKey Features: ${(details.keyFeatures ?? []).join(", ")}\nTerms: ${(details.terms ?? []).join(", ")}\nExclusions: ${(details.exclusions ?? []).join(", ")}`;
       });
     }
   }
@@ -1327,7 +1328,7 @@ const searchKnowledge = (query: string) => {
     if (relevance > 0) {
       lifeInsuranceResults.push({
         relevance,
-        content: `${details.company} "${plan}" [${details.type}]\nSum Assured: ${details.sumAssured ?? 'N/A'}\nPremium: ${details.premium ?? 'On request'}\nFeatures: ${(details.keyFeatures ?? []).join(", ")}\nTerms: ${(details.terms ?? []).join("; ")}`
+        content: `${details.company} "${plan}" [${details.type}]\nSum Assured: ${details.sumAssured ?? 'N/A'}\nPremium: ${details.premium ?? 'On request'}\nFeatures: ${(details.keyFeatures ?? []).join(", ")}\nTerms: ${(details.terms ?? []).join(", ")}`
       });
     }
   }
@@ -1345,7 +1346,7 @@ const searchKnowledge = (query: string) => {
     if (relevance > 0) {
       loanResults.push({
         relevance,
-        content: `${details.company} "${loan}" [${details.type}]\nTenure: ${details.tenure}\nInterest Rate: ${details.interestRate}\nAmt: ₹${details.minAmount}–₹${details.maxAmount}\nTerms: ${(details.terms ?? []).join("; ")}\nProcessing Fee: ${details.processingFee}`
+        content: `${details.company} "${loan}" [${details.type}]\nTenure: ${details.tenure}\nInterest Rate: ${details.interestRate}\nAmt: ₹${details.minAmount}–₹${details.maxAmount}\nTerms: ${(details.terms ?? []).join(", ")}\nProcessing Fee: ${details.processingFee}`
       });
     }
   }
@@ -1363,7 +1364,7 @@ const searchKnowledge = (query: string) => {
     if (relevance > 0) {
       ulipResults.push({
         relevance,
-        content: `${details.company} "${ulip}"\nLock-in: ${details.lockin} yrs\nMin Premium: ₹${details.minPremium}\nFunds: ${(details.fundChoices ?? []).join(', ')}\nCharges: ${(details.charges ?? []).join('; ')}\nFeatures: ${(details.features ?? []).join(', ')}\nTerms: ${(details.terms ?? []).join('; ')}`
+        content: `${details.company} "${ulip}"\nLock-in: ${details.lockin} yrs\nMin Premium: ₹${details.minPremium}\nFunds: ${(details.fundChoices ?? []).join(', ')}\nCharges: ${(details.charges ?? []).join(', ')}\nFeatures: ${(details.features ?? []).join(', ')}\nTerms: ${(details.terms ?? []).join(', ')}`
       });
     }
   }
