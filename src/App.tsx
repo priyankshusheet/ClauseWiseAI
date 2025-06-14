@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +7,7 @@ import Index from "./pages/Index";
 import Chat from "./pages/Chat";
 import Upload from "./pages/Upload";
 import NotFound from "./pages/NotFound";
+import Learn from "./pages/Learn";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +28,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/upload" element={<Upload />} />
+          <Route path="/learn" element={<Learn />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

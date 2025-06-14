@@ -25,7 +25,7 @@ const Navigation = () => {
     { name: 'Home', href: '/', icon: Home },
     { name: 'AI Chat', href: '/chat', icon: MessageCircle },
     { name: 'Upload & Analyze', href: '/upload', icon: Upload },
-    { name: 'Learn', href: '#learn', icon: BookOpen },
+    { name: 'Learn', href: '/learn', icon: BookOpen },  // changed from #learn to /learn
     { name: 'FAQ', href: '#faq', icon: Info },
   ];
 

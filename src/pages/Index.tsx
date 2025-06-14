@@ -18,8 +18,7 @@ const Index = () => {
       <UseCasesSection />
       <HowItWorksSection />
       <TestimonialsSection />
-      {/* Learn Section: Insert Finance30Course at the #learn anchor */}
-      <Finance30Course />
+      {/* Learn Section removed: Go to /learn page instead */}
       <Footer />
       
       <button 
