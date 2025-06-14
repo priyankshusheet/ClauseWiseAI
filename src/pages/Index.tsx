@@ -1,10 +1,10 @@
-
 import Navigation from '@/components/Navigation';
 import HeroSection from '@/components/HeroSection';
 import UseCasesSection from '@/components/UseCasesSection';
 import HowItWorksSection from '@/components/HowItWorksSection';
 import TestimonialsSection from '@/components/TestimonialsSection';
 import Footer from '@/components/Footer';
+import Finance30Course from '@/components/Finance30Course';
 
 const Index = () => {
   const handleChatRedirect = () => {
@@ -18,6 +18,8 @@ const Index = () => {
       <UseCasesSection />
       <HowItWorksSection />
       <TestimonialsSection />
+      {/* Learn Section: Insert Finance30Course at the #learn anchor */}
+      <Finance30Course />
       <Footer />
       
       <button 
