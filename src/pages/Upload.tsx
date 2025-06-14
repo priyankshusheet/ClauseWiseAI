@@ -1,12 +1,12 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileText, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, Eye } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import OCRAnalysis from '@/components/OCRAnalysis';
 
 interface AnalysisResult {
   riskScore: number;
@@ -15,11 +15,21 @@ interface AnalysisResult {
   summary: string;
 }
 
+interface OCRAnalysisResult {
+  extractedText: string;
+  sections: any[];
+  hiddenClauses: string[];
+  confidence: number;
+  processingTime: number;
+}
+
 const UploadPage = () => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [ocrResult, setOcrResult] = useState<OCRAnalysisResult | null>(null);
+  const [showOCR, setShowOCR] = useState(false);
   const { toast } = useToast();
 
   const handleDragEvents = {
@@ -50,6 +60,9 @@ const UploadPage = () => {
     
     if (isValidFile) {
       setSelectedFile(file);
+      setAnalysisResult(null);
+      setOcrResult(null);
+      setShowOCR(false);
       toast({
         title: "File ready for analysis",
         description: `${file.name} has been selected successfully.`,
@@ -63,17 +76,37 @@ const UploadPage = () => {
     }
   };
 
-  const startAnalysis = async () => {
+  const startOCRAnalysis = () => {
+    setShowOCR(true);
+  };
+
+  const handleOCRComplete = (result: OCRAnalysisResult) => {
+    setOcrResult(result);
+    toast({
+      title: "OCR Analysis Complete",
+      description: `Extracted ${result.extractedText.length} characters with ${result.confidence.toFixed(1)}% confidence`,
+    });
+  };
+
+  const startAIAnalysis = async () => {
     if (!selectedFile) return;
 
     setIsAnalyzing(true);
     try {
+      const analysisData = {
+        fileName: selectedFile.name,
+        fileType: selectedFile.type,
+        analysisType: 'comprehensive',
+        ...(ocrResult && {
+          extractedText: ocrResult.extractedText,
+          ocrConfidence: ocrResult.confidence,
+          identifiedSections: ocrResult.sections.length,
+          hiddenClausesCount: ocrResult.hiddenClauses.length
+        })
+      };
+
       const { data, error } = await supabase.functions.invoke('document-analysis', {
-        body: {
-          fileName: selectedFile.name,
-          fileType: selectedFile.type,
-          analysisType: 'comprehensive'
-        }
+        body: analysisData
       });
 
       if (error) throw error;
@@ -108,20 +141,20 @@ const UploadPage = () => {
   const features = [
     {
       icon: '🔍',
-      title: 'Advanced Scanning',
-      description: 'Detects hidden fees, auto-renewal clauses, and potentially risky terms.',
+      title: 'Advanced OCR Scanning',
+      description: 'Extract text from PDFs and images with high accuracy using state-of-the-art OCR technology.',
       bgColor: 'bg-blue-100'
     },
     {
       icon: '⚡',
       title: 'Real-time Analysis',
-      description: 'Get comprehensive analysis results within seconds of upload.',
+      description: 'Get comprehensive analysis results within seconds of upload with AI-powered insights.',
       bgColor: 'bg-green-100'
     },
     {
       icon: '🛡️',
-      title: 'Risk Evaluation',
-      description: 'Comprehensive risk scoring to help you make informed decisions.',
+      title: 'Hidden Clause Detection',
+      description: 'Automatically identify potentially problematic clauses and terms that might be easily missed.',
       bgColor: 'bg-purple-100'
     }
   ];
@@ -134,10 +167,10 @@ const UploadPage = () => {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Document Analysis Platform
+              OCR-Powered Document Analysis
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Upload insurance policies, credit agreements, or financial documents for comprehensive analysis
+              Upload any document format for intelligent text extraction and comprehensive analysis of terms, conditions, and hidden clauses
             </p>
           </div>
 
@@ -145,7 +178,7 @@ const UploadPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Upload className="w-5 h-5" />
-                <span>File Upload</span>
+                <span>File Upload & OCR Analysis</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -167,16 +200,24 @@ const UploadPage = () => {
                       <p className="text-gray-600">Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
                     <div className="flex justify-center space-x-4">
-                      <Button onClick={startAnalysis} disabled={isAnalyzing}>
-                        {isAnalyzing ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Analyzing...
-                          </>
-                        ) : (
-                          'Analyze Document'
-                        )}
-                      </Button>
+                      {!showOCR && (
+                        <Button onClick={startOCRAnalysis}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Start OCR Analysis
+                        </Button>
+                      )}
+                      {ocrResult && (
+                        <Button onClick={startAIAnalysis} disabled={isAnalyzing}>
+                          {isAnalyzing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Analyzing...
+                            </>
+                          ) : (
+                            'AI Analysis'
+                          )}
+                        </Button>
+                      )}
                       <Button variant="outline" onClick={() => setSelectedFile(null)}>
                         Select Different File
                       </Button>
@@ -186,7 +227,7 @@ const UploadPage = () => {
                   <div className="space-y-4">
                     <Upload className="w-16 h-16 text-gray-400 mx-auto" />
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">Upload Document</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">Upload Document for OCR Analysis</h3>
                       <p className="text-gray-600">Drag and drop your file here or click to browse</p>
                     </div>
                     <Button
@@ -199,11 +240,11 @@ const UploadPage = () => {
                       id="file-input"
                       type="file"
                       className="hidden"
-                      accept=".pdf,.txt,.doc,.docx"
+                      accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png"
                       onChange={(e) => e.target.files?.[0] && processFileSelection(e.target.files[0])}
                     />
                     <p className="text-sm text-gray-500">
-                      Supported: PDF, DOC, DOCX, TXT (Maximum 10MB)
+                      Supported: PDF, DOC, DOCX, TXT, JPG, PNG (Maximum 10MB)
                     </p>
                   </div>
                 )}
@@ -211,13 +252,26 @@ const UploadPage = () => {
             </CardContent>
           </Card>
 
+          {/* OCR Analysis Component */}
+          {showOCR && selectedFile && (
+            <div className="mb-8">
+              <OCRAnalysis file={selectedFile} onAnalysisComplete={handleOCRComplete} />
+            </div>
+          )}
+
+          {/* AI Analysis Results */}
           {analysisResult && (
             <div className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <FileText className="w-5 h-5" />
-                    <span>Analysis Results</span>
+                    <span>AI Analysis Results</span>
+                    {ocrResult && (
+                      <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        OCR Enhanced
+                      </span>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -249,6 +303,23 @@ const UploadPage = () => {
                     </div>
                   </div>
 
+                  {/* OCR-specific findings */}
+                  {ocrResult && ocrResult.hiddenClauses.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+                        <Eye className="w-5 h-5 mr-2 text-red-500" />
+                        OCR-Detected Hidden Clauses
+                      </h3>
+                      <div className="space-y-3">
+                        {ocrResult.hiddenClauses.slice(0, 3).map((clause, index) => (
+                          <div key={index} className="p-3 bg-red-50 border-l-4 border-red-400 rounded-lg">
+                            <span className="text-red-800 text-sm">{clause}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-4">Executive Summary</h3>
                     <div className="p-4 bg-blue-50 rounded-lg">
@@ -261,7 +332,7 @@ const UploadPage = () => {
                       Discuss This Document
                     </Button>
                     <Button variant="outline">
-                      Compare Similar Documents
+                      Download Analysis Report
                     </Button>
                   </div>
                 </CardContent>
