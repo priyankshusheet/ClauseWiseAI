@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -1235,88 +1234,152 @@ Main Drawbacks | Invite-only; some reward caps | Concierge removed; earn exclusi
   }
 };
 
-// Update searchKnowledge to prefer card.fullDetails if available for credit cards
+// Improved search function with better precision
 const searchKnowledge = (query: string) => {
   const lowerQuery = query.toLowerCase();
   const results = [];
+  
+  // Helper function to calculate relevance score
+  const calculateRelevance = (itemName: string, company: string, type: string, query: string) => {
+    let score = 0;
+    const queryWords = query.split(' ').filter(word => word.length > 2);
+    
+    // Exact name match gets highest score
+    if (itemName === query) score += 100;
+    
+    // Partial name matches
+    queryWords.forEach(word => {
+      if (itemName.includes(word)) score += 50;
+      if (company.toLowerCase().includes(word)) score += 30;
+      if (type.toLowerCase().includes(word)) score += 20;
+    });
+    
+    // Penalize if query seems specific but item doesn't match
+    if (queryWords.length > 1 && score < 50) score = 0;
+    
+    return score;
+  };
 
-  // Credit Cards — return fullDetails if present
+  // Credit Cards search with relevance scoring
+  const creditCardResults = [];
   for (const [cardName, details] of Object.entries(financialKnowledge.creditCards)) {
-    if (
-      lowerQuery.includes(cardName) ||
-      (typeof details.company === "string" && lowerQuery.includes(details.company.toLowerCase())) ||
-      lowerQuery.includes('credit card') ||
-      lowerQuery.includes('cc')
-    ) {
-      // If there is a fullDetails property, return that (instead of summary string)
-      if (details.fullDetails) {
-        results.push(details.fullDetails);
-      } else {
-        results.push(`${details.company} "${cardName}"\nFeatures: ${details.features ? details.features.join(', ') : details.benefits?.join(', ') ?? ""}\nRewards: ${details.rewards}\nAPR: ${details.apr}\nFees: Annual ₹${details.fees.annual}, Foreign ${details.fees.foreign}%\nTerms: ${(details.terms ?? []).join('; ')}\nRisks/Exclusions: ${(details.exclusions ?? details.risks ?? []).join('; ')}`);
-      }
+    const relevance = calculateRelevance(
+      cardName, 
+      details.company || '', 
+      details.type || '', 
+      lowerQuery
+    );
+    
+    if (relevance > 0) {
+      creditCardResults.push({
+        relevance,
+        content: details.fullDetails || `${details.company} "${cardName}"\nFeatures: ${details.features ? details.features.join(', ') : details.benefits?.join(', ') ?? ""}\nRewards: ${details.rewards}\nAPR: ${details.apr}\nFees: Annual ₹${details.fees.annual}, Foreign ${details.fees.foreign}%\nTerms: ${(details.terms ?? []).join('; ')}\nRisks/Exclusions: ${(details.exclusions ?? details.risks ?? []).join('; ')}`
+      });
     }
   }
 
-  // Mutual funds
+  // Mutual funds search with relevance scoring
+  const mutualFundResults = [];
   for (const [mfName, info] of Object.entries(financialKnowledge.mutualFunds ?? {})) {
-    if (
-      lowerQuery.includes(mfName) ||
-      (typeof info.company === "string" && lowerQuery.includes(info.company.toLowerCase())) ||
-      lowerQuery.includes("mutual fund") ||
-      lowerQuery.includes(info.type?.toLowerCase() ?? "")
-    ) {
-      results.push(`${info.company} "${mfName}" [${info.type}]\nExpense Ratio: ${info.expenseRatio}, Exit Load: ${info.exitLoad}, Min Investment: ₹${info.minInvestment}\nFeatures: ${(info.features ?? []).join(", ")}\nTerms: ${(info.terms ?? []).join('; ')}\nRisks: ${(info.risks ?? []).join('; ')}`);
+    const relevance = calculateRelevance(
+      mfName, 
+      info.company || '', 
+      info.type || '', 
+      lowerQuery
+    );
+    
+    if (relevance > 0) {
+      mutualFundResults.push({
+        relevance,
+        content: `${info.company} "${mfName}" [${info.type}]\nExpense Ratio: ${info.expenseRatio}, Exit Load: ${info.exitLoad}, Min Investment: ₹${info.minInvestment}\nFeatures: ${(info.features ?? []).join(", ")}\nTerms: ${(info.terms ?? []).join('; ')}\nRisks: ${(info.risks ?? []).join('; ')}`
+      });
     }
   }
 
-  // Health insurance
+  // Health insurance search with relevance scoring
+  const healthInsuranceResults = [];
   for (const [plan, details] of Object.entries(financialKnowledge.healthInsurance ?? {})) {
-    if (
-      lowerQuery.includes(plan) ||
-      (typeof details.company === "string" && lowerQuery.includes(details.company.toLowerCase())) ||
-      lowerQuery.includes("health insurance") ||
-      lowerQuery.includes(details.type?.toLowerCase() ?? "")
-    ) {
-      results.push(`${details.company} "${plan}" [${details.type}]\nSum Insured: ${Array.isArray(details.sumInsured) ? details.sumInsured.join(", ") : details.sumInsured}\nPremium: ${details.premium}\nKey Features: ${(details.keyFeatures ?? []).join(", ")}\nTerms: ${(details.terms ?? []).join("; ")}\nExclusions: ${(details.exclusions ?? []).join("; ")}`);
+    const relevance = calculateRelevance(
+      plan, 
+      details.company || '', 
+      details.type || '', 
+      lowerQuery
+    );
+    
+    if (relevance > 0) {
+      healthInsuranceResults.push({
+        relevance,
+        content: `${details.company} "${plan}" [${details.type}]\nSum Insured: ${Array.isArray(details.sumInsured) ? details.sumInsured.join(", ") : details.sumInsured}\nPremium: ${details.premium}\nKey Features: ${(details.keyFeatures ?? []).join(", ")}\nTerms: ${(details.terms ?? []).join("; ")}\nExclusions: ${(details.exclusions ?? []).join("; ")}`;
+      });
     }
   }
 
-  // Life insurance
+  // Life insurance search with relevance scoring
+  const lifeInsuranceResults = [];
   for (const [plan, details] of Object.entries(financialKnowledge.lifeInsurance ?? {})) {
-    if (
-      lowerQuery.includes(plan) ||
-      (typeof details.company === "string" && lowerQuery.includes(details.company.toLowerCase())) ||
-      lowerQuery.includes("life insurance") ||
-      lowerQuery.includes(details.type?.toLowerCase() ?? "")
-    ) {
-      results.push(`${details.company} "${plan}" [${details.type}]\nSum Assured: ${details.sumAssured ?? 'N/A'}\nPremium: ${details.premium ?? 'On request'}\nFeatures: ${(details.keyFeatures ?? []).join(", ")}\nTerms: ${(details.terms ?? []).join("; ")}`);
+    const relevance = calculateRelevance(
+      plan, 
+      details.company || '', 
+      details.type || '', 
+      lowerQuery
+    );
+    
+    if (relevance > 0) {
+      lifeInsuranceResults.push({
+        relevance,
+        content: `${details.company} "${plan}" [${details.type}]\nSum Assured: ${details.sumAssured ?? 'N/A'}\nPremium: ${details.premium ?? 'On request'}\nFeatures: ${(details.keyFeatures ?? []).join(", ")}\nTerms: ${(details.terms ?? []).join("; ")}`
+      });
     }
   }
 
-  // Loans
+  // Loans search with relevance scoring
+  const loanResults = [];
   for (const [loan, details] of Object.entries(financialKnowledge.loans ?? {})) {
-    if (
-      lowerQuery.includes(loan) ||
-      (typeof details.company === "string" && lowerQuery.includes(details.company.toLowerCase())) ||
-      lowerQuery.includes('loan') ||
-      lowerQuery.includes(details.type?.toLowerCase() ?? "")
-    ) {
-      results.push(`${details.company} "${loan}" [${details.type}]\nTenure: ${details.tenure}\nInterest Rate: ${details.interestRate}\nAmt: ₹${details.minAmount}–₹${details.maxAmount}\nTerms: ${(details.terms ?? []).join("; ")}\nProcessing Fee: ${details.processingFee}`);
+    const relevance = calculateRelevance(
+      loan, 
+      details.company || '', 
+      details.type || '', 
+      lowerQuery
+    );
+    
+    if (relevance > 0) {
+      loanResults.push({
+        relevance,
+        content: `${details.company} "${loan}" [${details.type}]\nTenure: ${details.tenure}\nInterest Rate: ${details.interestRate}\nAmt: ₹${details.minAmount}–₹${details.maxAmount}\nTerms: ${(details.terms ?? []).join("; ")}\nProcessing Fee: ${details.processingFee}`
+      });
     }
   }
 
-  // ULIPs
+  // ULIPs search with relevance scoring
+  const ulipResults = [];
   for (const [ulip, details] of Object.entries(financialKnowledge.ulips ?? {})) {
-    if (
-      lowerQuery.includes(ulip) ||
-      (typeof details.company === "string" && lowerQuery.includes(details.company.toLowerCase())) ||
-      lowerQuery.includes('ulip')
-    ) {
-      results.push(`${details.company} "${ulip}"\nLock-in: ${details.lockin} yrs\nMin Premium: ₹${details.minPremium}\nFunds: ${(details.fundChoices ?? []).join(', ')}\nCharges: ${(details.charges ?? []).join('; ')}\nFeatures: ${(details.features ?? []).join(', ')}\nTerms: ${(details.terms ?? []).join('; ')}`);
+    const relevance = calculateRelevance(
+      ulip, 
+      details.company || '', 
+      '', 
+      lowerQuery
+    );
+    
+    if (relevance > 0) {
+      ulipResults.push({
+        relevance,
+        content: `${details.company} "${ulip}"\nLock-in: ${details.lockin} yrs\nMin Premium: ₹${details.minPremium}\nFunds: ${(details.fundChoices ?? []).join(', ')}\nCharges: ${(details.charges ?? []).join('; ')}\nFeatures: ${(details.features ?? []).join(', ')}\nTerms: ${(details.terms ?? []).join('; ')}`
+      });
     }
   }
 
-  return results;
+  // Combine all results and sort by relevance
+  const allResults = [
+    ...creditCardResults,
+    ...mutualFundResults,
+    ...healthInsuranceResults,
+    ...lifeInsuranceResults,
+    ...loanResults,
+    ...ulipResults
+  ].sort((a, b) => b.relevance - a.relevance);
+
+  // Return only the most relevant results (max 3 for focused responses)
+  return allResults.slice(0, 3).map(result => result.content);
 };
 
 serve(async (req) => {
@@ -1327,7 +1390,7 @@ serve(async (req) => {
   try {
     const { message, hasDocument, fileName } = await req.json();
     
-    // Search local knowledge base
+    // Search local knowledge base with improved precision
     const knowledgeResults = searchKnowledge(message);
     let knowledgeContext = '';
     
@@ -1340,6 +1403,8 @@ serve(async (req) => {
     Always call out hidden fees, exclusions, penalty clauses, and key benefits. 
     Never give investment advice, only factual information and explanations.
     Provide simple, practical insights.
+    
+    IMPORTANT: Only provide information that directly relates to what the user is asking about. If they ask about a specific product, focus only on that product and don't mention other unrelated products from the same company.
     ${knowledgeContext}`;
 
     const userPrompt = hasDocument 
