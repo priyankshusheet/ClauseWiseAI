@@ -1,4 +1,3 @@
-
 import { Upload, Search, MessageCircle, Check } from 'lucide-react';
 
 const HowItWorksSection = () => {
