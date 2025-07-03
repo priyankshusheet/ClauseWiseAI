@@ -1,15 +1,9 @@
+
 import { Button } from '@/components/ui/button';
 import { Upload, ArrowDown } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const HeroSection = () => {
-  const handleChatClick = () => {
-    window.location.href = '/chat';
-  };
-
-  const handleUploadClick = () => {
-    window.location.href = '/upload';
-  };
-
   return (
     <section id="home" className="pt-16 bg-gradient-to-br from-primary-50 via-white to-secondary-50 min-h-screen flex items-center">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -34,22 +28,24 @@ const HeroSection = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                size="lg" 
-                className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                onClick={handleChatClick}
-              >
-                💬 Start Chat
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="border-2 border-primary-200 text-primary-600 hover:bg-primary-50 px-8 py-4 rounded-xl font-semibold text-lg"
-                onClick={handleUploadClick}
-              >
-                <Upload className="w-5 h-5 mr-2" />
-                Upload Policy
-              </Button>
+              <Link to="/chat">
+                <Button 
+                  size="lg" 
+                  className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  💬 Start Chat
+                </Button>
+              </Link>
+              <Link to="/upload">
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="border-2 border-primary-200 text-primary-600 hover:bg-primary-50 px-8 py-4 rounded-xl font-semibold text-lg"
+                >
+                  <Upload className="w-5 h-5 mr-2" />
+                  Upload Policy
+                </Button>
+              </Link>
             </div>
 
             {/* Trust Indicators */}
