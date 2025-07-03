@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import OCRAnalysis from '@/components/OCRAnalysis';
+import { Link } from 'react-router-dom';
 
 interface AnalysisResult {
   riskScore: number;
@@ -328,9 +329,11 @@ const UploadPage = () => {
                   </div>
 
                   <div className="flex justify-center space-x-4 pt-4">
-                    <Button onClick={() => window.location.href = '/chat'}>
-                      Discuss This Document
-                    </Button>
+                    <Link to="/chat">
+                      <Button>
+                        Discuss This Document
+                      </Button>
+                    </Link>
                     <Button variant="outline">
                       Download Analysis Report
                     </Button>
