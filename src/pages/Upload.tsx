@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +13,7 @@ import { Link } from 'react-router-dom';
 interface AnalysisResult {
   riskScore: number;
   riskLevel: string;
-  findings: string[];
+  analysis: string;
   summary: string;
 }
 
@@ -290,17 +291,13 @@ const UploadPage = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                      <AlertTriangle className="w-5 h-5 mr-2 text-yellow-500" />
-                      Important Findings
-                    </h3>
-                    <div className="space-y-3">
-                      {analysisResult.findings.map((finding, index) => (
-                        <div key={index} className="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
-                          <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5" />
-                          <span className="text-gray-700">{finding}</span>
-                        </div>
-                      ))}
+                    <h3 className="font-semibold text-gray-900 mb-4">Comprehensive Analysis</h3>
+                    <div className="prose max-w-none">
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
+                          {analysisResult.analysis}
+                        </pre>
+                      </div>
                     </div>
                   </div>
 

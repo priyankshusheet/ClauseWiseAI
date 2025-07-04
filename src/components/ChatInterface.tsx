@@ -17,7 +17,7 @@ const ChatInterface = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      content: "Hello! I'm your financial document assistant. I can help you understand insurance policies, credit card terms, and other financial documents. How can I help you today?",
+      content: "Hello! I'm ClauseWise, your financial document assistant. I can help you understand insurance policies, credit card terms, and other financial documents. How can I help you today?",
       isUser: false,
       timestamp: new Date()
     }
@@ -26,6 +26,7 @@ const ChatInterface = () => {
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [conversationHistory, setConversationHistory] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -74,28 +75,78 @@ const ChatInterface = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    
+    // Update conversation history
+    const newHistory = [...conversationHistory, `User: ${inputValue}`];
+    setConversationHistory(newHistory);
+    
     setInputValue('');
     setIsProcessing(true);
 
     try {
+      // If file is uploaded, first analyze the document
+      let documentAnalysis = null;
+      if (uploadedFile) {
+        try {
+          // Simulate OCR analysis for demo purposes
+          const ocrResult = {
+            extractedText: "Sample extracted text from document...",
+            confidence: 85,
+            sections: 3,
+            hiddenClauses: 2
+          };
+
+          const { data: docData, error: docError } = await supabase.functions.invoke('document-analysis', {
+            body: {
+              fileName: uploadedFile.name,
+              fileType: uploadedFile.type,
+              analysisType: 'comprehensive',
+              extractedText: ocrResult.extractedText,
+              ocrConfidence: ocrResult.confidence,
+              identifiedSections: ocrResult.sections,
+              hiddenClausesCount: ocrResult.hiddenClauses
+            }
+          });
+
+          if (!docError && docData) {
+            documentAnalysis = docData.analysis || docData.summary;
+          }
+        } catch (docError) {
+          console.error('Document analysis error:', docError);
+        }
+      }
+
+      // Prepare enhanced message for chat
+      let enhancedMessage = inputValue;
+      if (documentAnalysis) {
+        enhancedMessage += `\n\nDocument Analysis Context: ${documentAnalysis}`;
+      }
+
       const { data, error } = await supabase.functions.invoke('ai-chat-analysis', {
         body: {
-          message: inputValue,
+          message: enhancedMessage,
           hasDocument: !!uploadedFile,
           fileName: uploadedFile?.name,
+          conversationHistory: newHistory.slice(-10) // Keep last 10 messages for context
         }
       });
 
       if (error) throw error;
 
+      const assistantResponse = data.response || "I'm here to help with your financial documents. Could you provide more details?";
+      
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: data.response || "I'm here to help with your financial documents. Could you provide more details?",
+        content: assistantResponse,
         isUser: false,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Update conversation history with assistant response
+      setConversationHistory(prev => [...prev, `Assistant: ${assistantResponse}`]);
+      
       setUploadedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -141,8 +192,8 @@ const ChatInterface = () => {
             <Bot className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Financial Assistant</h3>
-            <p className="text-sm text-gray-600">Document Analysis Expert</p>
+            <h3 className="font-semibold text-gray-900">ClauseWise Assistant</h3>
+            <p className="text-sm text-gray-600">Financial Document Expert</p>
           </div>
         </div>
         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -185,7 +236,7 @@ const ChatInterface = () => {
                 <CardContent className="p-3">
                   <div className="flex items-center space-x-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm text-gray-600">Processing your request...</span>
+                    <span className="text-sm text-gray-600">Analyzing your request...</span>
                   </div>
                 </CardContent>
               </Card>
@@ -196,10 +247,10 @@ const ChatInterface = () => {
       </div>
 
       {uploadedFile && (
-        <div className="px-4 py-2 bg-yellow-50 border-t border-gray-200">
+        <div className="px-4 py-2 bg-blue-50 border-t border-gray-200">
           <div className="flex items-center space-x-2 text-sm">
-            <FileText className="w-4 h-4 text-yellow-600" />
-            <span className="text-gray-700">File ready: {uploadedFile.name}</span>
+            <FileText className="w-4 h-4 text-blue-600" />
+            <span className="text-gray-700">File ready for analysis: {uploadedFile.name}</span>
             <Button
               variant="ghost"
               size="sm"
@@ -249,7 +300,7 @@ const ChatInterface = () => {
           </Button>
         </div>
         <p className="text-xs text-gray-500 mt-2 text-center">
-          Specialized in financial document analysis and policy explanations.
+          Upload documents for analysis or ask questions about financial products.
         </p>
       </div>
     </div>

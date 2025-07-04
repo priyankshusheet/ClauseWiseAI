@@ -1234,34 +1234,58 @@ Main Drawbacks | Invite-only; some reward caps | Concierge removed; earn exclusi
   }
 };
 
-// Improved search function with better precision
-const searchKnowledge = (query: string) => {
+// Improved search function with better precision and context awareness
+const searchKnowledge = (query: string, conversationHistory: string[] = []) => {
   const lowerQuery = query.toLowerCase();
   const results = [];
   
-  // Helper function to calculate relevance score
+  // Extract specific product mentions from query
+  const specificProducts = [];
+  if (lowerQuery.includes('flipkart axis') || lowerQuery.includes('axis flipkart')) {
+    specificProducts.push('axis flipkart');
+  }
+  if (lowerQuery.includes('amazon pay icici') || lowerQuery.includes('icici amazon')) {
+    specificProducts.push('amazon pay icici');
+  }
+  
+  // Helper function to calculate relevance score with context awareness
   const calculateRelevance = (itemName: string, company: string, type: string, query: string) => {
     let score = 0;
     const queryWords = query.split(' ').filter(word => word.length > 2);
     
-    // Exact name match gets highest score
-    if (itemName === query) score += 100;
+    // Exact product match gets highest priority
+    if (specificProducts.length > 0) {
+      const exactMatch = specificProducts.some(product => itemName.includes(product) || product.includes(itemName));
+      if (exactMatch) score += 200;
+      else if (specificProducts.some(product => company.toLowerCase().includes(product.split(' ')[0]))) {
+        score += 10; // Lower score for same company but different product
+      }
+    }
     
-    // Partial name matches
+    // Exact name match
+    if (itemName === query) score += 150;
+    
+    // Partial name matches with priority
     queryWords.forEach(word => {
-      if (itemName.includes(word)) score += 50;
-      if (company.toLowerCase().includes(word)) score += 30;
-      if (type.toLowerCase().includes(word)) score += 20;
+      if (itemName.includes(word)) score += 60;
+      if (company.toLowerCase().includes(word)) score += 40;
+      if (type.toLowerCase().includes(word)) score += 25;
     });
     
-    // Penalize if query seems specific but item doesn't match
-    if (queryWords.length > 1 && score < 50) score = 0;
+    // Context from conversation history
+    if (conversationHistory.length > 0) {
+      const lastMessage = conversationHistory[conversationHistory.length - 1]?.toLowerCase() || '';
+      queryWords.forEach(word => {
+        if (lastMessage.includes(word) && itemName.includes(word)) {
+          score += 30; // Boost for contextual relevance
+        }
+      });
+    }
     
     return score;
   };
 
-  // Credit Cards search with relevance scoring
-  const creditCardResults = [];
+  // Search with improved relevance and context
   for (const [cardName, details] of Object.entries(financialKnowledge.creditCards)) {
     const relevance = calculateRelevance(
       cardName, 
@@ -1271,115 +1295,31 @@ const searchKnowledge = (query: string) => {
     );
     
     if (relevance > 0) {
-      creditCardResults.push({
+      results.push({
         relevance,
-        content: details.fullDetails || `${details.company} "${cardName}"\nFeatures: ${details.features ? details.features.join(', ') : details.benefits?.join(', ') ?? ""}\nRewards: ${details.rewards}\nAPR: ${details.apr}\nFees: Annual ₹${details.fees.annual}, Foreign ${details.fees.foreign}%\nTerms: ${(details.terms ?? []).join(', ')}\nRisks/Exclusions: ${(details.exclusions ?? details.risks ?? []).join(', ')}`
+        type: 'Credit Card',
+        content: details.fullDetails || `${details.company} "${cardName}"\nType: ${details.type}\nFeatures: ${details.features ? details.features.join(', ') : details.benefits?.join(', ') ?? ""}`
       });
     }
   }
 
-  // Mutual funds search with relevance scoring
-  const mutualFundResults = [];
+  // Search other categories with similar improvements
   for (const [mfName, info] of Object.entries(financialKnowledge.mutualFunds ?? {})) {
-    const relevance = calculateRelevance(
-      mfName, 
-      info.company || '', 
-      info.type || '', 
-      lowerQuery
-    );
-    
+    const relevance = calculateRelevance(mfName, info.company || '', info.type || '', lowerQuery);
     if (relevance > 0) {
-      mutualFundResults.push({
+      results.push({
         relevance,
-        content: `${info.company} "${mfName}" [${info.type}]\nExpense Ratio: ${info.expenseRatio}, Exit Load: ${info.exitLoad}, Min Investment: ₹${info.minInvestment}\nFeatures: ${(info.features ?? []).join(", ")}\nTerms: ${(info.terms ?? []).join(', ')}\nRisks: ${(info.risks ?? []).join(', ')}`
+        type: 'Mutual Fund',
+        content: `${info.company} "${mfName}" [${info.type}]\nExpense Ratio: ${info.expenseRatio}, Exit Load: ${info.exitLoad}, Min Investment: ₹${info.minInvestment}\nFeatures: ${(info.features ?? []).join(", ")}`
       });
     }
   }
 
-  // Health insurance search with relevance scoring
-  const healthInsuranceResults = [];
-  for (const [plan, details] of Object.entries(financialKnowledge.healthInsurance ?? {})) {
-    const relevance = calculateRelevance(
-      plan, 
-      details.company || '', 
-      details.type || '', 
-      lowerQuery
-    );
-    
-    if (relevance > 0) {
-      healthInsuranceResults.push({
-        relevance,
-        content: `${details.company} "${plan}" [${details.type}]\nSum Insured: ${Array.isArray(details.sumInsured) ? details.sumInsured.join(", ") : details.sumInsured}\nPremium: ${details.premium}\nKey Features: ${(details.keyFeatures ?? []).join(", ")}\nTerms: ${(details.terms ?? []).join(", ")}\nExclusions: ${(details.exclusions ?? []).join(", ")}`;
-      });
-    }
-  }
-
-  // Life insurance search with relevance scoring
-  const lifeInsuranceResults = [];
-  for (const [plan, details] of Object.entries(financialKnowledge.lifeInsurance ?? {})) {
-    const relevance = calculateRelevance(
-      plan, 
-      details.company || '', 
-      details.type || '', 
-      lowerQuery
-    );
-    
-    if (relevance > 0) {
-      lifeInsuranceResults.push({
-        relevance,
-        content: `${details.company} "${plan}" [${details.type}]\nSum Assured: ${details.sumAssured ?? 'N/A'}\nPremium: ${details.premium ?? 'On request'}\nFeatures: ${(details.keyFeatures ?? []).join(", ")}\nTerms: ${(details.terms ?? []).join(", ")}`
-      });
-    }
-  }
-
-  // Loans search with relevance scoring
-  const loanResults = [];
-  for (const [loan, details] of Object.entries(financialKnowledge.loans ?? {})) {
-    const relevance = calculateRelevance(
-      loan, 
-      details.company || '', 
-      details.type || '', 
-      lowerQuery
-    );
-    
-    if (relevance > 0) {
-      loanResults.push({
-        relevance,
-        content: `${details.company} "${loan}" [${details.type}]\nTenure: ${details.tenure}\nInterest Rate: ${details.interestRate}\nAmt: ₹${details.minAmount}–₹${details.maxAmount}\nTerms: ${(details.terms ?? []).join(", ")}\nProcessing Fee: ${details.processingFee}`
-      });
-    }
-  }
-
-  // ULIPs search with relevance scoring
-  const ulipResults = [];
-  for (const [ulip, details] of Object.entries(financialKnowledge.ulips ?? {})) {
-    const relevance = calculateRelevance(
-      ulip, 
-      details.company || '', 
-      '', 
-      lowerQuery
-    );
-    
-    if (relevance > 0) {
-      ulipResults.push({
-        relevance,
-        content: `${details.company} "${ulip}"\nLock-in: ${details.lockin} yrs\nMin Premium: ₹${details.minPremium}\nFunds: ${(details.fundChoices ?? []).join(', ')}\nCharges: ${(details.charges ?? []).join(', ')}\nFeatures: ${(details.features ?? []).join(', ')}\nTerms: ${(details.terms ?? []).join(', ')}`
-      });
-    }
-  }
-
-  // Combine all results and sort by relevance
-  const allResults = [
-    ...creditCardResults,
-    ...mutualFundResults,
-    ...healthInsuranceResults,
-    ...lifeInsuranceResults,
-    ...loanResults,
-    ...ulipResults
-  ].sort((a, b) => b.relevance - a.relevance);
-
-  // Return only the most relevant results (max 3 for focused responses)
-  return allResults.slice(0, 3).map(result => result.content);
+  // Sort by relevance and return top results
+  return results
+    .sort((a, b) => b.relevance - a.relevance)
+    .slice(0, specificProducts.length > 0 ? 2 : 3)
+    .map(result => `${result.type}: ${result.content}`);
 };
 
 serve(async (req) => {
@@ -1388,32 +1328,54 @@ serve(async (req) => {
   }
 
   try {
-    const { message, hasDocument, fileName } = await req.json();
+    const { message, hasDocument, fileName, conversationHistory = [] } = await req.json();
     
-    // Search local knowledge base with improved precision
-    const knowledgeResults = searchKnowledge(message);
+    console.log('Processing message:', message);
+    console.log('Has document:', hasDocument);
+    console.log('Conversation history length:', conversationHistory.length);
+    
+    // Search local knowledge base with improved precision and context
+    const knowledgeResults = searchKnowledge(message, conversationHistory);
     let knowledgeContext = '';
     
     if (knowledgeResults.length > 0) {
-      knowledgeContext = `\n\nRelevant information:\n${knowledgeResults.join('\n')}`;
+      knowledgeContext = `\n\nRelevant information from knowledge base:\n${knowledgeResults.join('\n\n')}`;
     }
 
-    const systemPrompt = `You are a financial document analysis expert. Help users understand credit cards, insurance policies, mutual funds, loans, ULIPs, life insurance—and their terms and conditions. 
-    
-    Always call out hidden fees, exclusions, penalty clauses, and key benefits. 
-    Never give investment advice, only factual information and explanations.
-    Provide simple, practical insights.
-    
-    IMPORTANT: Only provide information that directly relates to what the user is asking about. If they ask about a specific product, focus only on that product and don't mention other unrelated products from the same company.
-    ${knowledgeContext}`;
+    // Build conversation context
+    let conversationContext = '';
+    if (conversationHistory.length > 0) {
+      const recentHistory = conversationHistory.slice(-4); // Last 4 messages for context
+      conversationContext = `\n\nRecent conversation context:\n${recentHistory.join('\n')}`;
+    }
+
+    const systemPrompt = `You are ClauseWise, a financial document analysis expert and AI assistant. You help users understand credit cards, insurance policies, mutual funds, loans, ULIPs, life insurance, and their terms and conditions.
+
+Key responsibilities:
+- Provide accurate information about financial products
+- Explain complex terms in simple language
+- Identify hidden fees, exclusions, and penalty clauses
+- Maintain conversation context and remember previous questions
+- Focus on the specific products mentioned by the user
+- Never give investment advice, only factual explanations
+
+IMPORTANT: 
+- If user asks about a specific product (like "Flipkart Axis card"), focus ONLY on that product
+- Don't mention other products from the same company unless directly relevant
+- Remember the conversation flow and build upon previous responses
+- Be concise but comprehensive
+
+Current conversation context: Remember what was discussed before and build upon it.
+${conversationContext}${knowledgeContext}`;
 
     const userPrompt = hasDocument 
-      ? `Uploaded document: "${fileName}". ${message}` 
+      ? `User uploaded document: "${fileName}". Based on the document and conversation context, please answer: ${message}` 
       : message;
 
-    // Try Cohere API call first
+    // Try Cohere API call
     if (COHERE_API_KEY) {
       try {
+        console.log('Making Cohere API call...');
         const response = await fetch(API_ENDPOINT, {
           method: 'POST',
           headers: {
@@ -1425,35 +1387,45 @@ serve(async (req) => {
             message: userPrompt,
             preamble: systemPrompt,
             temperature: 0.3,
-            max_tokens: 1000
+            max_tokens: 1000,
+            conversation_id: hasDocument ? `doc_${fileName}` : 'general_chat'
           }),
         });
+
+        console.log('Cohere API response status:', response.status);
 
         if (response.ok) {
           const data = await response.json();
           const aiResponse = data.text;
+          
+          console.log('Cohere API response received');
           
           if (aiResponse) {
             return new Response(JSON.stringify({ response: aiResponse }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
           }
+        } else {
+          const errorText = await response.text();
+          console.error('Cohere API error response:', errorText);
         }
       } catch (apiError) {
         console.error('Cohere API call failed:', apiError);
       }
     }
 
-    // Fallback response with knowledge base
-    let fallbackResponse = "I'm here to help with financial document analysis.\n";
+    // Enhanced fallback response with knowledge base
+    let fallbackResponse = "I'm ClauseWise, your financial document analysis assistant.\n";
     if (knowledgeResults.length > 0) {
-      fallbackResponse += `Here's what I found:\n\n${knowledgeResults.join('\n\n')}\n\n`;
+      fallbackResponse += `Here's what I found about your query:\n\n${knowledgeResults.join('\n\n')}\n\n`;
     }
+    
     if (hasDocument) {
-      fallbackResponse += `For your uploaded document "${fileName}":\n• Look for automatic renewal clauses\n• Hidden fees/charges\n• Cancellation policies\n• Penalty terms\n• Coverage limitations\n\nWould you like any specific clause explained?`;
+      fallbackResponse += `Regarding your uploaded document "${fileName}":\n• Look for automatic renewal clauses\n• Check for hidden fees and charges\n• Review cancellation policies\n• Watch for penalty terms\n• Note coverage limitations\n\nWould you like me to explain any specific clause or term?`;
     } else {
-      fallbackResponse += `I can help you break down:\n• Credit card and loan terms\n• Details in policies & funds\n• Hidden clauses and risks\n\nLet me know which product you want to know more about.`;
+      fallbackResponse += `I can help you understand:\n• Credit card terms and conditions\n• Insurance policy details\n• Mutual fund information\n• Loan agreements\n• Hidden clauses and risks\n\nFeel free to ask about specific products or upload documents for analysis.`;
     }
+    
     return new Response(JSON.stringify({ response: fallbackResponse }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
