@@ -2,7 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const cohereApiKey = Deno.env.get('COHERE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,32 +77,37 @@ Based on the filename and document type (${fileType}), provide a comprehensive a
 
 Return only valid JSON with the structure: {"riskScore": number, "riskLevel": "low|medium|high", "findings": ["finding1", "finding2", ...], "summary": "text"}`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.cohere.com/v1/chat', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${cohereApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: analysisPrompt }
-        ],
-        max_tokens: 2000,
+        model: 'command-r-plus',
+        message: analysisPrompt,
+        preamble: systemPrompt,
         temperature: 0.3,
+        max_tokens: 2000
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`Cohere API error: ${response.status}`);
     }
 
     const data = await response.json();
     let analysisResult;
 
     try {
-      analysisResult = JSON.parse(data.choices[0].message.content);
+      // Try to extract JSON from Cohere response
+      const responseText = data.text;
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        analysisResult = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in response');
+      }
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
       

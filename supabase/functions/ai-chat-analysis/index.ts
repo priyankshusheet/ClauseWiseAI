@@ -1,8 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const API_KEY = Deno.env.get('XAI_API_KEY');
-const API_ENDPOINT = 'https://api.x.ai/v1/chat/completions';
+const COHERE_API_KEY = Deno.env.get('COHERE_API_KEY');
+const API_ENDPOINT = 'https://api.cohere.com/v1/chat';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1411,21 +1411,19 @@ serve(async (req) => {
       ? `Uploaded document: "${fileName}". ${message}` 
       : message;
 
-    // Try API call first
-    if (API_KEY) {
+    // Try Cohere API call first
+    if (COHERE_API_KEY) {
       try {
         const response = await fetch(API_ENDPOINT, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${API_KEY}`,
+            'Authorization': `Bearer ${COHERE_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'grok-beta',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
+            model: 'command-r-plus',
+            message: userPrompt,
+            preamble: systemPrompt,
             temperature: 0.3,
             max_tokens: 1000
           }),
@@ -1433,7 +1431,7 @@ serve(async (req) => {
 
         if (response.ok) {
           const data = await response.json();
-          const aiResponse = data.choices?.[0]?.message?.content;
+          const aiResponse = data.text;
           
           if (aiResponse) {
             return new Response(JSON.stringify({ response: aiResponse }), {
@@ -1442,7 +1440,7 @@ serve(async (req) => {
           }
         }
       } catch (apiError) {
-        console.error('API call failed:', apiError);
+        console.error('Cohere API call failed:', apiError);
       }
     }
 
