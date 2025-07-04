@@ -327,7 +327,7 @@ const Onboarding = () => {
                     <Checkbox
                       id="consent"
                       checked={formData.consentGiven}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, consentGiven: checked }))}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, consentGiven: checked === true }))}
                     />
                     <div className="flex-1">
                       <Label htmlFor="consent" className="text-sm cursor-pointer">
@@ -341,7 +341,7 @@ const Onboarding = () => {
                     <Checkbox
                       id="course"
                       checked={formData.startCourse}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, startCourse: checked }))}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, startCourse: checked === true }))}
                     />
                     <div className="flex-1">
                       <Label htmlFor="course" className="font-medium cursor-pointer">

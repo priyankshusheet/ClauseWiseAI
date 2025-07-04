@@ -34,7 +34,7 @@ const Navigation = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">CW</span>
             </div>
             <span className="font-display font-bold text-xl text-gray-900">ClauseWise</span>
@@ -47,8 +47,8 @@ const Navigation = () => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`text-gray-600 hover:text-primary-600 font-medium transition-colors duration-200 flex items-center space-x-1 group ${
-                    location.pathname === item.href ? 'text-primary-600' : ''
+                  className={`text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 flex items-center space-x-1 group ${
+                    location.pathname === item.href ? 'text-blue-600' : ''
                   }`}
                 >
                   <item.icon className="w-4 h-4" />
@@ -58,7 +58,7 @@ const Navigation = () => {
                 <button
                   key={item.name}
                   onClick={() => handleNavigation(item.href)}
-                  className="text-gray-600 hover:text-primary-600 font-medium transition-colors duration-200 flex items-center space-x-1 group"
+                  className="text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 flex items-center space-x-1 group"
                 >
                   <item.icon className="w-4 h-4" />
                   <span className="group-hover:underline">{item.name}</span>
@@ -69,11 +69,13 @@ const Navigation = () => {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" className="text-primary-600 border-primary-200 hover:bg-primary-50">
-              Sign In
-            </Button>
+            <Link to="/auth">
+              <Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50">
+                Sign In
+              </Button>
+            </Link>
             <Link to="/chat">
-              <Button className="bg-primary-600 hover:bg-primary-700 text-white">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                 Start Chat
               </Button>
             </Link>
@@ -96,8 +98,8 @@ const Navigation = () => {
                       key={item.name}
                       to={item.href}
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center space-x-3 text-gray-600 hover:text-primary-600 font-medium transition-colors duration-200 py-2 text-left ${
-                        location.pathname === item.href ? 'text-primary-600' : ''
+                      className={`flex items-center space-x-3 text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 py-2 text-left ${
+                        location.pathname === item.href ? 'text-blue-600' : ''
                       }`}
                     >
                       <item.icon className="w-5 h-5" />
@@ -107,7 +109,7 @@ const Navigation = () => {
                     <button
                       key={item.name}
                       onClick={() => handleNavigation(item.href)}
-                      className="flex items-center space-x-3 text-gray-600 hover:text-primary-600 font-medium transition-colors duration-200 py-2 text-left"
+                      className="flex items-center space-x-3 text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 py-2 text-left"
                     >
                       <item.icon className="w-5 h-5" />
                       <span>{item.name}</span>
@@ -115,11 +117,13 @@ const Navigation = () => {
                   )
                 ))}
                 <div className="pt-4 border-t border-gray-200 space-y-3">
-                  <Button variant="outline" className="w-full text-primary-600 border-primary-200">
-                    Sign In
-                  </Button>
+                  <Link to="/auth">
+                    <Button variant="outline" className="w-full text-blue-600 border-blue-200">
+                      Sign In
+                    </Button>
+                  </Link>
                   <Link to="/chat">
-                    <Button className="w-full bg-primary-600 hover:bg-primary-700 text-white">
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                       Start Chat
                     </Button>
                   </Link>
