@@ -11,6 +11,7 @@ import Upload from "./pages/Upload";
 import Learn from "./pages/Learn";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
+import Products from "./pages/Products";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/learn" element={<Learn />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/products/:category" element={<Products />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

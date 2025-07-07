@@ -1,4 +1,6 @@
+
 import { Card, CardContent } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 
 const UseCasesSection = () => {
   const useCases = [
@@ -7,42 +9,48 @@ const UseCasesSection = () => {
       title: 'Credit Cards',
       description: 'Decode interest rates, hidden fees, and reward terms',
       features: ['APR breakdown', 'Fee analysis', 'Reward optimization'],
-      color: 'from-blue-500 to-cyan-500'
+      color: 'from-blue-500 to-cyan-500',
+      route: '/products/credit-cards'
     },
     {
       icon: '🏥',
       title: 'Health Insurance',
       description: 'Understand coverage, deductibles, and exclusions',
       features: ['Coverage details', 'Network providers', 'Claim process'],
-      color: 'from-green-500 to-emerald-500'
+      color: 'from-green-500 to-emerald-500',
+      route: '/products/health-insurance'
     },
     {
       icon: '🛡️',
       title: 'Life Insurance',
       description: 'Simplify policy terms and beneficiary details',
       features: ['Payout conditions', 'Premium structure', 'Exclusions'],
-      color: 'from-purple-500 to-violet-500'
+      color: 'from-purple-500 to-violet-500',
+      route: '/products/life-insurance'
     },
     {
       icon: '🏠',
       title: 'Loans',
       description: 'Break down EMI, processing fees, and penalties',
       features: ['Interest calculation', 'Prepayment terms', 'Default penalties'],
-      color: 'from-orange-500 to-red-500'
+      color: 'from-orange-500 to-red-500',
+      route: '/products/loans'
     },
     {
       icon: '📈',
       title: 'ULIPs',
       description: 'Analyze investment and insurance components',
       features: ['Fund allocation', 'Charges breakdown', 'Surrender value'],
-      color: 'from-indigo-500 to-purple-500'
+      color: 'from-indigo-500 to-purple-500',
+      route: '/products/ulips'
     },
     {
       icon: '💰',
       title: 'Mutual Funds',
       description: 'Understand expense ratios and exit loads',
       features: ['Fee structure', 'Performance metrics', 'Tax implications'],
-      color: 'from-yellow-500 to-orange-500'
+      color: 'from-yellow-500 to-orange-500',
+      route: '/products/mutual-funds'
     }
   ];
 
@@ -61,43 +69,44 @@ const UseCasesSection = () => {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {useCases.map((useCase, index) => (
-            <Card 
-              key={useCase.title}
-              className="group hover:shadow-xl transition-all duration-300 border-0 bg-white hover:-translate-y-2"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <CardContent className="p-8">
-                <div className="space-y-6">
-                  {/* Icon and Title */}
-                  <div className="space-y-4">
-                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${useCase.color} flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300`}>
-                      {useCase.icon}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">{useCase.title}</h3>
-                      <p className="text-gray-600 leading-relaxed">{useCase.description}</p>
-                    </div>
-                  </div>
-
-                  {/* Features */}
-                  <div className="space-y-2">
-                    {useCase.features.map((feature, featureIndex) => (
-                      <div key={featureIndex} className="flex items-center space-x-2 text-sm">
-                        <div className="w-1.5 h-1.5 bg-secondary-500 rounded-full"></div>
-                        <span className="text-gray-700">{feature}</span>
+            <Link key={useCase.title} to={useCase.route}>
+              <Card 
+                className="group hover:shadow-xl transition-all duration-300 border-0 bg-white hover:-translate-y-2 cursor-pointer"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <CardContent className="p-8">
+                  <div className="space-y-6">
+                    {/* Icon and Title */}
+                    <div className="space-y-4">
+                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${useCase.color} flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300`}>
+                        {useCase.icon}
                       </div>
-                    ))}
-                  </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{useCase.title}</h3>
+                        <p className="text-gray-600 leading-relaxed">{useCase.description}</p>
+                      </div>
+                    </div>
 
-                  {/* CTA */}
-                  <div className="pt-4">
-                    <button className="text-primary-600 font-semibold text-sm hover:text-primary-700 transition-colors duration-200 group-hover:underline">
-                      Try with {useCase.title} →
-                    </button>
+                    {/* Features */}
+                    <div className="space-y-2">
+                      {useCase.features.map((feature, featureIndex) => (
+                        <div key={featureIndex} className="flex items-center space-x-2 text-sm">
+                          <div className="w-1.5 h-1.5 bg-secondary-500 rounded-full"></div>
+                          <span className="text-gray-700">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* CTA */}
+                    <div className="pt-4">
+                      <span className="text-primary-600 font-semibold text-sm hover:text-primary-700 transition-colors duration-200 group-hover:underline">
+                        View Top 10 {useCase.title} →
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
 
