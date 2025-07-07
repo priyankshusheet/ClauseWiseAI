@@ -1,137 +1,105 @@
 
 import { useState } from 'react';
+import { Menu, X, MessageSquare, Upload, BookOpen, CreditCard } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Home, Upload, MessageCircle, BookOpen, Info } from 'lucide-react';
 
 const Navigation = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
-  const handleNavigation = (href: string) => {
-    if (href.startsWith('#')) {
-      // Handle anchor links
-      const element = document.querySelector(href);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
-    setIsOpen(false);
-  };
+  const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
-    { name: 'Home', href: '/', icon: Home, isRoute: true },
-    { name: 'AI Chat', href: '/chat', icon: MessageCircle, isRoute: true },
-    { name: 'Upload & Analyze', href: '/upload', icon: Upload, isRoute: true },
-    { name: 'Learn', href: '/learn', icon: BookOpen, isRoute: true },
-    { name: 'FAQ', href: '#faq', icon: Info, isRoute: false },
+    { name: 'Learn', href: '/learn', icon: BookOpen },
+    { name: 'Products', href: '/products', icon: CreditCard },
+    { name: 'Upload & Analyze', href: '/upload', icon: Upload },
+    { name: 'AI Chat', href: '/chat', icon: MessageSquare },
   ];
 
   return (
-    <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-lg border-b border-gray-200 z-50 shadow-sm">
+    <nav className="bg-white/95 backdrop-blur-sm border-b border-gray-200 fixed w-full z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">CW</span>
+          <Link to="/" className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">FM</span>
             </div>
-            <span className="font-display font-bold text-xl text-gray-900">ClauseWise</span>
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              FinMitra
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              item.isRoute ? (
+            {navItems.map((item) => {
+              const IconComponent = item.icon;
+              return (
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 flex items-center space-x-1 group ${
-                    location.pathname === item.href ? 'text-blue-600' : ''
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+                    isActive(item.href)
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-700 hover:text-blue-600 hover:bg-gray-100'
                   }`}
                 >
-                  <item.icon className="w-4 h-4" />
-                  <span className="group-hover:underline">{item.name}</span>
+                  <IconComponent className="w-4 h-4" />
+                  <span className="font-medium">{item.name}</span>
                 </Link>
-              ) : (
-                <button
-                  key={item.name}
-                  onClick={() => handleNavigation(item.href)}
-                  className="text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 flex items-center space-x-1 group"
-                >
-                  <item.icon className="w-4 h-4" />
-                  <span className="group-hover:underline">{item.name}</span>
-                </button>
-              )
-            ))}
-          </div>
-
-          {/* CTA Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link to="/auth">
-              <Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50">
-                Sign In
-              </Button>
-            </Link>
-            <Link to="/chat">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                Start Chat
-              </Button>
+              );
+            })}
+            <Link
+              to="/auth"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105"
+            >
+              Sign In
             </Link>
           </div>
 
           {/* Mobile menu button */}
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <div className="flex flex-col space-y-4 mt-8">
-                {navItems.map((item) => (
-                  item.isRoute ? (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      onClick={() => setIsOpen(false)}
-                      className={`flex items-center space-x-3 text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 py-2 text-left ${
-                        location.pathname === item.href ? 'text-blue-600' : ''
-                      }`}
-                    >
-                      <item.icon className="w-5 h-5" />
-                      <span>{item.name}</span>
-                    </Link>
-                  ) : (
-                    <button
-                      key={item.name}
-                      onClick={() => handleNavigation(item.href)}
-                      className="flex items-center space-x-3 text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 py-2 text-left"
-                    >
-                      <item.icon className="w-5 h-5" />
-                      <span>{item.name}</span>
-                    </button>
-                  )
-                ))}
-                <div className="pt-4 border-t border-gray-200 space-y-3">
-                  <Link to="/auth">
-                    <Button variant="outline" className="w-full text-blue-600 border-blue-200">
-                      Sign In
-                    </Button>
-                  </Link>
-                  <Link to="/chat">
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                      Start Chat
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-gray-700 hover:text-blue-600 transition-colors"
+            >
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="md:hidden py-4 border-t border-gray-200">
+            <div className="flex flex-col space-y-2">
+              {navItems.map((item) => {
+                const IconComponent = item.icon;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                      isActive(item.href)
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <IconComponent className="w-5 h-5" />
+                    <span className="font-medium">{item.name}</span>
+                  </Link>
+                );
+              })}
+              <Link
+                to="/auth"
+                onClick={() => setIsMenuOpen(false)}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 rounded-lg font-semibold text-center"
+              >
+                Sign In
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

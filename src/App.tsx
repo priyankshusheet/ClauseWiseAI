@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Chat from "./pages/Chat";
 import Upload from "./pages/Upload";
 import Learn from "./pages/Learn";
+import Products from "./pages/Products";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/chat" element={<Chat />} />
           <Route path="/upload" element={<Upload />} />
           <Route path="/learn" element={<Learn />} />
+          <Route path="/products" element={<Products />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="*" element={<NotFound />} />

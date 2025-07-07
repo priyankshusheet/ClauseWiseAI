@@ -1,111 +1,117 @@
-import { Card, CardContent } from '@/components/ui/card';
+
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CreditCard, Heart, Shield, Home, TrendingUp, PiggyBank } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const UseCasesSection = () => {
   const useCases = [
     {
-      icon: '💳',
-      title: 'Credit Cards',
-      description: 'Decode interest rates, hidden fees, and reward terms',
-      features: ['APR breakdown', 'Fee analysis', 'Reward optimization'],
-      color: 'from-blue-500 to-cyan-500'
+      icon: CreditCard,
+      title: "Credit Cards",
+      description: "Compare top credit cards, rewards programs, and find the best match for your spending habits.",
+      color: "from-blue-500 to-blue-700",
+      link: "/products#creditCards"
     },
     {
-      icon: '🏥',
-      title: 'Health Insurance',
-      description: 'Understand coverage, deductibles, and exclusions',
-      features: ['Coverage details', 'Network providers', 'Claim process'],
-      color: 'from-green-500 to-emerald-500'
+      icon: Heart,
+      title: "Health Insurance",
+      description: "Discover comprehensive health insurance plans with best coverage and claim settlement ratios.",
+      color: "from-red-500 to-red-700",
+      link: "/products#healthInsurance"
     },
     {
-      icon: '🛡️',
-      title: 'Life Insurance',
-      description: 'Simplify policy terms and beneficiary details',
-      features: ['Payout conditions', 'Premium structure', 'Exclusions'],
-      color: 'from-purple-500 to-violet-500'
+      icon: Shield,
+      title: "Life Insurance",
+      description: "Explore life insurance policies that provide financial security for your loved ones.",
+      color: "from-green-500 to-green-700",
+      link: "/products#lifeInsurance"
     },
     {
-      icon: '🏠',
-      title: 'Loans',
-      description: 'Break down EMI, processing fees, and penalties',
-      features: ['Interest calculation', 'Prepayment terms', 'Default penalties'],
-      color: 'from-orange-500 to-red-500'
+      icon: Home,
+      title: "Loans",
+      description: "Find the best home loans, personal loans with competitive interest rates and quick approval.",
+      color: "from-orange-500 to-orange-700",
+      link: "/products#loans"
     },
     {
-      icon: '📈',
-      title: 'ULIPs',
-      description: 'Analyze investment and insurance components',
-      features: ['Fund allocation', 'Charges breakdown', 'Surrender value'],
-      color: 'from-indigo-500 to-purple-500'
+      icon: TrendingUp,
+      title: "ULIPs",
+      description: "Unit Linked Insurance Plans that combine insurance protection with investment opportunities.",
+      color: "from-purple-500 to-purple-700",
+      link: "/products#ulips"
     },
     {
-      icon: '💰',
-      title: 'Mutual Funds',
-      description: 'Understand expense ratios and exit loads',
-      features: ['Fee structure', 'Performance metrics', 'Tax implications'],
-      color: 'from-yellow-500 to-orange-500'
+      icon: PiggyBank,
+      title: "Mutual Funds",
+      description: "Discover top-performing mutual funds across equity, debt, and hybrid categories.",
+      color: "from-indigo-500 to-indigo-700",
+      link: "/products#mutualFunds"
     }
   ];
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-gray-900 mb-4">
-            One AI for All Your Financial Documents
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            Explore Top Financial Products
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            From credit cards to insurance policies, ClauseWise breaks down complex terms 
-            across all your financial products 🎯
+            Discover India's best financial products across different categories, carefully ranked and analyzed for your financial success.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {useCases.map((useCase, index) => (
-            <Card 
-              key={useCase.title}
-              className="group hover:shadow-xl transition-all duration-300 border-0 bg-white hover:-translate-y-2"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <CardContent className="p-8">
-                <div className="space-y-6">
-                  {/* Icon and Title */}
-                  <div className="space-y-4">
-                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${useCase.color} flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300`}>
-                      {useCase.icon}
+          {useCases.map((useCase, index) => {
+            const IconComponent = useCase.icon;
+            return (
+              <Link key={index} to={useCase.link}>
+                <Card className="group h-full cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-l-4" 
+                      style={{ borderLeftColor: useCase.color.split(' ')[1].replace('to-', '') }}>
+                  <CardHeader className="text-center pb-4">
+                    <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${useCase.color} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
+                      <IconComponent className="w-8 h-8 text-white" />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">{useCase.title}</h3>
-                      <p className="text-gray-600 leading-relaxed">{useCase.description}</p>
+                    <CardTitle className="text-xl text-gray-900 group-hover:text-blue-600 transition-colors">
+                      {useCase.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <p className="text-gray-600 leading-relaxed">
+                      {useCase.description}
+                    </p>
+                    <div className="mt-4 text-blue-600 font-medium group-hover:underline">
+                      Explore Top 10 →
                     </div>
-                  </div>
-
-                  {/* Features */}
-                  <div className="space-y-2">
-                    {useCase.features.map((feature, featureIndex) => (
-                      <div key={featureIndex} className="flex items-center space-x-2 text-sm">
-                        <div className="w-1.5 h-1.5 bg-secondary-500 rounded-full"></div>
-                        <span className="text-gray-700">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* CTA */}
-                  <div className="pt-4">
-                    <button className="text-primary-600 font-semibold text-sm hover:text-primary-700 transition-colors duration-200 group-hover:underline">
-                      Try with {useCase.title} →
-                    </button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
 
-        {/* Bottom CTA */}
-        <div className="text-center mt-16">
-          <div className="inline-flex items-center space-x-2 text-gray-600">
-            <span>And many more financial documents...</span>
-            <span className="text-2xl">📄</span>
+        {/* CTA Section */}
+        <div className="mt-16 text-center">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+            <h3 className="text-2xl font-bold mb-4">Need Personalized Recommendations?</h3>
+            <p className="text-lg mb-6 opacity-90">
+              Upload your financial documents and get AI-powered analysis and recommendations tailored to your specific needs.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link 
+                to="/upload" 
+                className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+              >
+                Upload Documents
+              </Link>
+              <Link 
+                to="/chat" 
+                className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+              >
+                Chat with AI
+              </Link>
+            </div>
           </div>
         </div>
       </div>
