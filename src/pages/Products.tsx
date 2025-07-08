@@ -4,7 +4,7 @@ import { ArrowLeft, Star, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { financialProductsData, ProductCategory, getAllProductsInCategory } from '@/data/financialProductsData';
+import { financialProductsData, ProductCategory, getAllProductsInCategory, ProductInfo } from '@/data/financialProductsData';
 
 const Products = () => {
   const { category } = useParams();
@@ -69,13 +69,16 @@ const Products = () => {
 
   // Get products from the comprehensive dataset
   const productsData = getAllProductsInCategory(currentProduct.category);
-  const productsList = Object.entries(productsData).map(([name, data], index) => ({
-    name,
-    rating: 4.5 - (index * 0.1), // Generate ratings from 4.5 to 3.5
-    highlight: data.Pros[0] || 'Great financial product',
-    pros: data.Pros,
-    cons: data.Cons
-  }));
+  const productsList = Object.entries(productsData).map(([name, data], index) => {
+    const productInfo = data as ProductInfo;
+    return {
+      name,
+      rating: 4.5 - (index * 0.1), // Generate ratings from 4.5 to 3.5
+      highlight: productInfo.Pros[0] || 'Great financial product',
+      pros: productInfo.Pros,
+      cons: productInfo.Cons
+    };
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
