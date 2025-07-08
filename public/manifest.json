@@ -1,0 +1,33 @@
+
+{
+  "name": "ClauseWise - AI Financial Buddy",
+  "short_name": "ClauseWise",
+  "description": "Your AI companion for understanding financial documents and terms",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon-v2.ico",
+      "sizes": "16x16 32x32 64x64",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/uploads/clausewise-logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/uploads/clausewise-logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "productivity", "business"],
+  "lang": "en",
+  "dir": "ltr"
+}
