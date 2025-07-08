@@ -1,8 +1,10 @@
 
-import { Card, CardContent } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
+import ProductCard from './ProductCard';
+import { useNavigate } from 'react-router-dom';
 
 const UseCasesSection = () => {
+  const navigate = useNavigate();
+
   const useCases = [
     {
       icon: '💳',
@@ -10,7 +12,17 @@ const UseCasesSection = () => {
       description: 'Decode interest rates, hidden fees, and reward terms',
       features: ['APR breakdown', 'Fee analysis', 'Reward optimization'],
       color: 'from-blue-500 to-cyan-500',
-      route: '/products/credit-cards'
+      route: '/products/credit-cards',
+      pros: [
+        'Build credit history with responsible usage',
+        'Earn rewards and cashback on purchases',
+        'Get fraud protection and purchase security'
+      ],
+      cons: [
+        'High interest rates on unpaid balances (18-45% APR)',
+        'Hidden fees like late payment, overlimit charges',
+        'Easy to accumulate debt with minimum payments'
+      ]
     },
     {
       icon: '🏥',
@@ -18,7 +30,17 @@ const UseCasesSection = () => {
       description: 'Understand coverage, deductibles, and exclusions',
       features: ['Coverage details', 'Network providers', 'Claim process'],
       color: 'from-green-500 to-emerald-500',
-      route: '/products/health-insurance'
+      route: '/products/health-insurance',
+      pros: [
+        'Financial protection against medical emergencies',
+        'Cashless treatment at network hospitals',
+        'Tax benefits under Section 80D'
+      ],
+      cons: [
+        'Waiting periods for pre-existing conditions',
+        'Complex claim procedures and documentation',
+        'Premium increases with age and claims'
+      ]
     },
     {
       icon: '🛡️',
@@ -26,7 +48,17 @@ const UseCasesSection = () => {
       description: 'Simplify policy terms and beneficiary details',
       features: ['Payout conditions', 'Premium structure', 'Exclusions'],
       color: 'from-purple-500 to-violet-500',
-      route: '/products/life-insurance'
+      route: '/products/life-insurance',
+      pros: [
+        'Financial security for family after death',
+        'Tax benefits on premiums and payouts',
+        'Forced savings with investment-linked policies'
+      ],
+      cons: [
+        'Low returns compared to other investments',
+        'Complex terms and surrender penalties',
+        'High charges in ULIP and investment plans'
+      ]
     },
     {
       icon: '🏠',
@@ -34,7 +66,17 @@ const UseCasesSection = () => {
       description: 'Break down EMI, processing fees, and penalties',
       features: ['Interest calculation', 'Prepayment terms', 'Default penalties'],
       color: 'from-orange-500 to-red-500',
-      route: '/products/loans'
+      route: '/products/loans',
+      pros: [
+        'Immediate access to large amounts for goals',
+        'Tax benefits on home loan interest',
+        'Build credit score with timely payments'
+      ],
+      cons: [
+        'Long-term financial commitment with EMIs',
+        'High processing fees and hidden charges',
+        'Penalty charges for late or missed payments'
+      ]
     },
     {
       icon: '📈',
@@ -42,7 +84,17 @@ const UseCasesSection = () => {
       description: 'Analyze investment and insurance components',
       features: ['Fund allocation', 'Charges breakdown', 'Surrender value'],
       color: 'from-indigo-500 to-purple-500',
-      route: '/products/ulips'
+      route: '/products/ulips',
+      pros: [
+        'Dual benefit of insurance and investment',
+        'Tax benefits under Section 80C and 10(10D)',
+        'Flexibility to switch between funds'
+      ],
+      cons: [
+        'High charges reduce actual investment amount',
+        'Poor returns compared to mutual funds',
+        'Lock-in period with surrender penalties'
+      ]
     },
     {
       icon: '💰',
@@ -50,7 +102,17 @@ const UseCasesSection = () => {
       description: 'Understand expense ratios and exit loads',
       features: ['Fee structure', 'Performance metrics', 'Tax implications'],
       color: 'from-yellow-500 to-orange-500',
-      route: '/products/mutual-funds'
+      route: '/products/mutual-funds',
+      pros: [
+        'Professional fund management and diversification',
+        'Easy to start with SIPs from ₹500/month',
+        'Better returns than traditional investments'
+      ],
+      cons: [
+        'Market risks can lead to losses',
+        'Expense ratios and exit loads reduce returns',
+        'Performance depends on fund manager skills'
+      ]
     }
   ];
 
@@ -69,44 +131,18 @@ const UseCasesSection = () => {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {useCases.map((useCase, index) => (
-            <Link key={useCase.title} to={useCase.route}>
-              <Card 
-                className="group hover:shadow-xl transition-all duration-300 border-0 bg-white hover:-translate-y-2 cursor-pointer"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <CardContent className="p-8">
-                  <div className="space-y-6">
-                    {/* Icon and Title */}
-                    <div className="space-y-4">
-                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${useCase.color} flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300`}>
-                        {useCase.icon}
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{useCase.title}</h3>
-                        <p className="text-gray-600 leading-relaxed">{useCase.description}</p>
-                      </div>
-                    </div>
-
-                    {/* Features */}
-                    <div className="space-y-2">
-                      {useCase.features.map((feature, featureIndex) => (
-                        <div key={featureIndex} className="flex items-center space-x-2 text-sm">
-                          <div className="w-1.5 h-1.5 bg-secondary-500 rounded-full"></div>
-                          <span className="text-gray-700">{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* CTA */}
-                    <div className="pt-4">
-                      <span className="text-primary-600 font-semibold text-sm hover:text-primary-700 transition-colors duration-200 group-hover:underline">
-                        View Top 10 {useCase.title} →
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <ProductCard
+              key={useCase.title}
+              title={useCase.title}
+              description={useCase.description}
+              icon={useCase.icon}
+              color={useCase.color}
+              route={useCase.route}
+              features={useCase.features}
+              pros={useCase.pros}
+              cons={useCase.cons}
+              onNavigate={navigate}
+            />
           ))}
         </div>
 
