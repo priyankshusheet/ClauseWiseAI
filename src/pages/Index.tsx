@@ -1,4 +1,3 @@
-
 import Navigation from '@/components/Navigation';
 import HeroSection from '@/components/HeroSection';
 import UseCasesSection from '@/components/UseCasesSection';
