@@ -112,10 +112,10 @@ const Footer = () => {
                 Your AI companion for smarter financial decisions. 🤖💡
               </p>
               <div className="space-y-2 text-sm text-gray-400">
-                <p>🔒 Bank-level security for your documents</p>
+                <p>🔒 Top Class security for your documents</p>
                 <p>⚡ Instant analysis in seconds</p>
-                <p>🎯 99% accuracy in document analysis</p>
-                <p>🏆 Trusted by 10,000+ users</p>
+                <p>🎯 Great accuracy in document analysis</p>
+                <p>🏆 Trusted by many users</p>
               </div>
             </div>
 
@@ -147,7 +147,7 @@ const Footer = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-gray-400 text-sm">
-              © 2024 ClauseWise. All rights reserved. Made with ❤️ for better financial literacy.
+              © 2025 ClauseWise. All rights reserved. Made with ❤️ for better financial literacy.
             </div>
             <div className="flex items-center space-x-6 text-sm text-gray-400">
               <span>🔒 Your data is secure</span>
