@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Send, Upload, FileText, Bot, User, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { financialProductsData, searchProducts, ProductCategory, getProductData } from '@/data/financialProductsData';
 
 interface ChatMessage {
   id: string;
@@ -17,7 +18,7 @@ const ChatInterface = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      content: "Hello! I'm ClauseWise, your financial document assistant. I can help you understand insurance policies, credit card terms, and other financial documents. How can I help you today?",
+      content: "Hello! I'm ClauseWise, your financial document assistant. I can help you understand insurance policies, credit card terms, and other financial documents. I also have comprehensive information about the top financial products in India. How can I help you today?",
       isUser: false,
       timestamp: new Date()
     }
@@ -64,6 +65,96 @@ const ChatInterface = () => {
     }
   };
 
+  const generateLocalResponse = (query: string): string | null => {
+    const lowerQuery = query.toLowerCase();
+    
+    // Search for specific products
+    const productResults = searchProducts(query);
+    if (productResults.length > 0) {
+      const result = productResults[0];
+      return `Here's information about ${result.productName}:
+
+**Key Benefits:**
+${result.data.Pros.map(pro => `• ${pro}`).join('\n')}
+
+**Main Risks:**
+${result.data.Cons.map(con => `• ${con}`).join('\n')}
+
+This product falls under the ${result.category} category. Would you like more details about other products in this category or specific comparisons?`;
+    }
+
+    // Category-based responses
+    if (lowerQuery.includes('credit card')) {
+      const topCards = Object.keys(financialProductsData['Credit Cards']).slice(0, 3);
+      return `Here are the top credit cards in India:
+
+${topCards.map((card, index) => `${index + 1}. **${card}**`).join('\n')}
+
+Each card has unique benefits and risks. Which specific card would you like to know more about, or would you like me to compare them for you?`;
+    }
+
+    if (lowerQuery.includes('health insurance') || lowerQuery.includes('medical insurance')) {
+      const topInsurers = Object.keys(financialProductsData['Health Insurance']).slice(0, 3);
+      return `Here are the top health insurance providers in India:
+
+${topInsurers.map((insurer, index) => `${index + 1}. **${insurer}**`).join('\n')}
+
+Would you like detailed pros and cons for any of these providers, or help choosing the right plan for your needs?`;
+    }
+
+    if (lowerQuery.includes('life insurance')) {
+      const topInsurers = Object.keys(financialProductsData['Life Insurance']).slice(0, 3);
+      return `Here are the top life insurance companies in India:
+
+${topInsurers.map((insurer, index) => `${index + 1}. **${insurer}**`).join('\n')}
+
+I can provide detailed information about benefits, risks, and help you choose the right policy type. What specific information are you looking for?`;
+    }
+
+    if (lowerQuery.includes('loan') || lowerQuery.includes('home loan') || lowerQuery.includes('personal loan')) {
+      const topLenders = Object.keys(financialProductsData['Loans']).slice(0, 3);
+      return `Here are the top loan providers in India:
+
+${topLenders.map((lender, index) => `${index + 1}. **${lender}**`).join('\n')}
+
+Would you like to know about interest rates, eligibility criteria, or compare different loan types?`;
+    }
+
+    if (lowerQuery.includes('ulip') || lowerQuery.includes('investment')) {
+      const topULIPs = Object.keys(financialProductsData['ULIPs']).slice(0, 3);
+      return `Here are the top ULIPs (Unit Linked Insurance Plans) in India:
+
+${topULIPs.map((ulip, index) => `${index + 1}. **${ulip}**`).join('\n')}
+
+ULIPs combine insurance and investment. Would you like to understand the risks and benefits, or compare with other investment options?`;
+    }
+
+    if (lowerQuery.includes('mutual fund') || lowerQuery.includes('sip')) {
+      const topFunds = Object.keys(financialProductsData['Mutual Funds']).slice(0, 3);
+      return `Here are the top mutual funds in India:
+
+${topFunds.map((fund, index) => `${index + 1}. **${fund}**`).join('\n')}
+
+I can help you understand different fund types, risks, returns, and help you choose based on your investment goals. What would you like to know?`;
+    }
+
+    // General comparison queries
+    if (lowerQuery.includes('compare') || lowerQuery.includes('difference')) {
+      return `I can help you compare financial products! Here's what I can compare for you:
+
+• **Credit Cards** - Rewards, fees, benefits
+• **Health Insurance** - Coverage, premiums, claim ratios
+• **Life Insurance** - Policy types, returns, benefits
+• **Loans** - Interest rates, eligibility, terms
+• **ULIPs** - Returns, charges, fund options
+• **Mutual Funds** - Performance, expense ratios, categories
+
+Which products would you like me to compare? Please specify the exact names or categories.`;
+    }
+
+    return null;
+  };
+
   const processMessage = async () => {
     if (!inputValue.trim() && !uploadedFile) return;
 
@@ -84,56 +175,64 @@ const ChatInterface = () => {
     setIsProcessing(true);
 
     try {
-      // If file is uploaded, first analyze the document
-      let documentAnalysis = null;
-      if (uploadedFile) {
-        try {
-          // Simulate OCR analysis for demo purposes
-          const ocrResult = {
-            extractedText: "Sample extracted text from document...",
-            confidence: 85,
-            sections: 3,
-            hiddenClauses: 2
-          };
+      // First try to generate a local response using our dataset
+      let assistantResponse = generateLocalResponse(inputValue);
+      
+      if (!assistantResponse) {
+        // If file is uploaded, first analyze the document
+        let documentAnalysis = null;
+        if (uploadedFile) {
+          try {
+            // Simulate OCR analysis for demo purposes
+            const ocrResult = {
+              extractedText: "Sample extracted text from document...",
+              confidence: 85,
+              sections: 3,
+              hiddenClauses: 2
+            };
 
-          const { data: docData, error: docError } = await supabase.functions.invoke('document-analysis', {
-            body: {
-              fileName: uploadedFile.name,
-              fileType: uploadedFile.type,
-              analysisType: 'comprehensive',
-              extractedText: ocrResult.extractedText,
-              ocrConfidence: ocrResult.confidence,
-              identifiedSections: ocrResult.sections,
-              hiddenClausesCount: ocrResult.hiddenClauses
+            const { data: docData, error: docError } = await supabase.functions.invoke('document-analysis', {
+              body: {
+                fileName: uploadedFile.name,
+                fileType: uploadedFile.type,
+                analysisType: 'comprehensive',
+                extractedText: ocrResult.extractedText,
+                ocrConfidence: ocrResult.confidence,
+                identifiedSections: ocrResult.sections,
+                hiddenClausesCount: ocrResult.hiddenClauses
+              }
+            });
+
+            if (!docError && docData) {
+              documentAnalysis = docData.analysis || docData.summary;
             }
-          });
-
-          if (!docError && docData) {
-            documentAnalysis = docData.analysis || docData.summary;
+          } catch (docError) {
+            console.error('Document analysis error:', docError);
           }
-        } catch (docError) {
-          console.error('Document analysis error:', docError);
         }
-      }
 
-      // Prepare enhanced message for chat
-      let enhancedMessage = inputValue;
-      if (documentAnalysis) {
-        enhancedMessage += `\n\nDocument Analysis Context: ${documentAnalysis}`;
-      }
-
-      const { data, error } = await supabase.functions.invoke('ai-chat-analysis', {
-        body: {
-          message: enhancedMessage,
-          hasDocument: !!uploadedFile,
-          fileName: uploadedFile?.name,
-          conversationHistory: newHistory.slice(-10) // Keep last 10 messages for context
+        // Prepare enhanced message for chat
+        let enhancedMessage = inputValue;
+        if (documentAnalysis) {
+          enhancedMessage += `\n\nDocument Analysis Context: ${documentAnalysis}`;
         }
-      });
 
-      if (error) throw error;
+        // Add financial products context to the message
+        enhancedMessage += `\n\nAvailable Financial Products Database: I have comprehensive information about top Credit Cards, Health Insurance, Life Insurance, Loans, ULIPs, and Mutual Funds in India with detailed pros and cons for each product.`;
 
-      const assistantResponse = data.response || "I'm here to help with your financial documents. Could you provide more details?";
+        const { data, error } = await supabase.functions.invoke('ai-chat-analysis', {
+          body: {
+            message: enhancedMessage,
+            hasDocument: !!uploadedFile,
+            fileName: uploadedFile?.name,
+            conversationHistory: newHistory.slice(-10) // Keep last 10 messages for context
+          }
+        });
+
+        if (error) throw error;
+
+        assistantResponse = data.response || "I'm here to help with your financial documents and products. Could you provide more details?";
+      }
       
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -156,7 +255,7 @@ const ChatInterface = () => {
       
       const errorMessage: ChatMessage = {
         id: (Date.now() + 2).toString(),
-        content: "I'm experiencing technical difficulties. Please try again in a moment.",
+        content: "I'm experiencing technical difficulties. However, I can still help you with information about financial products using my local database. Please try asking about credit cards, insurance, loans, or other financial products.",
         isUser: false,
         timestamp: new Date()
       };
@@ -165,7 +264,7 @@ const ChatInterface = () => {
       
       toast({
         title: "Connection Error",
-        description: "Unable to process your request. Please try again.",
+        description: "Using local database for financial product information.",
         variant: "destructive",
       });
     } finally {
@@ -185,18 +284,18 @@ const ChatInterface = () => {
   };
 
   return (
-    <div className="flex flex-col h-[600px] max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-gray-200">
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-xl">
+    <div className="flex flex-col h-[600px] max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-t-xl">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
             <Bot className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">ClauseWise Assistant</h3>
-            <p className="text-sm text-gray-600">Financial Document Expert</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white">ClauseWise Assistant</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Financial Document & Product Expert</p>
           </div>
         </div>
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
           ● Available
         </span>
       </div>
@@ -206,18 +305,18 @@ const ChatInterface = () => {
           <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex items-start space-x-2 max-w-[80%] ${message.isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                message.isUser ? 'bg-blue-100' : 'bg-gradient-to-br from-blue-500 to-purple-500'
+                message.isUser ? 'bg-blue-100 dark:bg-blue-900' : 'bg-gradient-to-br from-blue-500 to-purple-500'
               }`}>
                 {message.isUser ? (
-                  <User className="w-4 h-4 text-blue-600" />
+                  <User className="w-4 h-4 text-blue-600 dark:text-blue-300" />
                 ) : (
                   <Bot className="w-4 h-4 text-white" />
                 )}
               </div>
-              <Card className={`${message.isUser ? 'bg-blue-500 text-white' : 'bg-gray-50 border-gray-200'}`}>
+              <Card className={`${message.isUser ? 'bg-blue-500 text-white' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'}`}>
                 <CardContent className="p-3">
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <p className={`text-xs mt-1 ${message.isUser ? 'text-blue-100' : 'text-gray-500'}`}>
+                  <p className={`text-sm whitespace-pre-wrap ${message.isUser ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>{message.content}</p>
+                  <p className={`text-xs mt-1 ${message.isUser ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
                     {formatTime(message.timestamp)}
                   </p>
                 </CardContent>
@@ -232,11 +331,11 @@ const ChatInterface = () => {
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                 <Bot className="w-4 h-4 text-white" />
               </div>
-              <Card className="bg-gray-50 border-gray-200">
+              <Card className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
                 <CardContent className="p-3">
                   <div className="flex items-center space-x-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm text-gray-600">Analyzing your request...</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Analyzing your request...</span>
                   </div>
                 </CardContent>
               </Card>
@@ -247,15 +346,15 @@ const ChatInterface = () => {
       </div>
 
       {uploadedFile && (
-        <div className="px-4 py-2 bg-blue-50 border-t border-gray-200">
+        <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-t border-gray-200 dark:border-gray-600">
           <div className="flex items-center space-x-2 text-sm">
-            <FileText className="w-4 h-4 text-blue-600" />
-            <span className="text-gray-700">File ready for analysis: {uploadedFile.name}</span>
+            <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-gray-700 dark:text-gray-300">File ready for analysis: {uploadedFile.name}</span>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setUploadedFile(null)}
-              className="text-gray-500 hover:text-gray-700 ml-auto"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ml-auto"
             >
               ✕
             </Button>
@@ -263,7 +362,7 @@ const ChatInterface = () => {
         </div>
       )}
 
-      <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 rounded-b-xl">
         <div className="flex items-end space-x-2">
           <input
             type="file"
@@ -286,8 +385,8 @@ const ChatInterface = () => {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask about financial documents or upload a file..."
-              className="min-h-[40px]"
+              placeholder="Ask about financial documents, products, or upload a file..."
+              className="min-h-[40px] dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               disabled={isProcessing}
             />
           </div>
@@ -299,7 +398,7 @@ const ChatInterface = () => {
             <Send className="w-4 h-4" />
           </Button>
         </div>
-        <p className="text-xs text-gray-500 mt-2 text-center">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
           Upload documents for analysis or ask questions about financial products.
         </p>
       </div>
