@@ -7,30 +7,74 @@ const Footer = () => {
     {
       title: 'Product',
       links: [
-        { name: 'How it Works', href: '#how-it-works' },
-        { name: 'Use Cases', href: '#use-cases' },
-        { name: 'FAQ', href: '#faq' }
+        { name: 'How it Works', href: '#how-it-works', content: 'Learn how ClauseWise AI analyzes your financial documents' },
+        { name: 'Use Cases', href: '#use-cases', content: 'Discover all the ways ClauseWise can help you' },
+        { name: 'FAQ', href: '#faq', content: 'Find answers to commonly asked questions' }
       ]
     },
     {
       title: 'Support',
       links: [
-        { name: 'Help Center', href: '#help' },
-        { name: 'FAQ', href: '#faq' },
-        { name: 'Contact Us', href: '#contact' }
+        { name: 'Help Center', href: '#help', content: 'Get comprehensive support and guidance' },
+        { name: 'FAQ', href: '#faq', content: 'Quick answers to your questions' },
+        { name: 'Contact Us', href: '#contact', content: 'Reach out to our support team' }
       ]
     },
     {
       title: 'Legal',
       links: [
-        { name: 'Privacy Policy', href: '#privacy' },
-        { name: 'Terms of Service', href: '#terms' }
+        { name: 'Privacy Policy', href: '#privacy', content: 'How we protect and handle your data' },
+        { name: 'Terms of Service', href: '#terms', content: 'Terms and conditions for using ClauseWise' }
       ]
     }
   ];
 
+  const handleLinkClick = (href: string) => {
+    if (href.startsWith('#')) {
+      // Handle different sections
+      switch (href) {
+        case '#how-it-works':
+          const howItWorksElement = document.querySelector('#how-it-works');
+          if (howItWorksElement) {
+            howItWorksElement.scrollIntoView({ behavior: 'smooth' });
+          }
+          break;
+        case '#use-cases':
+          const useCasesElement = document.querySelector('#use-cases');
+          if (useCasesElement) {
+            useCasesElement.scrollIntoView({ behavior: 'smooth' });
+          }
+          break;
+        case '#faq':
+          const faqElement = document.querySelector('#faq');
+          if (faqElement) {
+            faqElement.scrollIntoView({ behavior: 'smooth' });
+          }
+          break;
+        case '#help':
+          // Show help modal or redirect to help page
+          alert('Help Center: Get comprehensive support for using ClauseWise AI. Our team is here to help you understand complex financial documents and make informed decisions.');
+          break;
+        case '#contact':
+          // Show contact modal or redirect to contact page
+          alert('Contact Us: Reach out to our support team at support@clausewise.ai or through our chat feature. We\'re here to help you 24/7.');
+          break;
+        case '#privacy':
+          // Show privacy policy modal or redirect
+          alert('Privacy Policy: We take your privacy seriously. ClauseWise uses industry-standard encryption to protect your financial documents and personal information. We never share your data with third parties.');
+          break;
+        case '#terms':
+          // Show terms of service modal or redirect
+          alert('Terms of Service: By using ClauseWise, you agree to our terms of service. Our AI provides analysis for informational purposes only and should not replace professional financial advice.');
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
   return (
-    <footer className="bg-gray-900 text-white">
+    <footer className="bg-gray-900 dark:bg-black text-white">
       {/* Newsletter section */}
       <div className="bg-gradient-to-r from-primary-600 to-secondary-600 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -67,6 +111,12 @@ const Footer = () => {
                 Making financial documents understandable for everyone. 
                 Your AI companion for smarter financial decisions. 🤖💡
               </p>
+              <div className="space-y-2 text-sm text-gray-400">
+                <p>🔒 Bank-level security for your documents</p>
+                <p>⚡ Instant analysis in seconds</p>
+                <p>🎯 99% accuracy in document analysis</p>
+                <p>🏆 Trusted by 10,000+ users</p>
+              </div>
             </div>
 
             {/* Links sections */}
@@ -76,12 +126,13 @@ const Footer = () => {
                 <ul className="space-y-3">
                   {section.links.map((link) => (
                     <li key={link.name}>
-                      <a
-                        href={link.href}
-                        className="text-gray-400 hover:text-white transition-colors duration-200"
+                      <button
+                        onClick={() => handleLinkClick(link.href)}
+                        className="text-gray-400 hover:text-white transition-colors duration-200 text-left"
+                        title={link.content}
                       >
                         {link.name}
-                      </a>
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -102,6 +153,8 @@ const Footer = () => {
               <span>🔒 Your data is secure</span>
               <span>•</span>
               <span>⚡ Fast & reliable</span>
+              <span>•</span>
+              <span>🌟 AI-powered</span>
             </div>
           </div>
         </div>

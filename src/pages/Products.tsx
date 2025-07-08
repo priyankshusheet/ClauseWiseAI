@@ -1,6 +1,5 @@
-
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Star, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Star, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,9 +14,27 @@ const Products = () => {
       icon: '💳',
       color: 'from-blue-500 to-cyan-500',
       products: [
-        { name: 'HDFC Regalia Credit Card', rating: 4.5, highlight: 'Premium rewards & travel benefits' },
-        { name: 'SBI Card ELITE', rating: 4.4, highlight: 'Comprehensive lifestyle benefits' },
-        { name: 'Axis Bank ACE Credit Card', rating: 4.3, highlight: 'Cashback on online spends' },
+        { 
+          name: 'HDFC Regalia Credit Card', 
+          rating: 4.5, 
+          highlight: 'Premium rewards & travel benefits',
+          pros: ['High reward points on dining and shopping', 'Complimentary airport lounge access', 'Travel insurance coverage'],
+          cons: ['High annual fee of ₹2,500', 'High income requirement', 'Limited cashback options']
+        },
+        { 
+          name: 'SBI Card ELITE', 
+          rating: 4.4, 
+          highlight: 'Comprehensive lifestyle benefits',
+          pros: ['10X reward points on dining', 'Movie ticket discounts', 'Fuel surcharge waiver'],
+          cons: ['Annual fee of ₹4,999', 'Complex reward redemption', 'Limited international acceptance']
+        },
+        { 
+          name: 'Axis Bank ACE Credit Card', 
+          rating: 4.3, 
+          highlight: 'Cashback on online spends',
+          pros: ['5% cashback on bill payments', '4% cashback on Swiggy/Zomato', 'No annual fee if spend ₹2L'],
+          cons: ['Cashback capped at ₹500/month', 'Limited offline benefits', 'High foreign transaction fees']
+        },
         { name: 'ICICI Amazon Pay Credit Card', rating: 4.2, highlight: 'Amazon shopping rewards' },
         { name: 'American Express Membership Rewards Card', rating: 4.4, highlight: 'Global acceptance & rewards' },
         { name: 'HDFC Millennia Credit Card', rating: 4.1, highlight: 'Online shopping benefits' },
@@ -33,7 +50,13 @@ const Products = () => {
       icon: '🏥',
       color: 'from-green-500 to-emerald-500',
       products: [
-        { name: 'Star Health & Allied Insurance', rating: 4.3, highlight: 'Largest health insurer in India' },
+        { 
+          name: 'Star Health & Allied Insurance', 
+          rating: 4.3, 
+          highlight: 'Largest health insurer in India',
+          pros: ['Comprehensive coverage options', 'Quick claim settlement', 'Wide network of hospitals'],
+          cons: ['Premium increases with age', 'Waiting period for pre-conditions', 'Complex policy terms']
+        },
         { name: 'HDFC ERGO Health Insurance', rating: 4.2, highlight: 'Quick claim settlement' },
         { name: 'Niva Bupa (formerly Max Bupa)', rating: 4.1, highlight: 'Comprehensive coverage options' },
         { name: 'Care Health Insurance', rating: 4.0, highlight: 'Affordable premium rates' },
@@ -125,7 +148,7 @@ const Products = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Product Not Found</h1>
           <Link to="/" className="text-blue-600 hover:underline">Go back to home</Link>
         </div>
       </div>
@@ -133,7 +156,7 @@ const Products = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
       
       <div className="pt-20 pb-16">
@@ -142,7 +165,7 @@ const Products = () => {
           <div className="mb-8">
             <Link 
               to="/" 
-              className="inline-flex items-center text-gray-600 hover:text-blue-600 mb-4 transition-colors"
+              className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-4 transition-colors"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Home
@@ -153,12 +176,12 @@ const Products = () => {
                 {currentProduct.icon}
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{currentProduct.title}</h1>
-                <p className="text-gray-600 mt-1">{currentProduct.subtitle}</p>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{currentProduct.title}</h1>
+                <p className="text-gray-600 dark:text-gray-300 mt-1">{currentProduct.subtitle}</p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
               <TrendingUp className="w-4 h-4" />
               <span>Updated regularly based on market performance and user reviews</span>
             </div>
@@ -167,35 +190,74 @@ const Products = () => {
           {/* Products Grid */}
           <div className="grid gap-6">
             {currentProduct.products.map((product, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow border-0 bg-white">
+              <Card key={index} className="hover:shadow-lg transition-shadow border-0 bg-white dark:bg-gray-800">
                 <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center font-bold text-gray-600">
-                          {index + 1}
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <div className="w-8 h-8 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-lg flex items-center justify-center font-bold text-gray-600 dark:text-gray-300">
+                            {index + 1}
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{product.name}</h3>
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-900">{product.name}</h3>
+                        
+                        <p className="text-gray-600 dark:text-gray-300 mb-3">{product.highlight}</p>
+                        
+                        <div className="flex items-center space-x-4 mb-4">
+                          <div className="flex items-center space-x-1">
+                            <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{product.rating}</span>
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            Based on user reviews and market performance
+                          </div>
+                        </div>
                       </div>
                       
-                      <p className="text-gray-600 mb-3">{product.highlight}</p>
-                      
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          <span className="text-sm font-medium text-gray-700">{product.rating}</span>
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Based on user reviews and market performance
-                        </div>
+                      <div className="ml-4">
+                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                          Learn More
+                        </button>
                       </div>
                     </div>
-                    
-                    <div className="ml-4">
-                      <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                        Learn More
-                      </button>
-                    </div>
+
+                    {/* Pros and Cons */}
+                    {product.pros && product.cons && (
+                      <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        {/* Benefits */}
+                        <div>
+                          <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center">
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Key Benefits
+                          </h4>
+                          <ul className="space-y-1">
+                            {product.pros.map((pro, proIndex) => (
+                              <li key={proIndex} className="text-sm text-green-800 dark:text-green-300 flex items-start">
+                                <span className="text-green-500 mr-2 mt-0.5">✓</span>
+                                {pro}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Risks */}
+                        <div>
+                          <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center">
+                            <AlertTriangle className="w-4 h-4 mr-1" />
+                            Main Risks
+                          </h4>
+                          <ul className="space-y-1">
+                            {product.cons.map((con, conIndex) => (
+                              <li key={conIndex} className="text-sm text-red-800 dark:text-red-300 flex items-start">
+                                <span className="text-red-500 mr-2 mt-0.5">⚠</span>
+                                {con}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -204,9 +266,9 @@ const Products = () => {
 
           {/* Bottom CTA */}
           <div className="mt-12 text-center">
-            <div className="bg-white rounded-2xl p-8 shadow-sm border">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Need Help Choosing?</h2>
-              <p className="text-gray-600 mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm border dark:border-gray-700">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Need Help Choosing?</h2>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Chat with our AI assistant to get personalized recommendations based on your needs
               </p>
               <Link to="/chat">
