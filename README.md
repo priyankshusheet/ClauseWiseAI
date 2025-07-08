@@ -22,7 +22,7 @@ ClauseWise AI is a **smart, full-stack financial document analyzer** powered by 
 
 ## Features
 
-### 🤖 ClauseWise ChatBot
+### ClauseWise ChatBot
 - Conversational UI tailored for financial Q&A
 - Role-based replies with dynamic avatars
 - Intelligent clause explanations using xAI
