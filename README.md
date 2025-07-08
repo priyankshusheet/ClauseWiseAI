@@ -11,7 +11,7 @@ ClauseWise AI is a **smart, full-stack financial document analyzer** powered by 
 - **Shadcn/UI**
 - **Lucide React**
 
-### 🤖 AI & Backend
+### AI & Backend
 - **Supabase Edge Functions (Deno)**
 - **xAI Grok API**
 - **React Query (TanStack)**
