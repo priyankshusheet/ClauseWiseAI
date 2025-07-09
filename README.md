@@ -8,7 +8,8 @@
 ClauseWise AI is a **smart, full-stack financial document analyzer** powered by AI. Built for modern users, it simplifies insurance policies, credit card T&Cs, and mutual fund jargon using **natural language processing**, an intuitive **chat-based UI**, and a polished design system.
 
 ---
-![clausewise-logo-512](https://github.com/user-attachments/assets/9e1d6bc6-13b3-4e4d-8160-2f5bd4a3e66d)
+
+![clausewise-logo-192](https://github.com/user-attachments/assets/02ce5d58-d566-4c4d-a654-646824cde726)
 
 ## ClauseWise AI
 
