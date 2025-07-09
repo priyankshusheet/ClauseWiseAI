@@ -220,10 +220,10 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
       <CardContent className="space-y-6">
         {!ocrResult && (
           <div className="text-center space-y-4">
-            <div className="p-6 border-2 border-dashed border-gray-300 rounded-lg">
-              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900">Ready to Analyze</h3>
-              <p className="text-gray-600 mb-4">
+            <div className="p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+              <FileText className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Ready to Analyze</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
                 File: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
               </p>
               <Button onClick={startOCRAnalysis} disabled={isProcessing} className="bg-blue-600 hover:bg-blue-700">
@@ -362,8 +362,10 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
                   <ul className="space-y-2">
                     {analysis.recommendations.map((rec, index) => (
                       <li key={index} className="flex items-start space-x-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                        <span className="text-blue-800">{rec}</span>
+                        <div className="w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full mt-2 flex-shrink-0" />
+                        <div className="text-blue-800 dark:text-blue-200">
+                          {formatTextWithBold(rec)}
+                        </div>
                       </li>
                     ))}
                   </ul>
