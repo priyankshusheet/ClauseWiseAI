@@ -1,14 +1,13 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, Eye } from 'lucide-react';
+import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, Eye, Download } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import OCRAnalysis from '@/components/OCRAnalysis';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface AnalysisResult {
   riskScore: number;
@@ -33,6 +32,7 @@ const UploadPage = () => {
   const [ocrResult, setOcrResult] = useState<OCRAnalysisResult | null>(null);
   const [showOCR, setShowOCR] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleDragEvents = {
     onDragOver: (e: React.DragEvent) => {
@@ -91,7 +91,6 @@ const UploadPage = () => {
   };
 
   const formatTextWithBold = (text: string) => {
-    // Replace **text** with bold formatting for display
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
@@ -100,6 +99,62 @@ const UploadPage = () => {
       }
       return part;
     });
+  };
+
+  const calculateDynamicRisk = (ocrData: OCRAnalysisResult | null): { score: number; level: string } => {
+    if (!ocrData) {
+      return { score: 50, level: 'medium' };
+    }
+
+    let riskScore = 30; // Base low risk
+    const { hiddenClauses, confidence, extractedText } = ocrData;
+
+    // Risk factors based on hidden clauses
+    if (hiddenClauses.length >= 5) {
+      riskScore += 40; // High risk for many hidden clauses
+    } else if (hiddenClauses.length >= 3) {
+      riskScore += 25; // Medium-high risk
+    } else if (hiddenClauses.length >= 1) {
+      riskScore += 15; // Moderate risk
+    }
+
+    // Risk based on OCR confidence
+    if (confidence < 70) {
+      riskScore += 20; // Low confidence means higher risk
+    } else if (confidence < 85) {
+      riskScore += 10;
+    }
+
+    // Risk based on document complexity (text length and structure)
+    if (extractedText.length > 10000) {
+      riskScore += 10; // Complex documents have higher risk
+    }
+
+    // Check for high-risk keywords
+    const highRiskKeywords = [
+      'penalty', 'termination', 'cancellation fee', 'auto-renewal', 
+      'binding arbitration', 'non-refundable', 'liability exclusion',
+      'force majeure', 'early termination fee', 'liquidated damages'
+    ];
+    
+    const foundHighRiskKeywords = highRiskKeywords.filter(keyword => 
+      extractedText.toLowerCase().includes(keyword.toLowerCase())
+    );
+    
+    riskScore += foundHighRiskKeywords.length * 5;
+
+    // Cap the risk score at 100
+    riskScore = Math.min(riskScore, 100);
+
+    // Determine risk level
+    let riskLevel = 'low';
+    if (riskScore >= 75) {
+      riskLevel = 'high';
+    } else if (riskScore >= 50) {
+      riskLevel = 'medium';
+    }
+
+    return { score: riskScore, level: riskLevel };
   };
 
   const startAIAnalysis = async () => {
@@ -125,29 +180,20 @@ const UploadPage = () => {
 
       if (error) throw error;
 
-      // Ensure we get proper risk assessment from the backend
+      // Calculate dynamic risk assessment
+      const dynamicRisk = calculateDynamicRisk(ocrResult);
+
       let processedResult = {
-        riskScore: data.riskScore || 50,
-        riskLevel: data.riskLevel || 'medium',
+        riskScore: data.riskScore || dynamicRisk.score,
+        riskLevel: data.riskLevel || dynamicRisk.level,
         analysis: data.analysis || 'Analysis completed successfully.',
         summary: data.summary || 'Document has been analyzed.'
       };
 
-      // If risk score is still default, calculate based on content
-      if (processedResult.riskScore === 50 && ocrResult) {
-        if (ocrResult.hiddenClauses.length > 3) {
-          processedResult.riskScore = 85;
-          processedResult.riskLevel = 'high';
-        } else if (ocrResult.hiddenClauses.length > 1) {
-          processedResult.riskScore = 70;
-          processedResult.riskLevel = 'medium';
-        } else if (ocrResult.confidence < 80) {
-          processedResult.riskScore = 65;
-          processedResult.riskLevel = 'medium';
-        } else {
-          processedResult.riskScore = 35;
-          processedResult.riskLevel = 'low';
-        }
+      // Override with dynamic calculation if backend didn't provide proper risk assessment
+      if (data.riskScore === 50 || !data.riskScore) {
+        processedResult.riskScore = dynamicRisk.score;
+        processedResult.riskLevel = dynamicRisk.level;
       }
 
       setAnalysisResult(processedResult);
@@ -164,6 +210,147 @@ const UploadPage = () => {
       });
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleDiscussDocument = () => {
+    if (selectedFile && analysisResult && ocrResult) {
+      // Store document context in localStorage for the chat
+      const documentContext = {
+        fileName: selectedFile.name,
+        analysisResult,
+        ocrResult,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem('documentContext', JSON.stringify(documentContext));
+      
+      // Navigate to chat page
+      navigate('/chat');
+      
+      toast({
+        title: "Document loaded in chat",
+        description: "You can now discuss this document with the AI assistant.",
+      });
+    }
+  };
+
+  const downloadAnalysisReport = async () => {
+    if (!analysisResult || !selectedFile) return;
+
+    try {
+      // Dynamic import for jsPDF and html2canvas
+      const { default: jsPDF } = await import('jspdf');
+      
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 20;
+      const lineHeight = 7;
+      let yPosition = margin;
+
+      // Helper function to add text with word wrapping
+      const addWrappedText = (text: string, fontSize: number = 10, isBold: boolean = false) => {
+        doc.setFontSize(fontSize);
+        if (isBold) {
+          doc.setFont(undefined, 'bold');
+        } else {
+          doc.setFont(undefined, 'normal');
+        }
+        
+        const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
+        lines.forEach((line: string) => {
+          if (yPosition > doc.internal.pageSize.getHeight() - margin) {
+            doc.addPage();
+            yPosition = margin;
+          }
+          doc.text(line, margin, yPosition);
+          yPosition += lineHeight;
+        });
+        yPosition += 3; // Extra spacing after paragraphs
+      };
+
+      // Header
+      doc.setFillColor(67, 56, 202); // Primary color
+      doc.rect(0, 0, pageWidth, 30, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont(undefined, 'bold');
+      doc.text('ClauseWise - Document Analysis Report', margin, 20);
+      
+      yPosition = 45;
+      doc.setTextColor(0, 0, 0);
+
+      // Document Information
+      addWrappedText('Document Information', 14, true);
+      addWrappedText(`File Name: ${selectedFile.name}`);
+      addWrappedText(`Analysis Date: ${new Date().toLocaleDateString()}`);
+      addWrappedText(`File Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`);
+      
+      if (ocrResult) {
+        addWrappedText(`OCR Confidence: ${ocrResult.confidence.toFixed(1)}%`);
+        addWrappedText(`Processing Time: ${ocrResult.processingTime}ms`);
+        addWrappedText(`Text Length: ${ocrResult.extractedText.length} characters`);
+      }
+
+      yPosition += 10;
+
+      // Risk Assessment
+      addWrappedText('Risk Assessment', 14, true);
+      
+      // Risk score with color coding
+      const riskColor = analysisResult.riskLevel === 'high' ? [220, 38, 38] : 
+                       analysisResult.riskLevel === 'medium' ? [245, 158, 11] : [34, 197, 94];
+      
+      doc.setTextColor(...riskColor);
+      addWrappedText(`Risk Score: ${analysisResult.riskScore}/100 (${analysisResult.riskLevel.toUpperCase()} RISK)`, 12, true);
+      doc.setTextColor(0, 0, 0);
+
+      yPosition += 5;
+
+      // Analysis Content
+      addWrappedText('Comprehensive Analysis', 14, true);
+      
+      // Clean and format the analysis text
+      const cleanAnalysis = analysisResult.analysis.replace(/\*\*(.*?)\*\*/g, '$1');
+      addWrappedText(cleanAnalysis);
+
+      yPosition += 10;
+
+      // OCR Hidden Clauses
+      if (ocrResult && ocrResult.hiddenClauses.length > 0) {
+        addWrappedText('OCR-Detected Hidden Clauses', 14, true);
+        ocrResult.hiddenClauses.slice(0, 5).forEach((clause, index) => {
+          addWrappedText(`${index + 1}. ${clause}`);
+        });
+        yPosition += 5;
+      }
+
+      // Summary
+      addWrappedText('Executive Summary', 14, true);
+      const cleanSummary = analysisResult.summary.replace(/\*\*(.*?)\*\*/g, '$1');
+      addWrappedText(cleanSummary);
+
+      // Footer
+      const finalY = doc.internal.pageSize.getHeight() - 20;
+      doc.setFontSize(8);
+      doc.setTextColor(128, 128, 128);
+      doc.text('Generated by ClauseWise - AI-Powered Document Analysis', margin, finalY);
+      doc.text(`Report generated on ${new Date().toLocaleString()}`, margin, finalY + 5);
+
+      // Save the PDF
+      const fileName = `ClauseWise_Analysis_${selectedFile.name.replace(/\.[^/.]+$/, "")}_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+
+      toast({
+        title: "Report downloaded",
+        description: "Your analysis report has been saved successfully.",
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({
+        title: "Download failed",
+        description: "Unable to generate the report. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -363,12 +550,11 @@ const UploadPage = () => {
                   </div>
 
                   <div className="flex justify-center space-x-4 pt-4">
-                    <Link to="/chat">
-                      <Button>
-                        Discuss This Document
-                      </Button>
-                    </Link>
-                    <Button variant="outline">
+                    <Button onClick={handleDiscussDocument}>
+                      Discuss This Document
+                    </Button>
+                    <Button variant="outline" onClick={downloadAnalysisReport}>
+                      <Download className="w-4 h-4 mr-2" />
                       Download Analysis Report
                     </Button>
                   </div>
