@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,20 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Send, Upload, FileText, User, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { financialProductsData, searchProducts, ProductCategory } from '@/data/financialProductsData';
-import { 
-  documentTrainingData, 
-  searchDocuments, 
-  getDocumentContext, 
-  getFinancialAdvice 
-} from '@/data/documentTrainingData';
-import { 
-  comprehensiveFinancialData, 
-  searchByKeyword, 
-  searchByCategory, 
-  formatProductResponse,
-  getRecommendations 
-} from '@/data/comprehensiveFinancialData';
+import { comprehensiveFinancialData, searchByKeyword, searchByCategory, formatProductResponse } from '@/data/comprehensiveFinancialData';
+import { getDocumentContext, getFinancialAdvice } from '@/data/documentTrainingData';
 
 interface ChatMessage {
   id: string;
@@ -52,6 +41,18 @@ const ChatInterface = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const formatTextWithBold = (text: string) => {
+    // Replace **text** with bold formatting for display
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        const boldText = part.slice(2, -2);
+        return <strong key={index} className="font-semibold">{boldText}</strong>;
+      }
+      return part;
+    });
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -196,7 +197,8 @@ I have detailed information about specific products in each category. What type 
 
     setMessages(prev => [...prev, userMessage]);
     
-    const newHistory = [...conversationHistory, `User: ${inputValue}`];
+    const currentQuery = inputValue;
+    const newHistory = [...conversationHistory, `User: ${currentQuery}`];
     setConversationHistory(newHistory);
     
     setInputValue('');
@@ -204,7 +206,7 @@ I have detailed information about specific products in each category. What type 
 
     try {
       // First try enhanced local response with comprehensive dataset
-      let assistantResponse = generateEnhancedLocalResponse(inputValue);
+      let assistantResponse = generateEnhancedLocalResponse(currentQuery);
       
       if (!assistantResponse) {
         let documentAnalysis = null;
@@ -237,14 +239,15 @@ I have detailed information about specific products in each category. What type 
           }
         }
 
-        let enhancedMessage = inputValue;
+        let enhancedMessage = currentQuery;
         if (documentAnalysis) {
           enhancedMessage += `\n\nDocument Analysis Context: ${documentAnalysis}`;
         }
 
+        enhancedMessage += `\n\nConversation Context: ${newHistory.slice(-6).join(' | ')}`;
         enhancedMessage += `\n\nComprehensive Financial Products Database: I have detailed information about ${comprehensiveFinancialData.length} financial products including loans, credit cards, and insurance policies with specific terms, rates, and conditions.`;
         
-        const docContext = getDocumentContext(inputValue);
+        const docContext = getDocumentContext(currentQuery);
         if (docContext) {
           enhancedMessage += `\n\nDocument Training Context: ${docContext}`;
         }
@@ -254,11 +257,15 @@ I have detailed information about specific products in each category. What type 
             message: enhancedMessage,
             hasDocument: !!uploadedFile,
             fileName: uploadedFile?.name,
-            conversationHistory: newHistory.slice(-10)
+            conversationHistory: newHistory.slice(-10),
+            previousContext: conversationHistory.slice(-5).join(' ')
           }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('AI Chat error:', error);
+          throw error;
+        }
 
         assistantResponse = data.response || "I'm here to help with your financial documents and products. Could you provide more details about what you're looking for?";
       }
@@ -342,7 +349,9 @@ I have detailed information about specific products in each category. What type 
               </div>
               <Card className={`${message.isUser ? 'bg-blue-500 text-white' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'}`}>
                 <CardContent className="p-3">
-                  <p className={`text-sm whitespace-pre-wrap ${message.isUser ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>{message.content}</p>
+                  <div className={`text-sm whitespace-pre-wrap leading-relaxed ${message.isUser ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>
+                    {message.isUser ? message.content : formatTextWithBold(message.content)}
+                  </div>
                   <p className={`text-xs mt-1 ${message.isUser ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
                     {formatTime(message.timestamp)}
                   </p>
