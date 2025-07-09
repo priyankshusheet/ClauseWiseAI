@@ -1,11 +1,13 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Send, Upload, FileText, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Upload, FileText, User, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { financialProductsData, searchProducts, ProductCategory, getProductData } from '@/data/financialProductsData';
+import { documentTrainingData, searchDocuments, getDocumentContext } from '@/data/documentTrainingData';
 
 interface ChatMessage {
   id: string;
@@ -67,6 +69,12 @@ const ChatInterface = () => {
 
   const generateLocalResponse = (query: string): string | null => {
     const lowerQuery = query.toLowerCase();
+    
+    // First check document training data
+    const documentContext = getDocumentContext(query);
+    if (documentContext) {
+      return `${documentContext}\n\nWould you like more specific information about any of these products or documents?`;
+    }
     
     // Search for specific products
     const productResults = searchProducts(query);
@@ -217,8 +225,14 @@ Which products would you like me to compare? Please specify the exact names or c
           enhancedMessage += `\n\nDocument Analysis Context: ${documentAnalysis}`;
         }
 
-        // Add financial products context to the message
+        // Add financial products context and document training data
         enhancedMessage += `\n\nAvailable Financial Products Database: I have comprehensive information about top Credit Cards, Health Insurance, Life Insurance, Loans, ULIPs, and Mutual Funds in India with detailed pros and cons for each product.`;
+        
+        // Add document training context
+        const docContext = getDocumentContext(inputValue);
+        if (docContext) {
+          enhancedMessage += `\n\nDocument Training Context: ${docContext}`;
+        }
 
         const { data, error } = await supabase.functions.invoke('ai-chat-analysis', {
           body: {
@@ -288,7 +302,7 @@ Which products would you like me to compare? Please specify the exact names or c
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-t-xl">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-            <Bot className="w-6 h-6 text-white" />
+            <span className="text-white font-bold text-sm">CW</span>
           </div>
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-white">ClauseWise Assistant</h3>
@@ -310,7 +324,7 @@ Which products would you like me to compare? Please specify the exact names or c
                 {message.isUser ? (
                   <User className="w-4 h-4 text-blue-600 dark:text-blue-300" />
                 ) : (
-                  <Bot className="w-4 h-4 text-white" />
+                  <span className="text-white font-bold text-xs">CW</span>
                 )}
               </div>
               <Card className={`${message.isUser ? 'bg-blue-500 text-white' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'}`}>
@@ -329,7 +343,7 @@ Which products would you like me to compare? Please specify the exact names or c
           <div className="flex justify-start">
             <div className="flex items-start space-x-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                <Bot className="w-4 h-4 text-white" />
+                <span className="text-white font-bold text-xs">CW</span>
               </div>
               <Card className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
                 <CardContent className="p-3">
