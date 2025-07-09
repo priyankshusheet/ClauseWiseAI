@@ -128,26 +128,29 @@ ClauseWise AI is a **smart, full-stack financial document analyzer** powered by 
 
 ## 📸 Screenshots
 
-### Light Mode (Default)
-<img width="1440" alt="Screenshot 2025-07-09 at 9 15 09 PM" src="https://github.com/user-attachments/assets/88c14d4a-e606-453b-b825-79cb0214e8e2" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 15 00 PM" src="https://github.com/user-attachments/assets/e535223d-98c2-43fa-9595-fc4d246c232c" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 15 34 PM" src="https://github.com/user-attachments/assets/4e98b2a8-a0e2-42b1-b1a7-6632824d094d" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 15 20 PM" src="https://github.com/user-attachments/assets/355b7d24-8c95-4e83-bbeb-15ca08bef250" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 15 46 PM" src="https://github.com/user-attachments/assets/03383a48-7174-4acf-9b86-d11e19cda456" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 16 11 PM" src="https://github.com/user-attachments/assets/d033b959-9862-4910-8c2a-0958ac773296" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 16 44 PM" src="https://github.com/user-attachments/assets/9113a5dd-7bb3-40be-95e8-43890cf0c854" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 17 49 PM" src="https://github.com/user-attachments/assets/b42086ea-cad2-4269-b49c-44aba240c639" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 18 02 PM" src="https://github.com/user-attachments/assets/dc78fb67-cd2b-4a64-a6ec-f487b0013113" />
-<img width="1375" alt="Screenshot 2025-07-09 at 9 28 26 PM" src="https://github.com/user-attachments/assets/10b8f8b4-5f16-42f7-916a-5059c9acc42a" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 18 21 PM" src="https://github.com/user-attachments/assets/8ea0cd84-2958-46b1-88af-0861e9846d0b" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 20 52 PM" src="https://github.com/user-attachments/assets/c826792a-bbe8-40d3-84c0-f78cb50b0da2" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 21 07 PM" src="https://github.com/user-attachments/assets/de641f75-1c52-490d-8772-a7b16d57e9a3" />
+### 🌞 Light Mode (Default)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/88c14d4a-e606-453b-b825-79cb0214e8e2" width="600"/>
+  <img src="https://github.com/user-attachments/assets/e535223d-98c2-43fa-9595-fc4d246c232c" width="600"/>
+  <img src="https://github.com/user-attachments/assets/4e98b2a8-a0e2-42b1-b1a7-6632824d094d" width="600"/>
+  <img src="https://github.com/user-attachments/assets/355b7d24-8c95-4e83-bbeb-15ca08bef250" width="600"/>
+  <img src="https://github.com/user-attachments/assets/03383a48-7174-4acf-9b86-d11e19cda456" width="600"/>
+  <img src="https://github.com/user-attachments/assets/d033b959-9862-4910-8c2a-0958ac773296" width="600"/>
+  <img src="https://github.com/user-attachments/assets/9113a5dd-7bb3-40be-95e8-43890cf0c854" width="600"/>
+  <img src="https://github.com/user-attachments/assets/b42086ea-cad2-4269-b49c-44aba240c639" width="600"/>
+  <img src="https://github.com/user-attachments/assets/dc78fb67-cd2b-4a64-a6ec-f487b0013113" width="600"/>
+  <img src="https://github.com/user-attachments/assets/10b8f8b4-5f16-42f7-916a-5059c9acc42a" width="600"/>
+  <img src="https://github.com/user-attachments/assets/8ea0cd84-2958-46b1-88af-0861e9846d0b" width="600"/>
+  <img src="https://github.com/user-attachments/assets/c826792a-bbe8-40d3-84c0-f78cb50b0da2" width="600"/>
+  <img src="https://github.com/user-attachments/assets/de641f75-1c52-490d-8772-a7b16d57e9a3" width="600"/>
+</p>
 
-### Dark Mode
-
-<img width="1440" alt="Screenshot 2025-07-09 at 9 21 15 PM" src="https://github.com/user-attachments/assets/173cc454-d3da-49cd-9e81-21648878cefb" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 21 21 PM" src="https://github.com/user-attachments/assets/5a383c9f-d75c-4988-8b23-8adf06179e3d" />
-<img width="1440" alt="Screenshot 2025-07-09 at 9 22 29 PM" src="https://github.com/user-attachments/assets/d91fc887-fc02-438d-8592-8b2b547175f4" />
+### 🌚 Dark Mode
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/173cc454-d3da-49cd-9e81-21648878cefb" width="600"/>
+  <img src="https://github.com/user-attachments/assets/5a383c9f-d75c-4988-8b23-8adf06179e3d" width="600"/>
+  <img src="https://github.com/user-attachments/assets/d91fc887-fc02-438d-8592-8b2b547175f4" width="600"/>
+</p>
 
 ---
 
