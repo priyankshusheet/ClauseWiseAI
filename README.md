@@ -99,7 +99,7 @@ ClauseWise AI is a **smart, full-stack financial document analyzer** powered by 
 ## 🗂 Project Structure
 
 
-- `public/` – Static assets like favicon, placeholder image, and robots.txt
+- `public/` – Static assets like favicon, logos, and dataset documents
 - `src/`
   - `components/` – Core UI sections and reusable elements
     - `ui/` – Atomic UI components (Button, Modal, Tabs, etc.) from shadcn/ui
