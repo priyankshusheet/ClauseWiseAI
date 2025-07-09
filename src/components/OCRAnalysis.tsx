@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -171,7 +170,7 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
       }
     }
     
-    return items.slice(0, 5); // Limit to 5 items per category
+    return items.slice(0, 5);
   };
 
   const createFallbackAnalysis = (text: string): DocumentAnalysis => {
@@ -210,9 +209,9 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
+        <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
           <Eye className="w-5 h-5" />
           <span>Smart Document Analysis</span>
         </CardTitle>
@@ -226,7 +225,7 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
               <p className="text-gray-600 dark:text-gray-300 mb-4">
                 File: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
               </p>
-              <Button onClick={startOCRAnalysis} disabled={isProcessing} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={startOCRAnalysis} disabled={isProcessing} className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
                 {isProcessing ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -246,59 +245,63 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
         {isProcessing && (
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm text-gray-600">{currentStep}</span>
+              <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
+              <span className="text-sm text-gray-600 dark:text-gray-300">{currentStep}</span>
             </div>
             <Progress value={progress} className="w-full" />
           </div>
         )}
 
         {error && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">{error}</AlertDescription>
+          <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <AlertDescription className="text-red-800 dark:text-red-200">{error}</AlertDescription>
           </Alert>
         )}
 
         {ocrResult && analysis && (
           <div className="space-y-6">
             {/* Success Alert */}
-            <Alert className="border-green-200 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <AlertDescription className="text-green-800 dark:text-green-200">
                 Document analyzed successfully with {ocrResult.confidence.toFixed(1)}% confidence 
                 in {formatTime(ocrResult.processingTime)}
               </AlertDescription>
             </Alert>
 
             {/* Summary */}
-            <Card>
+            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
+                <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
                   <FileText className="w-4 h-4" />
                   <span>Document Summary</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-700 leading-relaxed">{analysis.summary}</p>
+                <div className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {formatTextWithBold(analysis.summary)}
+                </div>
               </CardContent>
             </Card>
 
             {/* Benefits */}
             {analysis.benefits.length > 0 && (
-              <Card>
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <ThumbsUp className="w-4 h-4 text-green-600" />
-                    <span className="text-green-700">Key Benefits</span>
+                    <ThumbsUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <span className="text-green-700 dark:text-green-300">Key Benefits</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
                     {analysis.benefits.map((benefit, index) => (
                       <li key={index} className="flex items-start space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-green-800">{benefit}</span>
+                        <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                        <div className="text-green-800 dark:text-green-200">
+                          {formatTextWithBold(benefit)}
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -308,19 +311,21 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
 
             {/* Risk Factors */}
             {analysis.riskFactors.length > 0 && (
-              <Card>
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <ThumbsDown className="w-4 h-4 text-red-600" />
-                    <span className="text-red-700">Risk Factors & Concerns</span>
+                    <ThumbsDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    <span className="text-red-700 dark:text-red-300">Risk Factors & Concerns</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
                     {analysis.riskFactors.map((risk, index) => (
                       <li key={index} className="flex items-start space-x-2">
-                        <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-red-800">{risk}</span>
+                        <AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                        <div className="text-red-800 dark:text-red-200">
+                          {formatTextWithBold(risk)}
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -330,18 +335,20 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
 
             {/* Hidden Clauses */}
             {analysis.hiddenClauses.length > 0 && (
-              <Card>
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <AlertTriangle className="w-4 h-4 text-orange-600" />
-                    <span className="text-orange-700">Important Clauses to Review</span>
+                    <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                    <span className="text-orange-700 dark:text-orange-300">Important Clauses to Review</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
                     {analysis.hiddenClauses.map((clause, index) => (
-                      <li key={index} className="p-3 bg-orange-50 border-l-4 border-orange-400 rounded">
-                        <span className="text-orange-800">{clause}</span>
+                      <li key={index} className="p-3 bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-400 dark:border-orange-500 rounded">
+                        <div className="text-orange-800 dark:text-orange-200">
+                          {formatTextWithBold(clause)}
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -351,11 +358,11 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
 
             {/* Recommendations */}
             {analysis.recommendations.length > 0 && (
-              <Card>
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <Zap className="w-4 h-4 text-blue-600" />
-                    <span className="text-blue-700">Recommendations</span>
+                    <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-blue-700 dark:text-blue-300">Recommendations</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -375,25 +382,25 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
 
             {/* Performance Stats */}
             <div className="grid grid-cols-3 gap-4">
-              <Card>
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardContent className="p-4 text-center">
-                  <Clock className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">Processing Time</p>
-                  <p className="font-semibold">{formatTime(ocrResult.processingTime)}</p>
+                  <Clock className="w-6 h-6 text-blue-500 dark:text-blue-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Processing Time</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{formatTime(ocrResult.processingTime)}</p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardContent className="p-4 text-center">
-                  <Zap className="w-6 h-6 text-green-500 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">Confidence</p>
-                  <p className="font-semibold">{ocrResult.confidence.toFixed(1)}%</p>
+                  <Zap className="w-6 h-6 text-green-500 dark:text-green-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Confidence</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{ocrResult.confidence.toFixed(1)}%</p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardContent className="p-4 text-center">
-                  <FileText className="w-6 h-6 text-purple-500 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">Text Length</p>
-                  <p className="font-semibold">{ocrResult.text.length} chars</p>
+                  <FileText className="w-6 h-6 text-purple-500 dark:text-purple-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Text Length</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{ocrResult.text.length} chars</p>
                 </CardContent>
               </Card>
             </div>
