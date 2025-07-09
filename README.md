@@ -129,27 +129,25 @@ ClauseWise AI is a **smart, full-stack financial document analyzer** powered by 
 ## 📸 Screenshots
 
 ### Light Mode (Default)
-
-<img width="1440" alt="Screenshot 2025-07-09 at 5 46 29 AM" src="https://github.com/user-attachments/assets/92527292-f7bd-466f-9e7b-2febccc7a356" />
-<img width="1440" alt="Screenshot 2025-07-09 at 5 46 39 AM" src="https://github.com/user-attachments/assets/532de3b8-49b3-43ee-ab37-da01f910d9e1" />
-<img width="1440" alt="Screenshot 2025-07-09 at 5 46 55 AM" src="https://github.com/user-attachments/assets/ab30b40a-76d3-4a26-8672-9e7d2b62d64f" />
-<img width="1440" alt="Screenshot 2025-07-09 at 5 48 27 AM" src="https://github.com/user-attachments/assets/f736763d-fe45-44be-a869-1e9430b19112" />
-<img width="1440" alt="Screenshot 2025-07-09 at 5 49 16 AM" src="https://github.com/user-attachments/assets/226d003c-ade4-44ea-a882-a6d4add34ba3" />
-<img width="1440" alt="Screenshot 2025-07-09 at 5 49 22 AM" src="https://github.com/user-attachments/assets/4769113f-8536-466b-9b13-22c36348ef1f" />
-<img width="1440" alt="Screenshot 2025-07-09 at 5 49 27 AM" src="https://github.com/user-attachments/assets/49f6c529-5f19-4168-9704-86dd89f7fa63" />
-<img width="1440" alt="Screenshot 2025-07-09 at 5 50 16 AM" src="https://github.com/user-attachments/assets/f2104b22-fcb5-47bf-bcaa-0871a94e1ae5" />
-<img width="1440" alt="Screenshot 2025-07-09 at 5 50 21 AM" src="https://github.com/user-attachments/assets/9c6185c2-4276-4240-ab30-24124facde3c" />
-<img width="1440" alt="Screenshot 2025-07-09 at 5 50 28 AM" src="https://github.com/user-attachments/assets/88b08f5f-33e4-49bc-92e4-32f698552663" />
-<img width="1440" alt="Screenshot 2025-07-09 at 5 52 17 AM" src="https://github.com/user-attachments/assets/3494449a-2c56-45e2-8153-1daf16da5fa8" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 15 09 PM" src="https://github.com/user-attachments/assets/88c14d4a-e606-453b-b825-79cb0214e8e2" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 15 00 PM" src="https://github.com/user-attachments/assets/e535223d-98c2-43fa-9595-fc4d246c232c" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 15 34 PM" src="https://github.com/user-attachments/assets/4e98b2a8-a0e2-42b1-b1a7-6632824d094d" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 15 20 PM" src="https://github.com/user-attachments/assets/355b7d24-8c95-4e83-bbeb-15ca08bef250" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 15 46 PM" src="https://github.com/user-attachments/assets/03383a48-7174-4acf-9b86-d11e19cda456" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 16 11 PM" src="https://github.com/user-attachments/assets/d033b959-9862-4910-8c2a-0958ac773296" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 16 44 PM" src="https://github.com/user-attachments/assets/9113a5dd-7bb3-40be-95e8-43890cf0c854" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 17 49 PM" src="https://github.com/user-attachments/assets/b42086ea-cad2-4269-b49c-44aba240c639" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 18 02 PM" src="https://github.com/user-attachments/assets/dc78fb67-cd2b-4a64-a6ec-f487b0013113" />
+<img width="1375" alt="Screenshot 2025-07-09 at 9 28 26 PM" src="https://github.com/user-attachments/assets/10b8f8b4-5f16-42f7-916a-5059c9acc42a" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 18 21 PM" src="https://github.com/user-attachments/assets/8ea0cd84-2958-46b1-88af-0861e9846d0b" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 20 52 PM" src="https://github.com/user-attachments/assets/c826792a-bbe8-40d3-84c0-f78cb50b0da2" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 21 07 PM" src="https://github.com/user-attachments/assets/de641f75-1c52-490d-8772-a7b16d57e9a3" />
 
 ### Dark Mode
 
-<img width="1440" alt="Screenshot 2025-07-09 at 5 54 22 AM" src="https://github.com/user-attachments/assets/407705b1-d854-40f5-a737-9d38fb1418d2" />
-
-
-
-
-
+<img width="1440" alt="Screenshot 2025-07-09 at 9 21 15 PM" src="https://github.com/user-attachments/assets/173cc454-d3da-49cd-9e81-21648878cefb" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 21 21 PM" src="https://github.com/user-attachments/assets/5a383c9f-d75c-4988-8b23-8adf06179e3d" />
+<img width="1440" alt="Screenshot 2025-07-09 at 9 22 29 PM" src="https://github.com/user-attachments/assets/d91fc887-fc02-438d-8592-8b2b547175f4" />
 
 ---
 
