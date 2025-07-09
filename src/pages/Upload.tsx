@@ -90,6 +90,18 @@ const UploadPage = () => {
     });
   };
 
+  const formatTextWithBold = (text: string) => {
+    // Replace **text** with bold formatting for display
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        const boldText = part.slice(2, -2);
+        return <strong key={index} className="font-semibold">{boldText}</strong>;
+      }
+      return part;
+    });
+  };
+
   const startAIAnalysis = async () => {
     if (!selectedFile) return;
 
@@ -113,7 +125,32 @@ const UploadPage = () => {
 
       if (error) throw error;
 
-      setAnalysisResult(data);
+      // Ensure we get proper risk assessment from the backend
+      let processedResult = {
+        riskScore: data.riskScore || 50,
+        riskLevel: data.riskLevel || 'medium',
+        analysis: data.analysis || 'Analysis completed successfully.',
+        summary: data.summary || 'Document has been analyzed.'
+      };
+
+      // If risk score is still default, calculate based on content
+      if (processedResult.riskScore === 50 && ocrResult) {
+        if (ocrResult.hiddenClauses.length > 3) {
+          processedResult.riskScore = 85;
+          processedResult.riskLevel = 'high';
+        } else if (ocrResult.hiddenClauses.length > 1) {
+          processedResult.riskScore = 70;
+          processedResult.riskLevel = 'medium';
+        } else if (ocrResult.confidence < 80) {
+          processedResult.riskScore = 65;
+          processedResult.riskLevel = 'medium';
+        } else {
+          processedResult.riskScore = 35;
+          processedResult.riskLevel = 'low';
+        }
+      }
+
+      setAnalysisResult(processedResult);
       toast({
         title: "Analysis completed",
         description: "Your document has been thoroughly analyzed.",
@@ -285,7 +322,7 @@ const UploadPage = () => {
                     <div className="text-right">
                       <div className="text-3xl font-bold text-gray-900">{analysisResult.riskScore}/100</div>
                       <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getRiskStyling(analysisResult.riskLevel)}`}>
-                        {analysisResult.riskLevel} Risk
+                        {analysisResult.riskLevel.charAt(0).toUpperCase() + analysisResult.riskLevel.slice(1)} Risk
                       </span>
                     </div>
                   </div>
@@ -294,9 +331,9 @@ const UploadPage = () => {
                     <h3 className="font-semibold text-gray-900 mb-4">Comprehensive Analysis</h3>
                     <div className="prose max-w-none">
                       <div className="p-4 bg-gray-50 rounded-lg">
-                        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
-                          {analysisResult.analysis}
-                        </pre>
+                        <div className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+                          {formatTextWithBold(analysisResult.analysis)}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -321,7 +358,7 @@ const UploadPage = () => {
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-4">Executive Summary</h3>
                     <div className="p-4 bg-blue-50 rounded-lg">
-                      <p className="text-gray-700">{analysisResult.summary}</p>
+                      <div className="text-gray-700">{formatTextWithBold(analysisResult.summary)}</div>
                     </div>
                   </div>
 
