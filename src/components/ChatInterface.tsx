@@ -6,6 +6,15 @@ import { Send, Upload, FileText, Bot, User, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { financialProductsData, searchProducts, ProductCategory, getProductData } from '@/data/financialProductsData';
+import { 
+  searchAllProducts, 
+  getProductsByCategory, 
+  formatProductDetails,
+  loanDataSet,
+  creditCardDataSet,
+  insuranceDataSet,
+  type ProductInfo
+} from '@/data/comprehensiveFinancialData';
 
 interface ChatMessage {
   id: string;
@@ -18,7 +27,7 @@ const ChatInterface = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      content: "Hello! I'm ClauseWise, your financial document assistant. I can help you understand insurance policies, credit card terms, and other financial documents. I also have comprehensive information about the top financial products in India. How can I help you today?",
+      content: "Hello! I'm ClauseWise, your financial document assistant. I can help you understand insurance policies, credit card terms, loan agreements, and other financial documents. I have comprehensive information about financial products from actual PDFs and documents. How can I help you today?",
       isUser: false,
       timestamp: new Date()
     }
@@ -68,7 +77,96 @@ const ChatInterface = () => {
   const generateLocalResponse = (query: string): string | null => {
     const lowerQuery = query.toLowerCase();
     
-    // Search for specific products
+    // First, search comprehensive dataset
+    const comprehensiveResults = searchAllProducts(query);
+    if (comprehensiveResults.length > 0) {
+      const topResult = comprehensiveResults[0];
+      const productInfo: ProductInfo = {
+        source_pdf: topResult.source_pdf,
+        category: topResult.category,
+        product_name: topResult.product_name,
+        key_details: topResult.key_details
+      };
+      
+      let response = formatProductDetails(productInfo);
+      
+      // Add related products
+      if (comprehensiveResults.length > 1) {
+        response += `\n\n**Related Products:**\n`;
+        comprehensiveResults.slice(1, 4).forEach((product, index) => {
+          response += `${index + 1}. ${product.product_name} (${product.category})\n`;
+        });
+      }
+      
+      response += `\n\nWould you like more details about any of these products or need help with document analysis?`;
+      return response;
+    }
+    
+    // Category-based responses with comprehensive data
+    if (lowerQuery.includes('loan') || lowerQuery.includes('home loan') || lowerQuery.includes('personal loan')) {
+      const loanProducts = loanDataSet.slice(0, 5);
+      let response = `Here are loan products from our comprehensive database:\n\n`;
+      
+      loanProducts.forEach((loan, index) => {
+        response += `${index + 1}. **${loan.product_name}**\n`;
+        if (loan.key_details.interest_rate) {
+          response += `   • Interest Rate: ${loan.key_details.interest_rate}\n`;
+        }
+        if (loan.key_details.loan_term) {
+          response += `   • Loan Term: ${loan.key_details.loan_term}\n`;
+        }
+        response += `   • Source: ${loan.source_pdf}\n\n`;
+      });
+      
+      response += `I can provide detailed analysis of any of these loan products or help you understand specific terms and conditions. Which one interests you?`;
+      return response;
+    }
+
+    if (lowerQuery.includes('credit card')) {
+      const cardProducts = creditCardDataSet.slice(0, 5);
+      let response = `Here are credit card products from our comprehensive database:\n\n`;
+      
+      cardProducts.forEach((card, index) => {
+        response += `${index + 1}. **${card.product_name}**\n`;
+        if (card.key_details.annual_fee) {
+          response += `   • Annual Fee: ${card.key_details.annual_fee}\n`;
+        }
+        if (card.key_details.reward_points) {
+          response += `   • Rewards: ${card.key_details.reward_points}\n`;
+        }
+        if (card.key_details.lounge_access) {
+          response += `   • Lounge Access: ${card.key_details.lounge_access}\n`;
+        }
+        response += `   • Source: ${card.source_pdf}\n\n`;
+      });
+      
+      response += `I can provide detailed analysis of any of these credit cards or help you understand specific terms and conditions. Which one interests you?`;
+      return response;
+    }
+
+    if (lowerQuery.includes('insurance') || lowerQuery.includes('life insurance') || lowerQuery.includes('health insurance')) {
+      const insuranceProducts = insuranceDataSet.slice(0, 5);
+      let response = `Here are insurance products from our comprehensive database:\n\n`;
+      
+      insuranceProducts.forEach((insurance, index) => {
+        response += `${index + 1}. **${insurance.product_name}**\n`;
+        if (insurance.key_details.policy_term) {
+          response += `   • Policy Term: ${insurance.key_details.policy_term}\n`;
+        }
+        if (insurance.key_details.sum_assured) {
+          response += `   • Sum Assured: ${insurance.key_details.sum_assured}\n`;
+        }
+        if (insurance.key_details.premium) {
+          response += `   • Premium: ${insurance.key_details.premium}\n`;
+        }
+        response += `   • Source: ${insurance.source_pdf}\n\n`;
+      });
+      
+      response += `I can provide detailed analysis of any of these insurance products or help you understand specific policy terms. Which one interests you?`;
+      return response;
+    }
+
+    // Fallback to original dataset
     const productResults = searchProducts(query);
     if (productResults.length > 0) {
       const result = productResults[0];
@@ -83,73 +181,16 @@ ${result.data.Cons.map(con => `• ${con}`).join('\n')}
 This product falls under the ${result.category} category. Would you like more details about other products in this category or specific comparisons?`;
     }
 
-    // Category-based responses
-    if (lowerQuery.includes('credit card')) {
-      const topCards = Object.keys(financialProductsData['Credit Cards']).slice(0, 3);
-      return `Here are the top credit cards in India:
-
-${topCards.map((card, index) => `${index + 1}. **${card}**`).join('\n')}
-
-Each card has unique benefits and risks. Which specific card would you like to know more about, or would you like me to compare them for you?`;
-    }
-
-    if (lowerQuery.includes('health insurance') || lowerQuery.includes('medical insurance')) {
-      const topInsurers = Object.keys(financialProductsData['Health Insurance']).slice(0, 3);
-      return `Here are the top health insurance providers in India:
-
-${topInsurers.map((insurer, index) => `${index + 1}. **${insurer}**`).join('\n')}
-
-Would you like detailed pros and cons for any of these providers, or help choosing the right plan for your needs?`;
-    }
-
-    if (lowerQuery.includes('life insurance')) {
-      const topInsurers = Object.keys(financialProductsData['Life Insurance']).slice(0, 3);
-      return `Here are the top life insurance companies in India:
-
-${topInsurers.map((insurer, index) => `${index + 1}. **${insurer}**`).join('\n')}
-
-I can provide detailed information about benefits, risks, and help you choose the right policy type. What specific information are you looking for?`;
-    }
-
-    if (lowerQuery.includes('loan') || lowerQuery.includes('home loan') || lowerQuery.includes('personal loan')) {
-      const topLenders = Object.keys(financialProductsData['Loans']).slice(0, 3);
-      return `Here are the top loan providers in India:
-
-${topLenders.map((lender, index) => `${index + 1}. **${lender}**`).join('\n')}
-
-Would you like to know about interest rates, eligibility criteria, or compare different loan types?`;
-    }
-
-    if (lowerQuery.includes('ulip') || lowerQuery.includes('investment')) {
-      const topULIPs = Object.keys(financialProductsData['ULIPs']).slice(0, 3);
-      return `Here are the top ULIPs (Unit Linked Insurance Plans) in India:
-
-${topULIPs.map((ulip, index) => `${index + 1}. **${ulip}**`).join('\n')}
-
-ULIPs combine insurance and investment. Would you like to understand the risks and benefits, or compare with other investment options?`;
-    }
-
-    if (lowerQuery.includes('mutual fund') || lowerQuery.includes('sip')) {
-      const topFunds = Object.keys(financialProductsData['Mutual Funds']).slice(0, 3);
-      return `Here are the top mutual funds in India:
-
-${topFunds.map((fund, index) => `${index + 1}. **${fund}**`).join('\n')}
-
-I can help you understand different fund types, risks, returns, and help you choose based on your investment goals. What would you like to know?`;
-    }
-
     // General comparison queries
     if (lowerQuery.includes('compare') || lowerQuery.includes('difference')) {
       return `I can help you compare financial products! Here's what I can compare for you:
 
-• **Credit Cards** - Rewards, fees, benefits
-• **Health Insurance** - Coverage, premiums, claim ratios
-• **Life Insurance** - Policy types, returns, benefits
-• **Loans** - Interest rates, eligibility, terms
-• **ULIPs** - Returns, charges, fund options
-• **Mutual Funds** - Performance, expense ratios, categories
+• **Loans** - Interest rates, processing fees, terms, prepayment charges
+• **Credit Cards** - Annual fees, rewards, lounge access, welcome bonuses  
+• **Insurance** - Policy terms, sum assured, premiums, riders, maturity benefits
+• **Legacy Products** - Credit Cards, Health Insurance, Life Insurance, ULIPs, Mutual Funds
 
-Which products would you like me to compare? Please specify the exact names or categories.`;
+I have comprehensive data from actual product documents and PDFs. Which products would you like me to compare? Please specify the exact names or categories.`;
     }
 
     return null;
@@ -167,7 +208,6 @@ Which products would you like me to compare? Please specify the exact names or c
 
     setMessages(prev => [...prev, userMessage]);
     
-    // Update conversation history
     const newHistory = [...conversationHistory, `User: ${inputValue}`];
     setConversationHistory(newHistory);
     
@@ -175,15 +215,12 @@ Which products would you like me to compare? Please specify the exact names or c
     setIsProcessing(true);
 
     try {
-      // First try to generate a local response using our dataset
       let assistantResponse = generateLocalResponse(inputValue);
       
       if (!assistantResponse) {
-        // If file is uploaded, first analyze the document
         let documentAnalysis = null;
         if (uploadedFile) {
           try {
-            // Simulate OCR analysis for demo purposes
             const ocrResult = {
               extractedText: "Sample extracted text from document...",
               confidence: 85,
@@ -211,21 +248,19 @@ Which products would you like me to compare? Please specify the exact names or c
           }
         }
 
-        // Prepare enhanced message for chat
         let enhancedMessage = inputValue;
         if (documentAnalysis) {
           enhancedMessage += `\n\nDocument Analysis Context: ${documentAnalysis}`;
         }
 
-        // Add financial products context to the message
-        enhancedMessage += `\n\nAvailable Financial Products Database: I have comprehensive information about top Credit Cards, Health Insurance, Life Insurance, Loans, ULIPs, and Mutual Funds in India with detailed pros and cons for each product.`;
+        enhancedMessage += `\n\nComprehensive Financial Database: I have detailed information about ${loanDataSet.length} loan products, ${creditCardDataSet.length} credit card products, and ${insuranceDataSet.length} insurance products from actual PDF documents with specific terms, conditions, and features.`;
 
         const { data, error } = await supabase.functions.invoke('ai-chat-analysis', {
           body: {
             message: enhancedMessage,
             hasDocument: !!uploadedFile,
             fileName: uploadedFile?.name,
-            conversationHistory: newHistory.slice(-10) // Keep last 10 messages for context
+            conversationHistory: newHistory.slice(-10)
           }
         });
 
@@ -242,8 +277,6 @@ Which products would you like me to compare? Please specify the exact names or c
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      
-      // Update conversation history with assistant response
       setConversationHistory(prev => [...prev, `Assistant: ${assistantResponse}`]);
       
       setUploadedFile(null);
@@ -255,7 +288,7 @@ Which products would you like me to compare? Please specify the exact names or c
       
       const errorMessage: ChatMessage = {
         id: (Date.now() + 2).toString(),
-        content: "I'm experiencing technical difficulties. However, I can still help you with information about financial products using my local database. Please try asking about credit cards, insurance, loans, or other financial products.",
+        content: "I'm experiencing technical difficulties. However, I can still help you with information about financial products using my comprehensive local database. Please try asking about loans, credit cards, or insurance products.",
         isUser: false,
         timestamp: new Date()
       };
@@ -399,7 +432,7 @@ Which products would you like me to compare? Please specify the exact names or c
           </Button>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-          Upload documents for analysis or ask questions about financial products.
+          Upload documents for analysis or ask questions about financial products from our comprehensive database.
         </p>
       </div>
     </div>
