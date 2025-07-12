@@ -300,7 +300,7 @@ const UploadPage = () => {
       const riskColor = analysisResult.riskLevel === 'high' ? [220, 38, 38] : 
                        analysisResult.riskLevel === 'medium' ? [245, 158, 11] : [34, 197, 94];
       
-      doc.setTextColor(...riskColor);
+      doc.setTextColor(riskColor[0], riskColor[1], riskColor[2]);
       addWrappedText(`Risk Score: ${analysisResult.riskScore}/100 (${analysisResult.riskLevel.toUpperCase()} RISK)`, 12, true);
       doc.setTextColor(0, 0, 0);
 
