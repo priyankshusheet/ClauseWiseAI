@@ -1,13 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 
 const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -21,17 +21,18 @@ const Auth = () => {
   
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
 
   useEffect(() => {
-    // Check if user is already logged in
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        navigate('/onboarding');
+        navigate(from, { replace: true });
       }
     };
     checkAuth();
-  }, [navigate]);
+  }, [navigate, from]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -74,7 +75,7 @@ const Auth = () => {
           title: "Welcome back!",
           description: "You have successfully signed in.",
         });
-        navigate('/');
+        navigate(from, { replace: true });
       }
     } catch (error) {
       toast({
@@ -122,7 +123,7 @@ const Auth = () => {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/onboarding`,
+          emailRedirectTo: window.location.origin,
           data: {
             full_name: formData.fullName,
           }
@@ -146,10 +147,9 @@ const Auth = () => {
       } else if (data.user) {
         toast({
           title: "Account Created!",
-          description: "Please check your email to verify your account.",
+          description: "You can now sign in with your credentials.",
         });
-        // Redirect to onboarding if email verification is disabled
-        navigate('/onboarding');
+        navigate(from, { replace: true });
       }
     } catch (error) {
       toast({
@@ -167,7 +167,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/onboarding`
+          redirectTo: window.location.origin
         }
       });
 
@@ -188,23 +188,31 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background flex items-center justify-center p-4">
+      <motion.div 
+        className="w-full max-w-md"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
         {/* Logo and Header */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-block mb-4">
-            <div className="flex items-center justify-center space-x-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">CW</span>
+            <motion.div 
+              className="flex items-center justify-center space-x-2"
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-primary-foreground font-bold text-lg">CW</span>
               </div>
-              <span className="text-2xl font-bold text-gray-900">ClauseWise</span>
-            </div>
+              <span className="text-2xl font-bold text-foreground">ClauseWise</span>
+            </motion.div>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome</h1>
-          <p className="text-gray-600">Your intelligent financial document assistant</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Welcome</h1>
+          <p className="text-muted-foreground">Your intelligent financial document assistant</p>
         </div>
 
-        <Card className="shadow-xl border-0">
+        <Card className="shadow-xl border-border/50">
           <CardHeader className="pb-4">
             <CardTitle className="text-center text-xl">Get Started</CardTitle>
           </CardHeader>
@@ -219,7 +227,7 @@ const Auth = () => {
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
                     <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         type="email"
                         placeholder="Email address"
@@ -233,7 +241,7 @@ const Auth = () => {
                   
                   <div className="space-y-2">
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="Password"
@@ -245,7 +253,7 @@ const Auth = () => {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                        className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -253,8 +261,17 @@ const Auth = () => {
                   </div>
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Signing In..." : "Sign In"}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing In...
+                      </>
+                    ) : (
+                      <>
+                        Sign In
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
                   </Button>
                 </form>
               </TabsContent>
@@ -263,7 +280,7 @@ const Auth = () => {
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
                     <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         type="text"
                         placeholder="Full Name"
@@ -277,7 +294,7 @@ const Auth = () => {
                   
                   <div className="space-y-2">
                     <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         type="email"
                         placeholder="Email address"
@@ -291,7 +308,7 @@ const Auth = () => {
                   
                   <div className="space-y-2">
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="Password"
@@ -303,7 +320,7 @@ const Auth = () => {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                        className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -312,7 +329,7 @@ const Auth = () => {
                   
                   <div className="space-y-2">
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         type="password"
                         placeholder="Confirm Password"
@@ -325,8 +342,17 @@ const Auth = () => {
                   </div>
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Creating Account..." : "Create Account"}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      <>
+                        Create Account
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
                   </Button>
                 </form>
               </TabsContent>
@@ -335,10 +361,10 @@ const Auth = () => {
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                  <span className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
                 </div>
               </div>
               
@@ -371,17 +397,17 @@ const Auth = () => {
             </div>
 
             <div className="mt-6 text-center">
-              <Link to="/" className="text-sm text-gray-600 hover:text-gray-900">
+              <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 ← Back to Home
               </Link>
             </div>
           </CardContent>
         </Card>
 
-        <div className="mt-6 text-center text-xs text-gray-500">
+        <div className="mt-6 text-center text-xs text-muted-foreground">
           By signing up, you agree to our Terms of Service and Privacy Policy
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

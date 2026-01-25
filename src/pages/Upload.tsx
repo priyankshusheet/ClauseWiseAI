@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, Eye, Download } from 'lucide-react';
+import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, Eye, Download, Bookmark, BookmarkCheck, History } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import OCRAnalysis from '@/components/OCRAnalysis';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/components/AuthProvider';
+import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
+import { useFileValidation } from '@/hooks/useFileValidation';
+import { UploadSkeleton, AnalysisSkeleton } from '@/components/LoadingStates';
+import { FadeIn } from '@/components/PageTransition';
 
 interface AnalysisResult {
   riskScore: number;
@@ -31,8 +37,14 @@ const UploadPage = () => {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [ocrResult, setOcrResult] = useState<OCRAnalysisResult | null>(null);
   const [showOCR, setShowOCR] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedAnalysisId, setSavedAnalysisId] = useState<string | null>(null);
+  
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { saveAnalysis, toggleSaved } = useAnalysisHistory();
+  const { validateWithToast, maxSizeMB, allowedExtensions } = useFileValidation();
 
   const handleDragEvents = {
     onDragOver: (e: React.DragEvent) => {
@@ -53,27 +65,19 @@ const UploadPage = () => {
     }
   };
 
-  const processFileSelection = (file: File) => {
-    const allowedTypes = ['application/pdf', 'text/plain'];
-    const allowedExtensions = ['.pdf', '.txt', '.doc', '.docx'];
+  const processFileSelection = async (file: File) => {
+    // Use enhanced file validation
+    const isValid = await validateWithToast(file);
     
-    const isValidFile = allowedTypes.includes(file.type) || 
-      allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
-    
-    if (isValidFile) {
+    if (isValid) {
       setSelectedFile(file);
       setAnalysisResult(null);
       setOcrResult(null);
       setShowOCR(false);
+      setSavedAnalysisId(null);
       toast({
         title: "File ready for analysis",
         description: `${file.name} has been selected successfully.`,
-      });
-    } else {
-      toast({
-        title: "Unsupported file format",
-        description: "Please upload a PDF, DOC, or text document.",
-        variant: "destructive",
       });
     }
   };
@@ -197,6 +201,27 @@ const UploadPage = () => {
       }
 
       setAnalysisResult(processedResult);
+      
+      // Auto-save to history if user is logged in
+      if (user && selectedFile) {
+        setIsSaving(true);
+        const savedRecord = await saveAnalysis({
+          file_name: selectedFile.name,
+          file_type: selectedFile.type,
+          file_size: selectedFile.size,
+          risk_score: processedResult.riskScore,
+          risk_level: processedResult.riskLevel,
+          analysis_summary: processedResult.summary,
+          analysis_result: processedResult as unknown as Record<string, unknown>,
+          ocr_result: ocrResult as unknown as Record<string, unknown>,
+          is_saved: false,
+        });
+        if (savedRecord) {
+          setSavedAnalysisId(savedRecord.id);
+        }
+        setIsSaving(false);
+      }
+      
       toast({
         title: "Analysis completed",
         description: "Your document has been thoroughly analyzed.",
@@ -210,6 +235,16 @@ const UploadPage = () => {
       });
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleSaveToggle = async () => {
+    if (savedAnalysisId) {
+      await toggleSaved(savedAnalysisId, true);
+      toast({
+        title: "Analysis saved",
+        description: "This analysis has been added to your saved items.",
+      });
     }
   };
 
@@ -549,13 +584,23 @@ const UploadPage = () => {
                     </div>
                   </div>
 
-                  <div className="flex justify-center space-x-4 pt-4">
+                  <div className="flex flex-wrap justify-center gap-3 pt-4">
                     <Button onClick={handleDiscussDocument}>
                       Discuss This Document
                     </Button>
                     <Button variant="outline" onClick={downloadAnalysisReport}>
                       <Download className="w-4 h-4 mr-2" />
-                      Download Analysis Report
+                      Download Report
+                    </Button>
+                    {savedAnalysisId && (
+                      <Button variant="outline" onClick={handleSaveToggle}>
+                        <Bookmark className="w-4 h-4 mr-2" />
+                        Save Analysis
+                      </Button>
+                    )}
+                    <Button variant="ghost" onClick={() => navigate('/history')}>
+                      <History className="w-4 h-4 mr-2" />
+                      View History
                     </Button>
                   </div>
                 </CardContent>
@@ -565,15 +610,22 @@ const UploadPage = () => {
 
           <div className="grid md:grid-cols-3 gap-6 mt-8">
             {features.map((feature, index) => (
-              <Card key={index}>
-                <CardContent className="p-6 text-center">
-                  <div className={`w-12 h-12 ${feature.bgColor} rounded-xl flex items-center justify-center mx-auto mb-4`}>
-                    <span className="text-2xl">{feature.icon}</span>
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                  <p className="text-gray-600 text-sm">{feature.description}</p>
-                </CardContent>
-              </Card>
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className="h-full card-interactive">
+                  <CardContent className="p-6 text-center">
+                    <div className={`w-12 h-12 ${feature.bgColor} rounded-xl flex items-center justify-center mx-auto mb-4`}>
+                      <span className="text-2xl">{feature.icon}</span>
+                    </div>
+                    <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
+                    <p className="text-muted-foreground text-sm">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         </div>

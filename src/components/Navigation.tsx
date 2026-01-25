@@ -1,20 +1,41 @@
-
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
-import { Home, Upload, MessageCircle, BookOpen, Info, Moon, Sun } from 'lucide-react';
+import { 
+  Home, 
+  Upload, 
+  MessageCircle, 
+  BookOpen, 
+  Info, 
+  Moon, 
+  Sun, 
+  History, 
+  LogOut,
+  User,
+  Menu
+} from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
+import { useAuth } from '@/components/AuthProvider';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { user, signOut, loading } = useAuth();
 
   const handleNavigation = (href: string) => {
     if (href.startsWith('#')) {
-      // Handle anchor links
       const element = document.querySelector(href);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
@@ -23,45 +44,63 @@ const Navigation = () => {
     setIsOpen(false);
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  const getUserInitials = () => {
+    if (!user?.email) return 'U';
+    return user.email.charAt(0).toUpperCase();
+  };
+
   const navItems = [
     { name: 'Home', href: '/', icon: Home, isRoute: true },
-    { name: 'AI Chat', href: '/chat', icon: MessageCircle, isRoute: true },
-    { name: 'Upload & Analyze', href: '/upload', icon: Upload, isRoute: true },
+    { name: 'AI Chat', href: '/chat', icon: MessageCircle, isRoute: true, requireAuth: true },
+    { name: 'Upload & Analyze', href: '/upload', icon: Upload, isRoute: true, requireAuth: true },
+    { name: 'History', href: '/history', icon: History, isRoute: true, requireAuth: true },
     { name: 'Learn', href: '/learn', icon: BookOpen, isRoute: true },
     { name: 'FAQ', href: '#faq', icon: Info, isRoute: false },
   ];
 
+  const visibleNavItems = navItems.filter(item => !item.requireAuth || user);
+
   return (
-    <nav className="fixed top-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 z-50 shadow-sm">
+    <nav className="fixed top-0 w-full bg-background/95 backdrop-blur-lg border-b border-border z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">CW</span>
+          <Link to="/" className="flex items-center space-x-2 group">
+            <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow duration-300">
+              <span className="text-primary-foreground font-bold text-sm">CW</span>
             </div>
-            <span className="font-display font-bold text-xl text-gray-900 dark:text-white">ClauseWise</span>
+            <span className="font-display font-bold text-xl text-foreground">ClauseWise</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
+          <div className="hidden md:flex items-center space-x-6">
+            {visibleNavItems.map((item) => (
               item.isRoute ? (
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 flex items-center space-x-1 group ${
-                    location.pathname === item.href ? 'text-blue-600 dark:text-blue-400' : ''
+                  className={`text-muted-foreground hover:text-foreground font-medium transition-colors duration-200 flex items-center space-x-1.5 group py-2 ${
+                    location.pathname === item.href ? 'text-primary' : ''
                   }`}
                 >
                   <item.icon className="w-4 h-4" />
-                  <span className="group-hover:underline">{item.name}</span>
+                  <span className="relative">
+                    {item.name}
+                    <span className={`absolute -bottom-1 left-0 h-0.5 bg-primary transition-all duration-200 ${
+                      location.pathname === item.href ? 'w-full' : 'w-0 group-hover:w-full'
+                    }`} />
+                  </span>
                 </Link>
               ) : (
                 <button
                   key={item.name}
                   onClick={() => handleNavigation(item.href)}
-                  className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 flex items-center space-x-1 group"
+                  className="text-muted-foreground hover:text-foreground font-medium transition-colors duration-200 flex items-center space-x-1.5 group py-2"
                 >
                   <item.icon className="w-4 h-4" />
                   <span className="group-hover:underline">{item.name}</span>
@@ -70,50 +109,97 @@ const Navigation = () => {
             ))}
             
             {/* Dark Mode Toggle */}
-            <div className="flex items-center space-x-2">
-              <Sun className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+            <div className="flex items-center space-x-2 pl-2 border-l border-border">
+              <Sun className="h-4 w-4 text-muted-foreground" />
               <Switch
                 checked={theme === 'dark'}
                 onCheckedChange={toggleTheme}
-                className="data-[state=checked]:bg-blue-600"
+                className="data-[state=checked]:bg-primary"
               />
-              <Moon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+              <Moon className="h-4 w-4 text-muted-foreground" />
             </div>
           </div>
 
-          {/* CTA Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link to="/auth">
-              <Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/20">
-                Sign In
-              </Button>
-            </Link>
-            <Link to="/chat">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                Start Chat
-              </Button>
-            </Link>
+          {/* CTA Buttons / User Menu */}
+          <div className="hidden md:flex items-center space-x-3">
+            {loading ? (
+              <div className="w-20 h-9 bg-muted animate-pulse rounded-lg" />
+            ) : user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-2 px-2">
+                    <Avatar className="w-8 h-8">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                        {getUserInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium text-foreground max-w-[120px] truncate">
+                      {user.email}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate('/history')}>
+                    <History className="w-4 h-4 mr-2" />
+                    Analysis History
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link to="/auth">
+                  <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/5">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/chat">
+                  <Button size="sm" className="bg-primary hover:bg-primary/90 shadow-md">
+                    Start Chat
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="w-5 h-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <div className="flex flex-col space-y-4 mt-8">
-                {navItems.map((item) => (
+            <SheetContent side="right" className="w-[300px] sm:w-[350px]">
+              <div className="flex flex-col space-y-2 mt-8">
+                {/* User info on mobile */}
+                {user && (
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg mb-4">
+                    <Avatar className="w-10 h-10">
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {getUserInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {user.email}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Signed in</p>
+                    </div>
+                  </div>
+                )}
+
+                {visibleNavItems.map((item) => (
                   item.isRoute ? (
                     <Link
                       key={item.name}
                       to={item.href}
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center space-x-3 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 py-2 text-left ${
-                        location.pathname === item.href ? 'text-blue-600 dark:text-blue-400' : ''
+                      className={`flex items-center space-x-3 text-muted-foreground hover:text-foreground font-medium transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-muted ${
+                        location.pathname === item.href ? 'text-primary bg-primary/5' : ''
                       }`}
                     >
                       <item.icon className="w-5 h-5" />
@@ -123,7 +209,7 @@ const Navigation = () => {
                     <button
                       key={item.name}
                       onClick={() => handleNavigation(item.href)}
-                      className="flex items-center space-x-3 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 py-2 text-left"
+                      className="flex items-center space-x-3 text-muted-foreground hover:text-foreground font-medium transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-muted text-left"
                     >
                       <item.icon className="w-5 h-5" />
                       <span>{item.name}</span>
@@ -132,30 +218,43 @@ const Navigation = () => {
                 ))}
                 
                 {/* Mobile Dark Mode Toggle */}
-                <div className="flex items-center justify-between py-2 border-t border-gray-200 dark:border-gray-700">
-                  <span className="text-gray-600 dark:text-gray-300 font-medium">Dark Mode</span>
+                <div className="flex items-center justify-between py-3 px-2 border-t border-border mt-4">
+                  <span className="text-muted-foreground font-medium">Dark Mode</span>
                   <div className="flex items-center space-x-2">
-                    <Sun className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                    <Sun className="h-4 w-4 text-muted-foreground" />
                     <Switch
                       checked={theme === 'dark'}
                       onCheckedChange={toggleTheme}
-                      className="data-[state=checked]:bg-blue-600"
+                      className="data-[state=checked]:bg-primary"
                     />
-                    <Moon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                    <Moon className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>
                 
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
-                  <Link to="/auth">
-                    <Button variant="outline" className="w-full text-blue-600 border-blue-200 dark:text-blue-400 dark:border-blue-700">
-                      Sign In
+                <div className="pt-4 border-t border-border space-y-3">
+                  {user ? (
+                    <Button 
+                      variant="outline" 
+                      className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
+                      onClick={handleSignOut}
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
                     </Button>
-                  </Link>
-                  <Link to="/chat">
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                      Start Chat
-                    </Button>
-                  </Link>
+                  ) : (
+                    <>
+                      <Link to="/auth" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full border-primary/30 text-primary">
+                          Sign In
+                        </Button>
+                      </Link>
+                      <Link to="/chat" onClick={() => setIsOpen(false)}>
+                        <Button className="w-full bg-primary hover:bg-primary/90">
+                          Start Chat
+                        </Button>
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             </SheetContent>
