@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { 
   FileText, 
   Eye, 
@@ -13,22 +14,31 @@ import {
   Zap,
   Search,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  Globe,
+  ImageIcon,
+  Settings2
 } from 'lucide-react';
-import { OCRService, OCRResult, DocumentSection } from '@/services/ocrService';
-import { supabase } from '@/integrations/supabase/client';
+import { enhancedOCRService, EnhancedOCRService } from '@/services/enhancedOCRService';
+import { pdfService, PDFExtractionResult } from '@/services/pdfService';
+import { aiService } from '@/services/aiService';
+import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
 
 interface OCRAnalysisProps {
   file: File;
   onAnalysisComplete: (result: OCRAnalysisResult) => void;
 }
 
-interface OCRAnalysisResult {
+export interface OCRAnalysisResult {
   extractedText: string;
-  sections: DocumentSection[];
-  hiddenClauses: string[];
+  sections: { title: string; content: string; riskLevel?: string }[];
+  hiddenClauses: { clause: string; category: string; severity: string }[];
   confidence: number;
   processingTime: number;
+  language?: string;
+  documentType?: string;
+  pageCount?: number;
 }
 
 interface DocumentAnalysis {
@@ -38,118 +48,222 @@ interface DocumentAnalysis {
   benefits: string[];
   hiddenClauses: string[];
   recommendations: string[];
+  riskScore?: number;
+  riskLevel?: string;
 }
 
 const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
-  const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
+  const [extractionResult, setExtractionResult] = useState<{
+    text: string;
+    confidence: number;
+    processingTime: number;
+    pageCount?: number;
+    language?: string;
+  } | null>(null);
   const [analysis, setAnalysis] = useState<DocumentAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confidenceWarning, setConfidenceWarning] = useState<{
+    isReliable: boolean;
+    warning?: string;
+    recommendation: string;
+  } | null>(null);
+  
+  // OCR settings
+  const [selectedLanguage, setSelectedLanguage] = useState('eng');
+  const [enablePreprocessing, setEnablePreprocessing] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
 
-  const formatTextWithBold = (text: string) => {
-    // Replace **text** with bold formatting
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, index) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        const boldText = part.slice(2, -2);
-        return <strong key={index} className="font-semibold">{boldText}</strong>;
-      }
-      return part;
-    });
-  };
-
-  const startOCRAnalysis = async () => {
+  const startOCRAnalysis = useCallback(async () => {
     setIsProcessing(true);
     setProgress(0);
     setCurrentStep('');
     setAnalysis(null);
     setError(null);
+    setConfidenceWarning(null);
 
     try {
-      const ocrService = OCRService.getInstance();
-      
-      // Step 1: Extract text
-      setCurrentStep('Extracting text from document...');
-      setProgress(20);
-      const result = await ocrService.processDocument(file);
-      setOcrResult(result);
-      setProgress(50);
-      
-      // Step 2: Analyze with AI
-      setCurrentStep('Analyzing document content...');
-      setProgress(70);
+      let extractedText = '';
+      let confidence = 0;
+      let processingTime = 0;
+      let pageCount = 0;
+      let detectedLanguage = selectedLanguage;
 
-      const analysisData = {
-        fileName: file.name,
-        fileType: file.type,
-        extractedText: result.text,
-        ocrConfidence: result.confidence,
-        analysisType: 'detailed_breakdown'
-      };
+      const fileType = file.type.toLowerCase();
+      const isPDF = fileType.includes('pdf');
+      const isImage = fileType.includes('image');
+
+      // Step 1: Text extraction
+      setCurrentStep(isPDF ? 'Extracting text from PDF...' : 'Processing image with OCR...');
+      setProgress(15);
+
+      if (isPDF) {
+        // Use PDF.js for structured extraction
+        setCurrentStep('Parsing PDF structure...');
+        const pdfResult = await pdfService.extractTextWithFallback(file);
+        
+        extractedText = pdfResult.text;
+        confidence = pdfResult.confidence;
+        processingTime = pdfResult.processingTime;
+        pageCount = pdfResult.metadata.pageCount;
+
+        setProgress(40);
+
+        // If PDF extraction has low confidence, fall back to OCR
+        if (confidence < 50 || extractedText.length < 200) {
+          setCurrentStep('Low PDF confidence, applying OCR...');
+          const ocrResult = await enhancedOCRService.extractTextFromImage(file, {
+            language: selectedLanguage,
+            preprocessing: enablePreprocessing ? {
+              enhanceContrast: true,
+              denoise: true,
+              normalizeResolution: true,
+            } : {},
+          });
+          
+          if (ocrResult.text.length > extractedText.length) {
+            extractedText = ocrResult.text;
+            confidence = ocrResult.confidence;
+          }
+          detectedLanguage = ocrResult.language || selectedLanguage;
+        }
+      } else if (isImage) {
+        // Use enhanced OCR with preprocessing
+        setCurrentStep('Preprocessing image...');
+        setProgress(20);
+
+        const ocrResult = await enhancedOCRService.extractTextFromImage(file, {
+          language: selectedLanguage === 'auto' ? 'auto' : selectedLanguage,
+          preprocessing: enablePreprocessing ? {
+            enhanceContrast: true,
+            denoise: true,
+            normalizeResolution: true,
+          } : {},
+        });
+
+        extractedText = ocrResult.text;
+        confidence = ocrResult.confidence;
+        processingTime = ocrResult.processingTime;
+        detectedLanguage = ocrResult.language || selectedLanguage;
+      } else {
+        // Plain text file
+        extractedText = await file.text();
+        confidence = 100;
+        processingTime = 0;
+      }
+
+      setProgress(50);
+
+      // Check confidence threshold
+      const confidenceCheck = enhancedOCRService.checkConfidenceThreshold(confidence);
+      setConfidenceWarning(confidenceCheck);
+
+      setExtractionResult({
+        text: extractedText,
+        confidence,
+        processingTime,
+        pageCount: pageCount || undefined,
+        language: detectedLanguage,
+      });
+
+      // Step 2: Identify sections and hidden clauses
+      setCurrentStep('Analyzing document structure...');
+      setProgress(65);
+
+      const sections = enhancedOCRService.identifyDocumentSections(extractedText);
+      const hiddenClauses = enhancedOCRService.analyzeForHiddenClauses(extractedText);
+
+      // Step 3: AI-powered deep analysis
+      setCurrentStep('Running AI analysis...');
+      setProgress(80);
 
       try {
-        const { data, error: analysisError } = await supabase.functions.invoke('document-analysis', { 
-          body: analysisData 
-        });
-        
-        if (analysisError) throw analysisError;
+        const aiAnalysisResult = await aiService.analyzeDocument(
+          file.name,
+          file.type,
+          extractedText,
+          confidence,
+        );
 
-        // Parse the AI response into structured format
-        const aiAnalysis = typeof data.analysis === 'string' ? data.analysis : JSON.stringify(data.analysis);
-        
+        // Parse AI analysis into structured format
         const structuredAnalysis: DocumentAnalysis = {
-          summary: extractSection(aiAnalysis, 'overview', 'summary') || 'Document analysis completed successfully.',
-          keyPoints: extractListItems(aiAnalysis, ['key findings', 'important points', 'main points']),
-          riskFactors: extractListItems(aiAnalysis, ['risks', 'concerns', 'warnings', 'penalties', 'hidden clauses']),
-          benefits: extractListItems(aiAnalysis, ['benefits', 'advantages', 'coverage', 'features']),
-          hiddenClauses: extractListItems(aiAnalysis, ['hidden', 'concerning clauses', 'fine print']),
-          recommendations: extractListItems(aiAnalysis, ['recommendations', 'actions', 'next steps'])
+          summary: extractSummary(aiAnalysisResult.analysis),
+          keyPoints: extractListFromMarkdown(aiAnalysisResult.analysis, ['key terms', 'key findings', 'important']),
+          riskFactors: extractListFromMarkdown(aiAnalysisResult.analysis, ['risk', 'concern', 'warning']),
+          benefits: extractListFromMarkdown(aiAnalysisResult.analysis, ['benefit', 'advantage', 'coverage']),
+          hiddenClauses: extractListFromMarkdown(aiAnalysisResult.analysis, ['hidden', 'concerning clauses']),
+          recommendations: extractListFromMarkdown(aiAnalysisResult.analysis, ['recommendation', 'action']),
+          riskScore: aiAnalysisResult.riskScore,
+          riskLevel: aiAnalysisResult.riskLevel,
         };
 
         setAnalysis(structuredAnalysis);
         setProgress(100);
         setCurrentStep('Analysis complete!');
 
+        // Return complete result
         onAnalysisComplete({
-          extractedText: result.text,
-          sections: [],
-          hiddenClauses: structuredAnalysis.hiddenClauses,
-          confidence: result.confidence,
-          processingTime: result.processingTime
+          extractedText,
+          sections: sections.map(s => ({
+            title: s.title,
+            content: s.content,
+            riskLevel: s.riskLevel,
+          })),
+          hiddenClauses,
+          confidence,
+          processingTime,
+          language: detectedLanguage,
+          documentType: aiAnalysisResult.documentType,
+          pageCount,
         });
 
-      } catch (err: any) {
-        console.error('AI Analysis failed:', err);
-        setAnalysis(createFallbackAnalysis(result.text));
+      } catch (aiError: any) {
+        console.error('AI Analysis failed:', aiError);
+        
+        // Fallback analysis
+        setAnalysis(createFallbackAnalysis(extractedText, hiddenClauses));
+        setProgress(100);
+        setCurrentStep('Analysis complete (offline mode)');
+
+        onAnalysisComplete({
+          extractedText,
+          sections: sections.map(s => ({
+            title: s.title,
+            content: s.content,
+            riskLevel: s.riskLevel,
+          })),
+          hiddenClauses,
+          confidence,
+          processingTime,
+          language: detectedLanguage,
+          pageCount,
+        });
       }
 
-    } catch (error) {
-      console.error('OCR Analysis failed:', error);
-      setError('Failed to analyze document. Please try again.');
+    } catch (err) {
+      console.error('OCR Analysis failed:', err);
+      setError(err instanceof Error ? err.message : 'Failed to analyze document. Please try again.');
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [file, selectedLanguage, enablePreprocessing, onAnalysisComplete]);
 
-  const extractSection = (text: string, ...keywords: string[]): string => {
+  const extractSummary = (text: string): string => {
     const lines = text.split('\n');
-    for (const keyword of keywords) {
-      const regex = new RegExp(`^#{1,3}\\s*${keyword}`, 'i');
-      const startIndex = lines.findIndex(line => regex.test(line.trim()));
-      if (startIndex !== -1) {
-        const endIndex = lines.findIndex((line, idx) => 
-          idx > startIndex && line.trim().startsWith('#')
-        );
-        return lines.slice(startIndex + 1, endIndex === -1 ? startIndex + 4 : endIndex)
-          .join(' ').trim();
-      }
+    const overviewIndex = lines.findIndex(l => /overview|summary/i.test(l));
+    if (overviewIndex !== -1) {
+      const endIndex = lines.findIndex((l, i) => i > overviewIndex && l.startsWith('#'));
+      return lines.slice(overviewIndex + 1, endIndex === -1 ? overviewIndex + 5 : endIndex)
+        .join(' ')
+        .trim()
+        .substring(0, 500);
     }
-    return '';
+    return text.substring(0, 300) + '...';
   };
 
-  const extractListItems = (text: string, keywords: string[]): string[] => {
+  const extractListFromMarkdown = (text: string, keywords: string[]): string[] => {
     const items: string[] = [];
     const lines = text.split('\n');
     
@@ -160,9 +274,9 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
       if (startIndex !== -1) {
         for (let i = startIndex; i < Math.min(startIndex + 15, lines.length); i++) {
           const line = lines[i].trim();
-          if (line.match(/^[•\-\*]\s/) || line.match(/^\d+\.\s/)) {
-            const item = line.replace(/^[•\-\*\d\.]\s*/, '').trim();
-            if (item && !items.includes(item)) {
+          if (line.match(/^[-•*]\s/) || line.match(/^\d+\.\s/)) {
+            const item = line.replace(/^[-•*\d.]\s*/, '').trim();
+            if (item && !items.includes(item) && item.length > 5) {
               items.push(item);
             }
           }
@@ -173,135 +287,233 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
     return items.slice(0, 5);
   };
 
-  const createFallbackAnalysis = (text: string): DocumentAnalysis => {
+  const createFallbackAnalysis = (text: string, hiddenClauses: any[]): DocumentAnalysis => {
     return {
-      summary: "Document has been processed successfully. Please review the extracted content below.",
+      summary: "Document has been processed. Please review the extracted content for important terms.",
       keyPoints: [
-        "Document contains standard terms and conditions",
-        "Various clauses and policies are outlined",
-        "Review recommended for complete understanding"
+        "Document contains terms and conditions",
+        "Review all sections carefully",
+        "Pay attention to highlighted clauses",
       ],
-      riskFactors: [
-        "Some terms may have financial implications",
-        "Cancellation policies may apply",
-        "Late fees or penalties may be charged"
-      ],
-      benefits: [
-        "Service or product benefits as described",
-        "Customer protection measures included",
-        "Clear terms for usage and access"
-      ],
-      hiddenClauses: [
-        "Check for auto-renewal clauses",
-        "Review cancellation procedures",
-        "Verify fee structures"
-      ],
+      riskFactors: hiddenClauses.filter(c => c.severity === 'high').map(c => c.clause.substring(0, 100)),
+      benefits: ["Standard document protections apply", "Review coverage details"],
+      hiddenClauses: hiddenClauses.map(c => `${c.category}: ${c.clause.substring(0, 80)}...`),
       recommendations: [
-        "Read the complete document carefully",
-        "Pay attention to fine print",
-        "Understand your rights and obligations"
-      ]
+        "Read the entire document carefully",
+        "Pay attention to penalty and fee sections",
+        "Review cancellation and renewal terms",
+      ],
+      riskScore: 50 + hiddenClauses.filter(c => c.severity === 'high').length * 10,
+      riskLevel: hiddenClauses.filter(c => c.severity === 'high').length > 2 ? 'high' : 'medium',
     };
   };
 
-  const formatTime = (ms: number) => {
-    return ms > 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
-  };
+  const formatTime = (ms: number) => ms > 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+  
+  const languages = enhancedOCRService.getSupportedLanguages();
 
   return (
-    <Card className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+    <Card className="w-full bg-card border-border">
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
-          <Eye className="w-5 h-5" />
-          <span>Smart Document Analysis</span>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Eye className="w-5 h-5 text-primary" />
+            <span>Smart Document Analysis</span>
+          </div>
+          {!isProcessing && !extractionResult && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSettings(!showSettings)}
+            >
+              <Settings2 className="w-4 h-4 mr-1" />
+              Settings
+            </Button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {!ocrResult && (
+        {/* Settings Panel */}
+        <AnimatePresence>
+          {showSettings && !extractionResult && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="p-4 bg-muted rounded-lg space-y-4"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-1 block">Language</label>
+                  <select
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                    className="w-full p-2 rounded border border-border bg-background"
+                  >
+                    <option value="auto">Auto-detect</option>
+                    {languages.map(lang => (
+                      <option key={lang.code} value={lang.code}>{lang.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="preprocessing"
+                    checked={enablePreprocessing}
+                    onChange={(e) => setEnablePreprocessing(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="preprocessing" className="text-sm">
+                    Enable image preprocessing
+                  </label>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Initial State */}
+        {!extractionResult && !isProcessing && (
           <div className="text-center space-y-4">
-            <div className="p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-              <FileText className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Ready to Analyze</h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">
+            <div className="p-6 border-2 border-dashed border-border rounded-lg">
+              <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground">Ready to Analyze</h3>
+              <p className="text-muted-foreground mb-4">
                 File: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
               </p>
-              <Button onClick={startOCRAnalysis} disabled={isProcessing} className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-4 h-4 mr-2" />
-                    Start Analysis
-                  </>
+              <div className="flex items-center justify-center gap-2 mb-4">
+                {file.type.includes('pdf') && (
+                  <Badge variant="secondary">
+                    <FileText className="w-3 h-3 mr-1" />
+                    PDF.js
+                  </Badge>
                 )}
+                {file.type.includes('image') && (
+                  <Badge variant="secondary">
+                    <ImageIcon className="w-3 h-3 mr-1" />
+                    Tesseract OCR
+                  </Badge>
+                )}
+                <Badge variant="secondary">
+                  <Globe className="w-3 h-3 mr-1" />
+                  {selectedLanguage === 'auto' ? 'Auto-detect' : languages.find(l => l.code === selectedLanguage)?.name || selectedLanguage}
+                </Badge>
+              </div>
+              <Button onClick={startOCRAnalysis} disabled={isProcessing} size="lg">
+                <Search className="w-4 h-4 mr-2" />
+                Start Analysis
               </Button>
             </div>
           </div>
         )}
 
+        {/* Processing State */}
         {isProcessing && (
-          <div className="space-y-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-4"
+          >
             <div className="flex items-center space-x-2">
-              <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
-              <span className="text-sm text-gray-600 dark:text-gray-300">{currentStep}</span>
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">{currentStep}</span>
             </div>
             <Progress value={progress} className="w-full" />
-          </div>
+            <p className="text-xs text-muted-foreground text-center">{progress}% complete</p>
+          </motion.div>
         )}
 
+        {/* Error State */}
         {error && (
-          <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
-            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-            <AlertDescription className="text-red-800 dark:text-red-200">{error}</AlertDescription>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        {ocrResult && analysis && (
-          <div className="space-y-6">
+        {/* Results */}
+        {extractionResult && analysis && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Confidence Warning */}
+            {confidenceWarning && !confidenceWarning.isReliable && (
+              <Alert className="border-warning/50 bg-warning/10">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <AlertDescription className="text-warning">
+                  <strong>{confidenceWarning.warning}</strong>
+                  <br />
+                  {confidenceWarning.recommendation}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Success Alert */}
-            <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertDescription className="text-green-800 dark:text-green-200">
-                Document analyzed successfully with {ocrResult.confidence.toFixed(1)}% confidence 
-                in {formatTime(ocrResult.processingTime)}
+            <Alert className="border-success/50 bg-success/10">
+              <CheckCircle className="h-4 w-4 text-success" />
+              <AlertDescription className="text-success">
+                Document analyzed with {extractionResult.confidence.toFixed(1)}% confidence 
+                in {formatTime(extractionResult.processingTime)}
+                {extractionResult.pageCount && ` • ${extractionResult.pageCount} pages`}
+                {extractionResult.language && extractionResult.language !== 'eng' && ` • ${extractionResult.language.toUpperCase()}`}
               </AlertDescription>
             </Alert>
 
+            {/* Risk Score Card */}
+            {analysis.riskScore !== undefined && (
+              <Card className={`border-2 ${
+                analysis.riskLevel === 'high' ? 'border-destructive/50 bg-destructive/5' :
+                analysis.riskLevel === 'medium' ? 'border-warning/50 bg-warning/5' :
+                'border-success/50 bg-success/5'
+              }`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Risk Assessment</p>
+                      <p className="text-2xl font-bold">{analysis.riskScore}/100</p>
+                    </div>
+                    <Badge variant={
+                      analysis.riskLevel === 'high' ? 'destructive' :
+                      analysis.riskLevel === 'medium' ? 'default' : 'secondary'
+                    } className="text-lg px-4 py-1">
+                      {analysis.riskLevel?.toUpperCase()} RISK
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Summary */}
-            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
                   <FileText className="w-4 h-4" />
-                  <span>Document Summary</span>
+                  Document Summary
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {formatTextWithBold(analysis.summary)}
-                </div>
+                <p className="text-muted-foreground leading-relaxed">{analysis.summary}</p>
               </CardContent>
             </Card>
 
             {/* Benefits */}
             {analysis.benefits.length > 0 && (
-              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <ThumbsUp className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    <span className="text-green-700 dark:text-green-300">Key Benefits</span>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2 text-success">
+                    <ThumbsUp className="w-4 h-4" />
+                    Key Benefits
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {analysis.benefits.map((benefit, index) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                        <div className="text-green-800 dark:text-green-200">
-                          {formatTextWithBold(benefit)}
-                        </div>
+                    {analysis.benefits.map((benefit, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-success mt-0.5 shrink-0" />
+                        <span className="text-sm">{benefit}</span>
                       </li>
                     ))}
                   </ul>
@@ -311,21 +523,19 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
 
             {/* Risk Factors */}
             {analysis.riskFactors.length > 0 && (
-              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <ThumbsDown className="w-4 h-4 text-red-600 dark:text-red-400" />
-                    <span className="text-red-700 dark:text-red-300">Risk Factors & Concerns</span>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2 text-destructive">
+                    <ThumbsDown className="w-4 h-4" />
+                    Risk Factors
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {analysis.riskFactors.map((risk, index) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                        <div className="text-red-800 dark:text-red-200">
-                          {formatTextWithBold(risk)}
-                        </div>
+                    {analysis.riskFactors.map((risk, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                        <span className="text-sm">{risk}</span>
                       </li>
                     ))}
                   </ul>
@@ -335,20 +545,18 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
 
             {/* Hidden Clauses */}
             {analysis.hiddenClauses.length > 0 && (
-              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                    <span className="text-orange-700 dark:text-orange-300">Important Clauses to Review</span>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2 text-warning">
+                    <AlertTriangle className="w-4 h-4" />
+                    Important Clauses to Review
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {analysis.hiddenClauses.map((clause, index) => (
-                      <li key={index} className="p-3 bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-400 dark:border-orange-500 rounded">
-                        <div className="text-orange-800 dark:text-orange-200">
-                          {formatTextWithBold(clause)}
-                        </div>
+                    {analysis.hiddenClauses.map((clause, i) => (
+                      <li key={i} className="p-2 bg-warning/10 border-l-4 border-warning rounded text-sm">
+                        {clause}
                       </li>
                     ))}
                   </ul>
@@ -358,21 +566,19 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
 
             {/* Recommendations */}
             {analysis.recommendations.length > 0 && (
-              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span className="text-blue-700 dark:text-blue-300">Recommendations</span>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2 text-primary">
+                    <Zap className="w-4 h-4" />
+                    Recommendations
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {analysis.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <div className="w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full mt-2 flex-shrink-0" />
-                        <div className="text-blue-800 dark:text-blue-200">
-                          {formatTextWithBold(rec)}
-                        </div>
+                    {analysis.recommendations.map((rec, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 shrink-0" />
+                        <span className="text-sm">{rec}</span>
                       </li>
                     ))}
                   </ul>
@@ -380,31 +586,31 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
               </Card>
             )}
 
-            {/* Performance Stats */}
+            {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
-              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <Card>
                 <CardContent className="p-4 text-center">
-                  <Clock className="w-6 h-6 text-blue-500 dark:text-blue-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Processing Time</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{formatTime(ocrResult.processingTime)}</p>
+                  <Clock className="w-6 h-6 text-primary mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Processing Time</p>
+                  <p className="font-semibold">{formatTime(extractionResult.processingTime)}</p>
                 </CardContent>
               </Card>
-              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <Card>
                 <CardContent className="p-4 text-center">
-                  <Zap className="w-6 h-6 text-green-500 dark:text-green-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Confidence</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{ocrResult.confidence.toFixed(1)}%</p>
+                  <Zap className="w-6 h-6 text-success mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Confidence</p>
+                  <p className="font-semibold">{extractionResult.confidence.toFixed(1)}%</p>
                 </CardContent>
               </Card>
-              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <Card>
                 <CardContent className="p-4 text-center">
-                  <FileText className="w-6 h-6 text-purple-500 dark:text-purple-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Text Length</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{ocrResult.text.length} chars</p>
+                  <FileText className="w-6 h-6 text-purple-500 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Text Length</p>
+                  <p className="font-semibold">{extractionResult.text.length.toLocaleString()}</p>
                 </CardContent>
               </Card>
             </div>
-          </div>
+          </motion.div>
         )}
       </CardContent>
     </Card>

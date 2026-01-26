@@ -7,7 +7,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import OCRAnalysis from '@/components/OCRAnalysis';
+import OCRAnalysis, { OCRAnalysisResult } from '@/components/OCRAnalysis';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
@@ -22,12 +22,16 @@ interface AnalysisResult {
   summary: string;
 }
 
-interface OCRAnalysisResult {
+// Use the imported type from OCRAnalysis component
+interface LocalOCRResult {
   extractedText: string;
   sections: any[];
-  hiddenClauses: string[];
+  hiddenClauses: { clause: string; category: string; severity: string }[] | string[];
   confidence: number;
   processingTime: number;
+  language?: string;
+  documentType?: string;
+  pageCount?: number;
 }
 
 const UploadPage = () => {
@@ -35,7 +39,7 @@ const UploadPage = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-  const [ocrResult, setOcrResult] = useState<OCRAnalysisResult | null>(null);
+  const [ocrResult, setOcrResult] = useState<LocalOCRResult | null>(null);
   const [showOCR, setShowOCR] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedAnalysisId, setSavedAnalysisId] = useState<string | null>(null);
@@ -87,7 +91,12 @@ const UploadPage = () => {
   };
 
   const handleOCRComplete = (result: OCRAnalysisResult) => {
-    setOcrResult(result);
+    // Convert to local format
+    const localResult: LocalOCRResult = {
+      ...result,
+      hiddenClauses: result.hiddenClauses,
+    };
+    setOcrResult(localResult);
     toast({
       title: "OCR Analysis Complete",
       description: `Extracted ${result.extractedText.length} characters with ${result.confidence.toFixed(1)}% confidence`,
@@ -105,7 +114,7 @@ const UploadPage = () => {
     });
   };
 
-  const calculateDynamicRisk = (ocrData: OCRAnalysisResult | null): { score: number; level: string } => {
+  const calculateDynamicRisk = (ocrData: LocalOCRResult | null): { score: number; level: string } => {
     if (!ocrData) {
       return { score: 50, level: 'medium' };
     }
