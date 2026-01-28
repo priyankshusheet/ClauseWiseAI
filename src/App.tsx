@@ -19,6 +19,8 @@ import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Products from "./pages/Products";
 import AnalysisHistory from "./pages/AnalysisHistory";
+import Portfolio from "./pages/Portfolio";
+import Compare from "./pages/Compare";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -66,6 +68,22 @@ const AnimatedRoutes = () => {
           element={
             <ProtectedRoute>
               <AnalysisHistory />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/portfolio" 
+          element={
+            <ProtectedRoute>
+              <Portfolio />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/compare" 
+          element={
+            <ProtectedRoute>
+              <Compare />
             </ProtectedRoute>
           } 
         />

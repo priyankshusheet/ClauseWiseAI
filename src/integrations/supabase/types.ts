@@ -92,6 +92,271 @@ export type Database = {
         }
         Relationships: []
       }
+      document_comments: {
+        Row: {
+          clause_reference: string | null
+          content: string
+          created_at: string
+          document_id: string
+          id: string
+          is_resolved: boolean | null
+          parent_id: string | null
+          position_end: number | null
+          position_start: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          clause_reference?: string | null
+          content: string
+          created_at?: string
+          document_id: string
+          id?: string
+          is_resolved?: boolean | null
+          parent_id?: string | null
+          position_end?: number | null
+          position_start?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          clause_reference?: string | null
+          content?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          is_resolved?: boolean | null
+          parent_id?: string | null
+          position_end?: number | null
+          position_start?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_comments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "document_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "document_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_shares: {
+        Row: {
+          created_at: string
+          document_id: string
+          expires_at: string | null
+          id: string
+          permission: string
+          shared_by: string
+          shared_with: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          expires_at?: string | null
+          id?: string
+          permission?: string
+          shared_by: string
+          shared_with: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          expires_at?: string | null
+          id?: string
+          permission?: string
+          shared_by?: string
+          shared_with?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_shares_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "document_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_versions: {
+        Row: {
+          analysis_result: Json | null
+          changes_summary: string | null
+          created_at: string
+          created_by: string | null
+          document_id: string
+          extracted_text: string | null
+          file_name: string
+          file_size: number | null
+          id: string
+          risk_level: string | null
+          risk_score: number | null
+          version_number: number
+        }
+        Insert: {
+          analysis_result?: Json | null
+          changes_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_id: string
+          extracted_text?: string | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          risk_level?: string | null
+          risk_score?: number | null
+          version_number?: number
+        }
+        Update: {
+          analysis_result?: Json | null
+          changes_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_id?: string
+          extracted_text?: string | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          risk_level?: string | null
+          risk_score?: number | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "document_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          lesson_id: string | null
+          module_id: string
+          progress_percentage: number | null
+          quiz_scores: Json | null
+          status: string
+          time_spent_seconds: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          lesson_id?: string | null
+          module_id: string
+          progress_percentage?: number | null
+          quiz_scores?: Json | null
+          status?: string
+          time_spent_seconds?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          lesson_id?: string | null
+          module_id?: string
+          progress_percentage?: number | null
+          quiz_scores?: Json | null
+          status?: string
+          time_spent_seconds?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      portfolio_documents: {
+        Row: {
+          added_at: string
+          document_id: string
+          id: string
+          portfolio_id: string
+        }
+        Insert: {
+          added_at?: string
+          document_id: string
+          id?: string
+          portfolio_id: string
+        }
+        Update: {
+          added_at?: string
+          document_id?: string
+          id?: string
+          portfolio_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "document_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portfolio_documents_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolios: {
+        Row: {
+          aggregate_risk_level: string | null
+          aggregate_risk_score: number | null
+          created_at: string
+          description: string | null
+          document_count: number | null
+          id: string
+          insights: Json | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aggregate_risk_level?: string | null
+          aggregate_risk_score?: number | null
+          created_at?: string
+          description?: string | null
+          document_count?: number | null
+          id?: string
+          insights?: Json | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aggregate_risk_level?: string | null
+          aggregate_risk_score?: number | null
+          created_at?: string
+          description?: string | null
+          document_count?: number | null
+          id?: string
+          insights?: Json | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -121,6 +386,45 @@ export type Database = {
           id?: string
           preferences?: Json | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quiz_attempts: {
+        Row: {
+          answers: Json
+          created_at: string
+          id: string
+          max_score: number
+          module_id: string
+          passed: boolean
+          quiz_id: string
+          score: number
+          time_taken_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          answers: Json
+          created_at?: string
+          id?: string
+          max_score: number
+          module_id: string
+          passed: boolean
+          quiz_id: string
+          score: number
+          time_taken_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          max_score?: number
+          module_id?: string
+          passed?: boolean
+          quiz_id?: string
+          score?: number
+          time_taken_seconds?: number | null
           user_id?: string
         }
         Relationships: []

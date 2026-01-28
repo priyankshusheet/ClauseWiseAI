@@ -2,11 +2,14 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Send, Upload, FileText, Loader2, AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { Send, Upload, FileText, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { aiService, Message, DocumentContext } from '@/services/aiService';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
+import VoiceInput from './VoiceInput';
+import SuggestedQuestions from './SuggestedQuestions';
+import ChatExport from './ChatExport';
 
 interface ChatMessage {
   id: string;
@@ -243,6 +246,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <ChatExport 
+            messages={messages} 
+            documentContext={documentContext ? {
+              fileName: documentContext.fileName,
+              riskScore: documentContext.riskScore,
+              riskLevel: documentContext.riskLevel,
+            } : undefined}
+          />
           {isProcessing && (
             <Button variant="ghost" size="sm" onClick={handleCancel}>
               Cancel
@@ -365,6 +376,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
             <Upload className="w-4 h-4" />
           </Button>
           
+          <VoiceInput 
+            onTranscript={(text) => setInputValue(prev => prev + ' ' + text)}
+            disabled={isProcessing}
+          />
+          
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
@@ -385,6 +401,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
               <Send className="w-4 h-4" />
             )}
           </Button>
+        </div>
+        
+        {/* Suggested Questions */}
+        <div className="mt-3">
+          <SuggestedQuestions 
+            documentContext={documentContext ? {
+              fileName: documentContext.fileName,
+              documentType: undefined,
+              riskLevel: documentContext.riskLevel,
+              riskScore: documentContext.riskScore,
+              detectedClauses: documentContext.detectedClauses,
+            } : undefined}
+            onSelectQuestion={(q) => setInputValue(q)}
+            isProcessing={isProcessing}
+          />
         </div>
         
         <p className="text-xs text-muted-foreground mt-2 text-center">
