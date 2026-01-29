@@ -16,7 +16,8 @@ import {
   User,
   Menu,
   FolderOpen,
-  GitCompare
+  GitCompare,
+  Settings
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
@@ -62,6 +63,7 @@ const Navigation = () => {
     { name: 'Upload', href: '/upload', icon: Upload, isRoute: true, requireAuth: true },
     { name: 'Portfolio', href: '/portfolio', icon: FolderOpen, isRoute: true, requireAuth: true },
     { name: 'Compare', href: '/compare', icon: GitCompare, isRoute: true, requireAuth: true },
+    { name: 'Settings', href: '/settings', icon: Settings, isRoute: true, requireAuth: true },
     { name: 'History', href: '/history', icon: History, isRoute: true, requireAuth: true },
     { name: 'Learn', href: '/learn', icon: BookOpen, isRoute: true },
     { name: 'FAQ', href: '#faq', icon: Info, isRoute: false },

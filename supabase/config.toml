@@ -17,3 +17,15 @@ verify_jwt = false
 
 [functions.semantic-search]
 verify_jwt = false
+
+[functions.public-api]
+verify_jwt = false
+
+[functions.webhooks]
+verify_jwt = false
+
+[functions.audit-log]
+verify_jwt = false
+
+[functions.gdpr-export]
+verify_jwt = false
