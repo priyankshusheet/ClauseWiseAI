@@ -14,6 +14,138 @@ export type Database = {
   }
   public: {
     Tables: {
+      analysis_templates: {
+        Row: {
+          analysis_depth: string | null
+          created_at: string
+          description: string | null
+          document_types: string[] | null
+          id: string
+          industry: string | null
+          is_public: boolean | null
+          name: string
+          output_format: Json | null
+          risk_thresholds: Json | null
+          rules: Json | null
+          updated_at: string
+          usage_count: number | null
+          user_id: string | null
+        }
+        Insert: {
+          analysis_depth?: string | null
+          created_at?: string
+          description?: string | null
+          document_types?: string[] | null
+          id?: string
+          industry?: string | null
+          is_public?: boolean | null
+          name: string
+          output_format?: Json | null
+          risk_thresholds?: Json | null
+          rules?: Json | null
+          updated_at?: string
+          usage_count?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          analysis_depth?: string | null
+          created_at?: string
+          description?: string | null
+          document_types?: string[] | null
+          id?: string
+          industry?: string | null
+          is_public?: boolean | null
+          name?: string
+          output_format?: Json | null
+          risk_thresholds?: Json | null
+          rules?: Json | null
+          updated_at?: string
+          usage_count?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      api_keys: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          rate_limit_per_hour: number | null
+          scopes: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          rate_limit_per_hour?: number | null
+          scopes?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          rate_limit_per_hour?: number | null
+          scopes?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          resource_id: string | null
+          resource_type: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       chat_sessions: {
         Row: {
           created_at: string
@@ -40,6 +172,69 @@ export type Database = {
           messages?: Json | null
           title?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      data_export_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          download_url: string | null
+          expires_at: string | null
+          export_type: string | null
+          id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          download_url?: string | null
+          expires_at?: string | null
+          export_type?: string | null
+          id?: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          download_url?: string | null
+          expires_at?: string | null
+          export_type?: string | null
+          id?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      deletion_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          resources_deleted: Json | null
+          scheduled_for: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          resources_deleted?: Json | null
+          scheduled_for?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          resources_deleted?: Json | null
+          scheduled_for?: string | null
+          status?: string | null
           user_id?: string
         }
         Relationships: []
@@ -357,6 +552,50 @@ export type Database = {
         }
         Relationships: []
       }
+      processing_metrics: {
+        Row: {
+          created_at: string
+          document_id: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          operation_type: string
+          processing_time_ms: number | null
+          success: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_id?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          operation_type: string
+          processing_time_ms?: number | null
+          success?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_id?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          operation_type?: string
+          processing_time_ms?: number | null
+          success?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_metrics_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "document_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -429,6 +668,81 @@ export type Database = {
         }
         Relationships: []
       }
+      retention_policies: {
+        Row: {
+          archive_before_delete: boolean | null
+          auto_delete: boolean | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          resource_type: string
+          retention_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archive_before_delete?: boolean | null
+          auto_delete?: boolean | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          resource_type: string
+          retention_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archive_before_delete?: boolean | null
+          auto_delete?: boolean | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          resource_type?: string
+          retention_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_analytics: {
+        Row: {
+          chat_messages_sent: number | null
+          created_at: string
+          date: string
+          documents_analyzed: number | null
+          documents_uploaded: number | null
+          features_used: Json | null
+          id: string
+          session_duration_seconds: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chat_messages_sent?: number | null
+          created_at?: string
+          date?: string
+          documents_analyzed?: number | null
+          documents_uploaded?: number | null
+          features_used?: Json | null
+          id?: string
+          session_duration_seconds?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chat_messages_sent?: number | null
+          created_at?: string
+          date?: string
+          documents_analyzed?: number | null
+          documents_uploaded?: number | null
+          features_used?: Json | null
+          id?: string
+          session_duration_seconds?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -443,6 +757,95 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_deliveries: {
+        Row: {
+          attempt_number: number | null
+          created_at: string
+          delivered_at: string | null
+          event_type: string
+          id: string
+          payload: Json
+          response_body: string | null
+          response_status: number | null
+          webhook_id: string
+        }
+        Insert: {
+          attempt_number?: number | null
+          created_at?: string
+          delivered_at?: string | null
+          event_type: string
+          id?: string
+          payload: Json
+          response_body?: string | null
+          response_status?: number | null
+          webhook_id: string
+        }
+        Update: {
+          attempt_number?: number | null
+          created_at?: string
+          delivered_at?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          response_body?: string | null
+          response_status?: number | null
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhooks: {
+        Row: {
+          created_at: string
+          events: string[]
+          failure_count: number | null
+          id: string
+          is_active: boolean | null
+          last_triggered_at: string | null
+          name: string
+          retry_count: number | null
+          secret: string | null
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          events: string[]
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          name: string
+          retry_count?: number | null
+          secret?: string | null
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          events?: string[]
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          name?: string
+          retry_count?: number | null
+          secret?: string | null
+          updated_at?: string
+          url?: string
           user_id?: string
         }
         Relationships: []
