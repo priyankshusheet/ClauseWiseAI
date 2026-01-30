@@ -22,6 +22,10 @@ import AnalysisHistory from "./pages/AnalysisHistory";
 import Portfolio from "./pages/Portfolio";
 import Compare from "./pages/Compare";
 import Settings from "./pages/Settings";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import HelpCenter from "./pages/HelpCenter";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -47,23 +51,17 @@ const AnimatedRoutes = () => {
         <Route path="/learn" element={<Learn />} />
         <Route path="/products/:category" element={<Products />} />
         
+        {/* Legal pages - public */}
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/help" element={<HelpCenter />} />
+        <Route path="/contact" element={<Contact />} />
+        
+        {/* Trial-enabled routes - accessible without login, but with limits */}
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/upload" element={<Upload />} />
+        
         {/* Protected routes - require authentication */}
-        <Route 
-          path="/chat" 
-          element={
-            <ProtectedRoute>
-              <Chat />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/upload" 
-          element={
-            <ProtectedRoute>
-              <Upload />
-            </ProtectedRoute>
-          } 
-        />
         <Route 
           path="/history" 
           element={

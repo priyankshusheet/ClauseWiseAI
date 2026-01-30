@@ -1,13 +1,13 @@
-
 import ProductCard from './ProductCard';
 import { useNavigate } from 'react-router-dom';
+import { CreditCard, Heart, Shield, Home, TrendingUp, Coins } from 'lucide-react';
 
 const UseCasesSection = () => {
   const navigate = useNavigate();
 
   const useCases = [
     {
-      icon: '💳',
+      icon: CreditCard,
       title: 'Credit Cards',
       description: 'Decode interest rates, hidden fees, and reward terms',
       features: ['APR breakdown', 'Fee analysis', 'Reward optimization'],
@@ -25,7 +25,7 @@ const UseCasesSection = () => {
       ]
     },
     {
-      icon: '🏥',
+      icon: Heart,
       title: 'Health Insurance',
       description: 'Understand coverage, deductibles, and exclusions',
       features: ['Coverage details', 'Network providers', 'Claim process'],
@@ -43,7 +43,7 @@ const UseCasesSection = () => {
       ]
     },
     {
-      icon: '🛡️',
+      icon: Shield,
       title: 'Life Insurance',
       description: 'Simplify policy terms and beneficiary details',
       features: ['Payout conditions', 'Premium structure', 'Exclusions'],
@@ -61,7 +61,7 @@ const UseCasesSection = () => {
       ]
     },
     {
-      icon: '🏠',
+      icon: Home,
       title: 'Loans',
       description: 'Break down EMI, processing fees, and penalties',
       features: ['Interest calculation', 'Prepayment terms', 'Default penalties'],
@@ -79,7 +79,7 @@ const UseCasesSection = () => {
       ]
     },
     {
-      icon: '📈',
+      icon: TrendingUp,
       title: 'ULIPs',
       description: 'Analyze investment and insurance components',
       features: ['Fund allocation', 'Charges breakdown', 'Surrender value'],
@@ -97,7 +97,7 @@ const UseCasesSection = () => {
       ]
     },
     {
-      icon: '💰',
+      icon: Coins,
       title: 'Mutual Funds',
       description: 'Understand expense ratios and exit loads',
       features: ['Fee structure', 'Performance metrics', 'Tax implications'],
@@ -117,20 +117,20 @@ const UseCasesSection = () => {
   ];
 
   return (
-    <section className="py-20 bg-gray-50 dark:bg-gray-900">
+    <section id="use-cases" className="py-20 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
             One AI for All Your Financial Documents
           </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             From credit cards to insurance policies, ClauseWise breaks down complex terms 
-            across all your financial products 🎯
+            across all your financial products
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {useCases.map((useCase, index) => (
+          {useCases.map((useCase) => (
             <div
               key={useCase.title}
               onClick={() => navigate(useCase.route)}
@@ -153,10 +153,9 @@ const UseCasesSection = () => {
 
         {/* Bottom CTA */}
         <div className="text-center mt-16">
-          <div className="inline-flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-            <span>And many more financial documents...</span>
-            <span className="text-2xl">📄</span>
-          </div>
+          <p className="text-muted-foreground">
+            And many more financial documents...
+          </p>
         </div>
       </div>
     </section>

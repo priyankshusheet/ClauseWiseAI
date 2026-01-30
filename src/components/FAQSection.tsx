@@ -1,7 +1,8 @@
-
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 interface FAQItem {
   id: number;
@@ -59,43 +60,43 @@ const FAQSection = () => {
     {
       id: 8,
       question: "Is there a limit to how many documents I can analyze?",
-      answer: "Currently, there are no strict limits on document analysis. However, we may implement fair usage policies in the future to ensure quality service for all users."
+      answer: "Trial users can analyze up to 2 documents without signing up. Registered users have access to more documents and additional features. We may implement fair usage policies to ensure quality service for all users."
     }
   ];
 
   return (
-    <section id="faq" className="py-20 bg-white">
+    <section id="faq" className="py-20 bg-card">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
             Frequently Asked Questions
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Everything you need to know about ClauseWise and financial document analysis
           </p>
         </div>
 
         <div className="space-y-4">
           {faqItems.map((item) => (
-            <Card key={item.id} className="border border-gray-200 hover:shadow-md transition-shadow duration-200">
+            <Card key={item.id} className="border border-border hover:shadow-md transition-shadow duration-200">
               <CardHeader 
                 className="cursor-pointer"
                 onClick={() => toggleItem(item.id)}
               >
                 <CardTitle className="flex items-center justify-between text-left">
-                  <span className="text-lg font-semibold text-gray-900 pr-4">
+                  <span className="text-lg font-semibold text-foreground pr-4">
                     {item.question}
                   </span>
                   {openItems.includes(item.id) ? (
-                    <ChevronUp className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                    <ChevronUp className="w-5 h-5 text-primary flex-shrink-0" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                    <ChevronDown className="w-5 h-5 text-primary flex-shrink-0" />
                   )}
                 </CardTitle>
               </CardHeader>
               {openItems.includes(item.id) && (
                 <CardContent className="pt-0">
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-muted-foreground leading-relaxed">
                     {item.answer}
                   </p>
                 </CardContent>
@@ -105,19 +106,19 @@ const FAQSection = () => {
         </div>
 
         <div className="text-center mt-12">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-8">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
+          <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-xl p-8 border border-border">
+            <h3 className="text-xl font-semibold text-foreground mb-4">
               Still have questions?
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               Our AI chat is available 24/7 to help you understand your financial documents
             </p>
-            <button 
-              onClick={() => window.location.href = '/chat'}
-              className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
-            >
-              Start Chat Now
-            </button>
+            <Link to="/chat">
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Start Chat Now
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

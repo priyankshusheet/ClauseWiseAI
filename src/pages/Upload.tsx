@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, Eye, Download, Bookmark, BookmarkCheck, History } from 'lucide-react';
+import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, Eye, Download, Bookmark, BookmarkCheck, History, Search, Zap, Shield, LogIn } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +14,8 @@ import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
 import { useFileValidation } from '@/hooks/useFileValidation';
 import { UploadSkeleton, AnalysisSkeleton } from '@/components/LoadingStates';
 import { FadeIn } from '@/components/PageTransition';
-
+import { useTrialUsage } from '@/hooks/useTrialUsage';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 interface AnalysisResult {
   riskScore: number;
   riskLevel: string;
@@ -49,6 +50,7 @@ const UploadPage = () => {
   const { user } = useAuth();
   const { saveAnalysis, toggleSaved } = useAnalysisHistory();
   const { validateWithToast, maxSizeMB, allowedExtensions } = useFileValidation();
+  const { canAnalyzeDocument, remainingDocuments, recordDocumentAnalysis, limits } = useTrialUsage();
 
   const handleDragEvents = {
     onDragOver: (e: React.DragEvent) => {
@@ -173,6 +175,16 @@ const UploadPage = () => {
   const startAIAnalysis = async () => {
     if (!selectedFile) return;
 
+    // Check trial limits for non-authenticated users
+    if (!user && !canAnalyzeDocument) {
+      toast({
+        title: "Trial Limit Reached",
+        description: "Please sign in to continue analyzing documents.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     try {
       const analysisData = {
@@ -210,6 +222,11 @@ const UploadPage = () => {
       }
 
       setAnalysisResult(processedResult);
+      
+      // Record trial usage for non-authenticated users
+      if (!user) {
+        recordDocumentAnalysis();
+      }
       
       // Auto-save to history if user is logged in
       if (user && selectedFile) {
@@ -401,52 +418,66 @@ const UploadPage = () => {
   const getRiskStyling = (riskLevel: string) => {
     const level = riskLevel?.toLowerCase();
     switch (level) {
-      case 'low': return 'text-green-600 bg-green-100';
-      case 'medium': return 'text-yellow-600 bg-yellow-100';
-      case 'high': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'low': return 'text-secondary bg-secondary/10';
+      case 'medium': return 'text-accent bg-accent/10';
+      case 'high': return 'text-destructive bg-destructive/10';
+      default: return 'text-muted-foreground bg-muted';
     }
   };
 
   const features = [
     {
-      icon: '🔍',
+      icon: Search,
       title: 'Advanced OCR Scanning',
       description: 'Extract text from PDFs and images with high accuracy using state-of-the-art OCR technology.',
-      bgColor: 'bg-blue-100'
     },
     {
-      icon: '⚡',
+      icon: Zap,
       title: 'Real-time Analysis',
       description: 'Get comprehensive analysis results within seconds of upload with AI-powered insights.',
-      bgColor: 'bg-green-100'
     },
     {
-      icon: '🛡️',
+      icon: Shield,
       title: 'Hidden Clause Detection',
       description: 'Automatically identify potentially problematic clauses and terms that might be easily missed.',
-      bgColor: 'bg-purple-100'
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       <Navigation />
       
       <div className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               OCR-Powered Document Analysis
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Upload any document format for intelligent text extraction and comprehensive analysis of terms, conditions, and hidden clauses
             </p>
           </div>
 
-          <Card className="mb-8">
+          {/* Trial usage notice for non-authenticated users */}
+          {!user && (
+            <Alert className="mb-6 bg-primary/5 border-primary/20">
+              <AlertDescription className="flex items-center justify-between">
+                <span className="text-foreground">
+                  <strong>Free Trial:</strong> {remainingDocuments} of {limits.documents} document analyses remaining.
+                </span>
+                <Link to="/auth">
+                  <Button variant="outline" size="sm" className="ml-4">
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Sign in for unlimited
+                  </Button>
+                </Link>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Card className="mb-8 border-border">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-foreground">
                 <Upload className="w-5 h-5" />
                 <span>File Upload & OCR Analysis</span>
               </CardTitle>
@@ -455,19 +486,19 @@ const UploadPage = () => {
               <div
                 className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
                   isDragOver
-                    ? 'border-blue-400 bg-blue-50'
+                    ? 'border-primary bg-primary/5'
                     : selectedFile
-                    ? 'border-green-400 bg-green-50'
-                    : 'border-gray-300 hover:border-blue-400'
+                    ? 'border-secondary bg-secondary/5'
+                    : 'border-border hover:border-primary'
                 }`}
                 {...handleDragEvents}
               >
                 {selectedFile ? (
                   <div className="space-y-4">
-                    <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
+                    <CheckCircle className="w-16 h-16 text-secondary mx-auto" />
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{selectedFile.name}</h3>
-                      <p className="text-gray-600">Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      <h3 className="text-lg font-semibold text-foreground">{selectedFile.name}</h3>
+                      <p className="text-muted-foreground">Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
                     <div className="flex justify-center space-x-4">
                       {!showOCR && (
@@ -495,14 +526,15 @@ const UploadPage = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <Upload className="w-16 h-16 text-gray-400 mx-auto" />
+                    <Upload className="w-16 h-16 text-muted-foreground mx-auto" />
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">Upload Document for OCR Analysis</h3>
-                      <p className="text-gray-600">Drag and drop your file here or click to browse</p>
+                      <h3 className="text-lg font-semibold text-foreground">Upload Document for OCR Analysis</h3>
+                      <p className="text-muted-foreground">Drag and drop your file here or click to browse</p>
                     </div>
                     <Button
                       onClick={() => document.getElementById('file-input')?.click()}
                       className="mx-auto"
+                      disabled={!user && !canAnalyzeDocument}
                     >
                       Choose File
                     </Button>
@@ -513,7 +545,7 @@ const UploadPage = () => {
                       accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png"
                       onChange={(e) => e.target.files?.[0] && processFileSelection(e.target.files[0])}
                     />
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       Supported: PDF, DOC, DOCX, TXT, JPG, PNG (Maximum 10MB)
                     </p>
                   </div>
@@ -532,26 +564,26 @@ const UploadPage = () => {
           {/* AI Analysis Results */}
           {analysisResult && (
             <div className="space-y-6">
-              <Card>
+              <Card className="border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
+                  <CardTitle className="flex items-center space-x-2 text-foreground">
                     <FileText className="w-5 h-5" />
                     <span>AI Analysis Results</span>
                     {ocrResult && (
-                      <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded">
                         OCR Enhanced
                       </span>
                     )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                     <div>
-                      <h3 className="font-semibold text-gray-900">Risk Assessment</h3>
-                      <p className="text-gray-600">Overall document complexity and risk evaluation</p>
+                      <h3 className="font-semibold text-foreground">Risk Assessment</h3>
+                      <p className="text-muted-foreground">Overall document complexity and risk evaluation</p>
                     </div>
                     <div className="text-right">
-                      <div className="text-3xl font-bold text-gray-900">{analysisResult.riskScore}/100</div>
+                      <div className="text-3xl font-bold text-foreground">{analysisResult.riskScore}/100</div>
                       <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getRiskStyling(analysisResult.riskLevel)}`}>
                         {analysisResult.riskLevel.charAt(0).toUpperCase() + analysisResult.riskLevel.slice(1)} Risk
                       </span>
@@ -559,10 +591,10 @@ const UploadPage = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-4">Comprehensive Analysis</h3>
-                    <div className="prose max-w-none">
-                      <div className="p-4 bg-gray-50 rounded-lg">
-                        <div className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+                    <h3 className="font-semibold text-foreground mb-4">Comprehensive Analysis</h3>
+                    <div className="prose dark:prose-invert max-w-none">
+                      <div className="p-4 bg-muted rounded-lg">
+                        <div className="text-sm text-foreground whitespace-pre-wrap font-sans leading-relaxed">
                           {formatTextWithBold(analysisResult.analysis)}
                         </div>
                       </div>
@@ -572,14 +604,14 @@ const UploadPage = () => {
                   {/* OCR-specific findings */}
                   {ocrResult && ocrResult.hiddenClauses.length > 0 && (
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                        <Eye className="w-5 h-5 mr-2 text-red-500" />
+                      <h3 className="font-semibold text-foreground mb-4 flex items-center">
+                        <Eye className="w-5 h-5 mr-2 text-destructive" />
                         OCR-Detected Hidden Clauses
                       </h3>
                       <div className="space-y-3">
                         {ocrResult.hiddenClauses.slice(0, 3).map((clause, index) => (
-                          <div key={index} className="p-3 bg-red-50 border-l-4 border-red-400 rounded-lg">
-                            <span className="text-red-800 text-sm">{clause}</span>
+                          <div key={index} className="p-3 bg-destructive/10 border-l-4 border-destructive rounded-lg">
+                            <span className="text-foreground text-sm">{clause}</span>
                           </div>
                         ))}
                       </div>
@@ -587,9 +619,9 @@ const UploadPage = () => {
                   )}
 
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-4">Executive Summary</h3>
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <div className="text-gray-700">{formatTextWithBold(analysisResult.summary)}</div>
+                    <h3 className="font-semibold text-foreground mb-4">Executive Summary</h3>
+                    <div className="p-4 bg-primary/5 rounded-lg">
+                      <div className="text-foreground">{formatTextWithBold(analysisResult.summary)}</div>
                     </div>
                   </div>
 
@@ -625,10 +657,10 @@ const UploadPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="h-full card-interactive">
+                <Card className="h-full card-interactive border-border">
                   <CardContent className="p-6 text-center">
-                    <div className={`w-12 h-12 ${feature.bgColor} rounded-xl flex items-center justify-center mx-auto mb-4`}>
-                      <span className="text-2xl">{feature.icon}</span>
+                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+                      <feature.icon className="w-6 h-6 text-primary" />
                     </div>
                     <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
                     <p className="text-muted-foreground text-sm">{feature.description}</p>
