@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Send, Upload, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { Send, Upload, FileText, Loader2, AlertCircle, Paperclip, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { aiService, Message, DocumentContext } from '@/services/aiService';
 import ReactMarkdown from 'react-markdown';
@@ -10,6 +10,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import VoiceInput from './VoiceInput';
 import SuggestedQuestions from './SuggestedQuestions';
 import ChatExport from './ChatExport';
+import { useTrialUsage } from '@/hooks/useTrialUsage';
+import { useAuth } from '@/components/AuthProvider';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Link } from 'react-router-dom';
 
 interface ChatMessage {
   id: string;
@@ -44,6 +48,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { canSendChatMessage, remainingChatMessages, recordChatMessage, limits } = useTrialUsage();
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -109,10 +115,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
   const processMessage = async () => {
     if (!inputValue.trim() && !uploadedFile) return;
 
+    // Check trial limits for non-authenticated users
+    if (!user && !canSendChatMessage) {
+      toast({
+        title: "Trial Limit Reached",
+        description: "Please sign in to continue chatting.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setError(null);
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
-      content: uploadedFile ? `📎 ${uploadedFile.name}\n${inputValue}` : inputValue,
+      content: uploadedFile ? `[Attached: ${uploadedFile.name}]\n${inputValue}` : inputValue,
       isUser: true,
       timestamp: new Date()
     };
@@ -163,6 +179,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
                 ? { ...msg, content: accumulatedContent, isStreaming: false }
                 : msg
             ));
+            
+            // Record trial usage for non-authenticated users
+            if (!user) {
+              recordChatMessage();
+            }
             
             // Add to conversation history
             setConversationHistory(prev => [...prev, { role: 'assistant', content: accumulatedContent }]);
@@ -238,8 +259,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
             <p className="text-sm text-muted-foreground flex items-center gap-2">
               Financial Document Expert
               {documentContext && (
-                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                  📄 Document Loaded
+                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <FileText className="w-3 h-3" />
+                  Document Loaded
                 </span>
               )}
             </p>
@@ -335,8 +357,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
         </motion.div>
       )}
 
-      {/* Input Area */}
+      {/* Trial usage notice and Input Area */}
       <div className="p-4 border-t border-border bg-card/50">
+        {/* Trial usage notice for non-authenticated users */}
+        {!user && (
+          <Alert className="mb-3 bg-primary/5 border-primary/20">
+            <AlertDescription className="flex items-center justify-between text-sm">
+              <span className="text-foreground">
+                <strong>Free Trial:</strong> {remainingChatMessages} of {limits.chatMessages} messages remaining.
+              </span>
+              <Link to="/auth">
+                <Button variant="outline" size="sm" className="ml-4">
+                  <LogIn className="w-3 h-3 mr-1" />
+                  Sign in
+                </Button>
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
         {uploadedFile && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}

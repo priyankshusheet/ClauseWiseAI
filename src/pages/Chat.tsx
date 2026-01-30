@@ -4,31 +4,32 @@ import Navigation from '@/components/Navigation';
 import ChatInterface from '@/components/ChatInterface';
 import Footer from '@/components/Footer';
 import { FadeIn, StaggerContainer, StaggerItem } from '@/components/PageTransition';
+import { FileSearch, FileText, MessageSquare, Target, FileWarning, Search } from 'lucide-react';
 
 const Chat = () => {
   const features = [
     {
-      icon: '🔍',
+      icon: FileSearch,
       title: 'Document Analysis',
       description: 'Advanced parsing of insurance policies, credit agreements, and financial documents.',
     },
     {
-      icon: '📄',
+      icon: FileText,
       title: 'File Processing',
       description: 'Support for PDF, DOC, and text files with instant analysis capabilities.',
     },
     {
-      icon: '💬',
+      icon: MessageSquare,
       title: 'Interactive Q&A',
       description: 'Natural conversation interface for understanding complex financial terms.',
     }
   ];
 
   const quickTips = [
-    { icon: '🎯', text: 'Ask about hidden fees in your credit card agreement' },
-    { icon: '📋', text: 'Upload insurance policies for comprehensive risk analysis' },
-    { icon: '🔍', text: 'Request plain-English explanations of complex clauses' },
-    { icon: '⚠️', text: 'Get alerts about auto-renewal and penalty terms' }
+    { icon: Target, text: 'Ask about hidden fees in your credit card agreement' },
+    { icon: FileText, text: 'Upload insurance policies for comprehensive risk analysis' },
+    { icon: Search, text: 'Request plain-English explanations of complex clauses' },
+    { icon: FileWarning, text: 'Get alerts about auto-renewal and penalty terms' }
   ];
 
   return (
@@ -58,7 +59,7 @@ const Chat = () => {
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 >
                   <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
-                    <span className="text-2xl">{feature.icon}</span>
+                    <feature.icon className="w-6 h-6 text-primary" />
                   </div>
                   <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
                   <p className="text-muted-foreground text-sm">{feature.description}</p>
@@ -78,12 +79,12 @@ const Chat = () => {
                 {quickTips.map((tip, index) => (
                   <motion.div 
                     key={index} 
-                    className="flex items-start space-x-2"
+                    className="flex items-start space-x-3"
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 + index * 0.1 }}
                   >
-                    <span>{tip.icon}</span>
+                    <tip.icon className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <span>{tip.text}</span>
                   </motion.div>
                 ))}

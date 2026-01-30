@@ -3,15 +3,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('signin');
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -36,6 +39,8 @@ const Auth = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear success message when user starts typing
+    if (signUpSuccess) setSignUpSuccess(false);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -52,24 +57,28 @@ const Auth = () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
       });
 
       if (error) {
+        let errorMessage = "An error occurred during sign in.";
+        
         if (error.message.includes('Invalid login credentials')) {
-          toast({
-            title: "Sign In Failed",
-            description: "Invalid email or password. Please check your credentials.",
-            variant: "destructive"
-          });
+          errorMessage = "Invalid email or password. Please check your credentials and try again.";
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = "Please check your email and confirm your account before signing in.";
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = "Too many login attempts. Please wait a moment and try again.";
         } else {
-          toast({
-            title: "Sign In Error",
-            description: error.message,
-            variant: "destructive"
-          });
+          errorMessage = error.message;
         }
+        
+        toast({
+          title: "Sign In Failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
       } else if (data.user) {
         toast({
           title: "Welcome back!",
@@ -120,36 +129,58 @@ const Auth = () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
         options: {
           emailRedirectTo: window.location.origin,
           data: {
-            full_name: formData.fullName,
+            full_name: formData.fullName.trim(),
           }
         }
       });
 
       if (error) {
+        let errorMessage = "An error occurred during sign up.";
+        
         if (error.message.includes('User already registered')) {
+          errorMessage = "An account with this email already exists. Please sign in instead.";
+        } else if (error.message.includes('Password should be at least')) {
+          errorMessage = "Password must be at least 6 characters long.";
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = "Please enter a valid email address.";
+        } else {
+          errorMessage = error.message;
+        }
+        
+        toast({
+          title: "Sign Up Failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      } else if (data.user) {
+        // Check if email confirmation is required
+        if (data.user.identities?.length === 0) {
           toast({
             title: "Account Exists",
-            description: "An account with this email already exists. Please sign in instead.",
+            description: "An account with this email already exists. Please sign in.",
             variant: "destructive"
           });
-        } else {
+          setActiveTab('signin');
+        } else if (data.session) {
+          // User is auto-confirmed and signed in
           toast({
-            title: "Sign Up Error",
-            description: error.message,
-            variant: "destructive"
+            title: "Account Created!",
+            description: "Welcome to ClauseWise!",
+          });
+          navigate(from, { replace: true });
+        } else {
+          // Email confirmation required
+          setSignUpSuccess(true);
+          toast({
+            title: "Account Created!",
+            description: "Please check your email to confirm your account.",
           });
         }
-      } else if (data.user) {
-        toast({
-          title: "Account Created!",
-          description: "You can now sign in with your credentials.",
-        });
-        navigate(from, { replace: true });
       }
     } catch (error) {
       toast({
@@ -217,7 +248,16 @@ const Auth = () => {
             <CardTitle className="text-center text-xl">Get Started</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
+            {signUpSuccess && (
+              <Alert className="mb-4 bg-secondary/10 border-secondary/30">
+                <CheckCircle className="h-4 w-4 text-secondary" />
+                <AlertDescription className="text-secondary">
+                  Account created! Check your email to confirm your account, then sign in.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -235,6 +275,7 @@ const Auth = () => {
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         className="pl-10"
                         required
+                        autoComplete="email"
                       />
                     </div>
                   </div>
@@ -249,6 +290,7 @@ const Auth = () => {
                         onChange={(e) => handleInputChange('password', e.target.value)}
                         className="pl-10 pr-10"
                         required
+                        autoComplete="current-password"
                       />
                       <button
                         type="button"
@@ -288,6 +330,7 @@ const Auth = () => {
                         onChange={(e) => handleInputChange('fullName', e.target.value)}
                         className="pl-10"
                         required
+                        autoComplete="name"
                       />
                     </div>
                   </div>
@@ -302,6 +345,7 @@ const Auth = () => {
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         className="pl-10"
                         required
+                        autoComplete="email"
                       />
                     </div>
                   </div>
@@ -311,11 +355,13 @@ const Auth = () => {
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         type={showPassword ? "text" : "password"}
-                        placeholder="Password"
+                        placeholder="Password (min. 6 characters)"
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
                         className="pl-10 pr-10"
                         required
+                        autoComplete="new-password"
+                        minLength={6}
                       />
                       <button
                         type="button"
@@ -337,6 +383,7 @@ const Auth = () => {
                         onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                         className="pl-10"
                         required
+                        autoComplete="new-password"
                       />
                     </div>
                   </div>
@@ -405,7 +452,10 @@ const Auth = () => {
         </Card>
 
         <div className="mt-6 text-center text-xs text-muted-foreground">
-          By signing up, you agree to our Terms of Service and Privacy Policy
+          By signing up, you agree to our{' '}
+          <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+          {' '}and{' '}
+          <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
         </div>
       </motion.div>
     </div>

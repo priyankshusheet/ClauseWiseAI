@@ -13,7 +13,6 @@ import {
   Sun, 
   History, 
   LogOut,
-  User,
   Menu,
   FolderOpen,
   GitCompare,
@@ -57,19 +56,26 @@ const Navigation = () => {
     return user.email.charAt(0).toUpperCase();
   };
 
-  const navItems = [
+  // Public nav items - always visible
+  const publicNavItems = [
     { name: 'Home', href: '/', icon: Home, isRoute: true },
-    { name: 'AI Chat', href: '/chat', icon: MessageCircle, isRoute: true, requireAuth: true },
-    { name: 'Upload', href: '/upload', icon: Upload, isRoute: true, requireAuth: true },
-    { name: 'Portfolio', href: '/portfolio', icon: FolderOpen, isRoute: true, requireAuth: true },
-    { name: 'Compare', href: '/compare', icon: GitCompare, isRoute: true, requireAuth: true },
-    { name: 'Settings', href: '/settings', icon: Settings, isRoute: true, requireAuth: true },
-    { name: 'History', href: '/history', icon: History, isRoute: true, requireAuth: true },
+    { name: 'AI Chat', href: '/chat', icon: MessageCircle, isRoute: true },
+    { name: 'Upload', href: '/upload', icon: Upload, isRoute: true },
     { name: 'Learn', href: '/learn', icon: BookOpen, isRoute: true },
     { name: 'FAQ', href: '#faq', icon: Info, isRoute: false },
   ];
 
-  const visibleNavItems = navItems.filter(item => !item.requireAuth || user);
+  // Auth-only nav items
+  const authNavItems = [
+    { name: 'Portfolio', href: '/portfolio', icon: FolderOpen, isRoute: true },
+    { name: 'Compare', href: '/compare', icon: GitCompare, isRoute: true },
+    { name: 'Settings', href: '/settings', icon: Settings, isRoute: true },
+    { name: 'History', href: '/history', icon: History, isRoute: true },
+  ];
+
+  const visibleNavItems = user 
+    ? [...publicNavItems, ...authNavItems]
+    : publicNavItems;
 
   return (
     <nav className="fixed top-0 w-full bg-background/95 backdrop-blur-lg border-b border-border z-50 shadow-sm">
@@ -85,7 +91,7 @@ const Navigation = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
-            {visibleNavItems.map((item) => (
+            {publicNavItems.map((item) => (
               item.isRoute ? (
                 <Link
                   key={item.name}
@@ -149,6 +155,14 @@ const Navigation = () => {
                     <History className="w-4 h-4 mr-2" />
                     Analysis History
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/portfolio')}>
+                    <FolderOpen className="w-4 h-4 mr-2" />
+                    Portfolio
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                     <LogOut className="w-4 h-4 mr-2" />
@@ -163,9 +177,9 @@ const Navigation = () => {
                     Sign In
                   </Button>
                 </Link>
-                <Link to="/chat">
+                <Link to="/upload">
                   <Button size="sm" className="bg-primary hover:bg-primary/90 shadow-md">
-                    Start Chat
+                    Try Free
                   </Button>
                 </Link>
               </>
@@ -254,9 +268,9 @@ const Navigation = () => {
                           Sign In
                         </Button>
                       </Link>
-                      <Link to="/chat" onClick={() => setIsOpen(false)}>
+                      <Link to="/upload" onClick={() => setIsOpen(false)}>
                         <Button className="w-full bg-primary hover:bg-primary/90">
-                          Start Chat
+                          Try Free
                         </Button>
                       </Link>
                     </>

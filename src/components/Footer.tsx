@@ -1,45 +1,45 @@
 import { Link } from 'react-router-dom';
+import { Shield, Zap, Lock } from 'lucide-react';
 
 const Footer = () => {
   const footerSections = [
     {
       title: 'Product',
       links: [
-        { name: 'How it Works', href: '#how-it-works', content: 'Learn how ClauseWise AI analyzes your financial documents' },
-        { name: 'Use Cases', href: '#use-cases', content: 'Discover all the ways ClauseWise can help you' },
-        { name: 'FAQ', href: '#faq', content: 'Find answers to commonly asked questions' }
+        { name: 'How it Works', href: '/#how-it-works', isHash: true },
+        { name: 'Use Cases', href: '/#use-cases', isHash: true },
+        { name: 'FAQ', href: '/#faq', isHash: true }
       ]
     },
     {
       title: 'Support',
       links: [
-        { name: 'Help Center', href: '#help', content: 'Get comprehensive support and guidance' },
-        { name: 'FAQ', href: '#faq', content: 'Quick answers to your questions' },
-        { name: 'Contact Us', href: '#contact', content: 'Reach out to our support team' }
+        { name: 'Help Center', href: '/help', isHash: false },
+        { name: 'FAQ', href: '/#faq', isHash: true },
+        { name: 'Contact Us', href: '/contact', isHash: false }
       ]
     },
     {
       title: 'Legal',
       links: [
-        { name: 'Privacy Policy', href: '#privacy', content: 'How we protect and handle your data' },
-        { name: 'Terms of Service', href: '#terms', content: 'Terms and conditions for using ClauseWise' }
+        { name: 'Privacy Policy', href: '/privacy', isHash: false },
+        { name: 'Terms of Service', href: '/terms', isHash: false }
       ]
     }
   ];
 
-  const handleLinkClick = (href: string) => {
-    if (href.startsWith('#')) {
-      switch (href) {
-        case '#how-it-works':
-        case '#use-cases':
-        case '#faq':
-          const element = document.querySelector(href);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-          }
-          break;
-        default:
-          break;
+  const handleHashLink = (href: string) => {
+    const hash = href.split('#')[1];
+    if (hash) {
+      // If we're on the home page, scroll directly
+      if (window.location.pathname === '/') {
+        const element = document.getElementById(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else {
+        // Navigate to home page with hash
+        window.location.href = href;
       }
     }
   };
@@ -62,11 +62,19 @@ const Footer = () => {
                 Making financial documents understandable for everyone. 
                 Your AI companion for smarter financial decisions.
               </p>
-              <div className="space-y-2 text-sm text-background/70">
-                <p>🔒 Top Class security for your documents</p>
-                <p>⚡ Instant analysis in seconds</p>
-                <p>🎯 Great accuracy in document analysis</p>
-                <p>🏆 Trusted by many users</p>
+              <div className="space-y-3 text-sm text-background/70">
+                <div className="flex items-center space-x-2">
+                  <Lock className="w-4 h-4" />
+                  <span>Enterprise-grade security for your documents</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Zap className="w-4 h-4" />
+                  <span>Fast analysis powered by advanced AI</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Shield className="w-4 h-4" />
+                  <span>Your data is never stored permanently</span>
+                </div>
               </div>
             </div>
 
@@ -77,13 +85,21 @@ const Footer = () => {
                 <ul className="space-y-3">
                   {section.links.map((link) => (
                     <li key={link.name}>
-                      <button
-                        onClick={() => handleLinkClick(link.href)}
-                        className="text-background/70 hover:text-background transition-colors duration-200 text-left"
-                        title={link.content}
-                      >
-                        {link.name}
-                      </button>
+                      {link.isHash ? (
+                        <button
+                          onClick={() => handleHashLink(link.href)}
+                          className="text-background/70 hover:text-background transition-colors duration-200 text-left"
+                        >
+                          {link.name}
+                        </button>
+                      ) : (
+                        <Link
+                          to={link.href}
+                          className="text-background/70 hover:text-background transition-colors duration-200"
+                        >
+                          {link.name}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -98,14 +114,23 @@ const Footer = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-background/70 text-sm">
-              © 2025 ClauseWise. All rights reserved. Made with ❤️ for better financial literacy.
+              © {new Date().getFullYear()} ClauseWise. All rights reserved.
             </div>
             <div className="flex items-center space-x-6 text-sm text-background/70">
-              <span>🔒 Your data is secure</span>
+              <div className="flex items-center space-x-2">
+                <Lock className="w-3 h-3" />
+                <span>Secure</span>
+              </div>
               <span>•</span>
-              <span>⚡ Fast & reliable</span>
+              <div className="flex items-center space-x-2">
+                <Zap className="w-3 h-3" />
+                <span>Fast</span>
+              </div>
               <span>•</span>
-              <span>🌟 AI-powered</span>
+              <div className="flex items-center space-x-2">
+                <Shield className="w-3 h-3" />
+                <span>Private</span>
+              </div>
             </div>
           </div>
         </div>

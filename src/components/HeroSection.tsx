@@ -1,19 +1,31 @@
 import React from 'react';
 import { motion, Variants } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { ArrowRight, Shield, Zap, Eye, Users } from 'lucide-react';
+import { ArrowRight, Shield, FileSearch, MessageSquare, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useTheme } from '@/components/ThemeProvider';
 
 const HeroSection = () => {
-  const { theme } = useTheme();
-  
-  const stats = [
-    { icon: Users, value: '10K+', label: 'Users Trust Us', color: 'text-primary' },
-    { icon: Eye, value: '50K+', label: 'Documents Analyzed', color: 'text-secondary' },
-    { icon: Shield, value: '99.9%', label: 'Accuracy Rate', color: 'text-primary' },
-    { icon: Zap, value: '<2min', label: 'Average Analysis', color: 'text-accent' }
+  const capabilities = [
+    { 
+      icon: FileSearch, 
+      title: 'Document Analysis', 
+      description: 'Upload and analyze financial documents with AI-powered insights'
+    },
+    { 
+      icon: MessageSquare, 
+      title: 'Interactive Chat', 
+      description: 'Ask questions about terms, clauses, and conditions in plain English'
+    },
+    { 
+      icon: Shield, 
+      title: 'Risk Detection', 
+      description: 'Identify hidden fees, penalties, and potentially problematic clauses'
+    },
+    { 
+      icon: Sparkles, 
+      title: 'Plain-Language Explanations', 
+      description: 'Complex financial jargon translated into simple terms'
+    }
   ];
 
   const containerVariants: Variants = {
@@ -93,7 +105,7 @@ const HeroSection = () => {
                   size="lg" 
                   className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
                 >
-                  Start Free Analysis
+                  Try Free Analysis
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </motion.div>
@@ -115,30 +127,27 @@ const HeroSection = () => {
             </Link>
           </motion.div>
 
-          {/* Trust Indicators */}
+          {/* Capabilities Grid */}
           <motion.div variants={itemVariants} className="pt-8">
-            <p className="text-sm text-muted-foreground mb-6">
-              Trusted by thousands of users for secure document analysis
+            <p className="text-sm text-muted-foreground mb-6 font-medium uppercase tracking-wide">
+              What ClauseWise Can Do For You
             </p>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-              {stats.map((stat, index) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
+              {capabilities.map((capability, index) => (
                 <motion.div
                   key={index}
                   whileHover={{ y: -4 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 text-left hover:shadow-lg transition-all duration-300"
                 >
-                  <Card className="bg-card/50 backdrop-blur-sm border border-border hover:shadow-lg transition-all duration-300">
-                    <CardContent className="p-6 text-center">
-                      <stat.icon className={`w-8 h-8 mx-auto mb-3 ${stat.color}`} />
-                      <div className="text-2xl font-bold text-foreground mb-1">
-                        {stat.value}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {stat.label}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <capability.icon className="w-8 h-8 mb-3 text-primary" />
+                  <h3 className="font-semibold text-foreground mb-2">
+                    {capability.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {capability.description}
+                  </p>
                 </motion.div>
               ))}
             </div>
@@ -151,11 +160,18 @@ const HeroSection = () => {
           >
             <div className="flex items-center justify-center space-x-3 mb-3">
               <Shield className="w-6 h-6 text-secondary" />
-              <span className="font-semibold text-foreground">100% Secure & Private</span>
+              <span className="font-semibold text-foreground">Secure & Private</span>
             </div>
             <p className="text-muted-foreground text-sm">
               Your documents are processed securely and never stored permanently. 
               We use bank-level encryption to protect your sensitive financial information.
+            </p>
+          </motion.div>
+
+          {/* Trial Notice */}
+          <motion.div variants={itemVariants} className="pt-4">
+            <p className="text-sm text-muted-foreground">
+              No sign-up required to try. Analyze up to 2 documents free.
             </p>
           </motion.div>
         </motion.div>
