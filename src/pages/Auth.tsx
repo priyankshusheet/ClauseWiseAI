@@ -15,6 +15,7 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('signin');
   const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -39,18 +40,17 @@ const Auth = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear success message when user starts typing
+    // Clear success message and error when user starts typing
     if (signUpSuccess) setSignUpSuccess(false);
+    if (authError) setAuthError(null);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
+    
     if (!formData.email || !formData.password) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all fields",
-        variant: "destructive"
-      });
+      setAuthError("Please fill in all fields");
       return;
     }
 
@@ -62,6 +62,7 @@ const Auth = () => {
       });
 
       if (error) {
+        console.error('Sign in error:', error);
         let errorMessage = "An error occurred during sign in.";
         
         if (error.message.includes('Invalid login credentials')) {
@@ -74,12 +75,14 @@ const Auth = () => {
           errorMessage = error.message;
         }
         
+        setAuthError(errorMessage);
         toast({
           title: "Sign In Failed",
           description: errorMessage,
           variant: "destructive"
         });
       } else if (data.user) {
+        console.log('Sign in successful:', data.user.email);
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in.",
@@ -87,9 +90,12 @@ const Auth = () => {
         navigate(from, { replace: true });
       }
     } catch (error) {
+      console.error('Unexpected sign in error:', error);
+      const errorMessage = "An unexpected error occurred. Please try again.";
+      setAuthError(errorMessage);
       toast({
         title: "Sign In Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -265,6 +271,13 @@ const Auth = () => {
               
               <TabsContent value="signin" className="space-y-4">
                 <form onSubmit={handleSignIn} className="space-y-4">
+                  {authError && activeTab === 'signin' && (
+                    <Alert variant="destructive" className="mb-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{authError}</AlertDescription>
+                    </Alert>
+                  )}
+                  
                   <div className="space-y-2">
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
