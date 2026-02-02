@@ -451,6 +451,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
               riskScore: documentContext.riskScore,
               detectedClauses: documentContext.detectedClauses,
             } : undefined}
+            conversationHistory={messages.map(m => ({ content: m.content, isUser: m.isUser }))}
             onSelectQuestion={(q) => setInputValue(q)}
             isProcessing={isProcessing}
           />

@@ -495,7 +495,16 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground leading-relaxed">{analysis.summary}</p>
+                <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground leading-relaxed">
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                    }}
+                  >
+                    {analysis.summary}
+                  </ReactMarkdown>
+                </div>
               </CardContent>
             </Card>
 
@@ -513,7 +522,11 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
                     {analysis.benefits.map((benefit, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-success mt-0.5 shrink-0" />
-                        <span className="text-sm">{benefit}</span>
+                        <span className="text-sm prose prose-sm dark:prose-invert">
+                          <ReactMarkdown components={{ p: ({ children }) => <>{children}</>, strong: ({ children }) => <strong className="font-semibold">{children}</strong> }}>
+                            {benefit}
+                          </ReactMarkdown>
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -535,7 +548,11 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
                     {analysis.riskFactors.map((risk, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
-                        <span className="text-sm">{risk}</span>
+                        <span className="text-sm prose prose-sm dark:prose-invert">
+                          <ReactMarkdown components={{ p: ({ children }) => <>{children}</>, strong: ({ children }) => <strong className="font-semibold">{children}</strong> }}>
+                            {risk}
+                          </ReactMarkdown>
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -555,8 +572,10 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
                 <CardContent>
                   <ul className="space-y-2">
                     {analysis.hiddenClauses.map((clause, i) => (
-                      <li key={i} className="p-2 bg-warning/10 border-l-4 border-warning rounded text-sm">
-                        {clause}
+                      <li key={i} className="p-2 bg-warning/10 border-l-4 border-warning rounded text-sm prose prose-sm dark:prose-invert">
+                        <ReactMarkdown components={{ p: ({ children }) => <>{children}</>, strong: ({ children }) => <strong className="font-semibold">{children}</strong> }}>
+                          {clause}
+                        </ReactMarkdown>
                       </li>
                     ))}
                   </ul>
@@ -578,7 +597,11 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
                     {analysis.recommendations.map((rec, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 shrink-0" />
-                        <span className="text-sm">{rec}</span>
+                        <span className="text-sm prose prose-sm dark:prose-invert">
+                          <ReactMarkdown components={{ p: ({ children }) => <>{children}</>, strong: ({ children }) => <strong className="font-semibold">{children}</strong> }}>
+                            {rec}
+                          </ReactMarkdown>
+                        </span>
                       </li>
                     ))}
                   </ul>
