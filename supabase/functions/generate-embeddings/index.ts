@@ -1,4 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireAuth } from "../_shared/auth.ts";
+import { 
+  validateString, 
+  validateNumber,
+  validateEnum,
+  ValidationError,
+  createValidationErrorResponse,
+  sanitizeText
+} from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,32 +32,57 @@ const CHUNK_CONFIG = {
   ],
 };
 
+const VALID_STRATEGIES = ['semantic', 'fixed', 'clause'] as const;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { text, documentId, chunkingStrategy = 'semantic' } = await req.json();
+    // Require authentication
+    const authResult = await requireAuth(req, corsHeaders);
+    if (authResult instanceof Response) {
+      return authResult;
+    }
 
-    if (!text || typeof text !== 'string') {
+    // Parse and validate request body
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
       return new Response(
-        JSON.stringify({ error: "Text is required" }),
+        JSON.stringify({ error: "Invalid JSON body", code: "VALIDATION_ERROR" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`[Embeddings] Processing ${text.length} chars with ${chunkingStrategy} strategy`);
+    const bodyObj = body as Record<string, unknown>;
+
+    // Validate inputs
+    const text = validateString(bodyObj.text, 'text', { required: true, maxLength: 1000000 });
+    const documentId = validateString(bodyObj.documentId, 'documentId', { maxLength: 100 });
+    const chunkingStrategy = validateEnum(bodyObj.chunkingStrategy, 'chunkingStrategy', VALID_STRATEGIES, { defaultValue: 'semantic' });
+
+    if (!text) {
+      return new Response(
+        JSON.stringify({ error: "Text is required", code: "VALIDATION_ERROR" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Sanitize text
+    const sanitizedText = sanitizeText(text);
+
+    console.log(`[Embeddings] User: ${authResult.userId}, Processing ${sanitizedText.length} chars with ${chunkingStrategy} strategy`);
 
     // Step 1: Chunk the document
-    const chunks = chunkDocument(text, chunkingStrategy);
+    const chunks = chunkDocument(sanitizedText, chunkingStrategy!);
     console.log(`[Embeddings] Created ${chunks.length} chunks`);
 
     // Step 2: Generate embeddings for each chunk
-    // Note: In production, you'd use an embedding model here
-    // For now, we'll create semantic signatures for similarity matching
     const embeddedChunks = chunks.map((chunk, index) => ({
-      id: `${documentId}-chunk-${index}`,
+      id: `${documentId || 'doc'}-chunk-${index}`,
       content: chunk.content,
       metadata: {
         ...chunk.metadata,
@@ -56,7 +90,6 @@ serve(async (req) => {
         chunkIndex: index,
         totalChunks: chunks.length,
       },
-      // Semantic signature based on key terms (simplified embedding proxy)
       semanticSignature: generateSemanticSignature(chunk.content),
     }));
 
@@ -67,16 +100,20 @@ serve(async (req) => {
         documentId,
         totalChunks: chunks.length,
         chunkingStrategy,
-        averageChunkSize: Math.round(text.length / chunks.length),
+        averageChunkSize: Math.round(sanitizedText.length / chunks.length),
       }
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (e) {
+    if (e instanceof ValidationError) {
+      return createValidationErrorResponse(e, corsHeaders);
+    }
+
     console.error("[Embeddings] Error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Embedding generation failed" }),
+      JSON.stringify({ error: "Embedding generation failed", code: "INTERNAL_ERROR" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -246,8 +283,6 @@ function detectClausePresence(text: string): boolean {
 }
 
 function generateSemanticSignature(text: string): number[] {
-  // Simplified semantic signature generation
-  // In production, use a proper embedding model
   const keyTerms = [
     'fee', 'charge', 'penalty', 'interest', 'rate', 'premium',
     'exclusion', 'coverage', 'claim', 'benefit', 'liability',

@@ -1,4 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireAuth } from "../_shared/auth.ts";
+import { 
+  validateChatMessages, 
+  validateBoolean, 
+  validateDocumentContext,
+  ValidationError,
+  createValidationErrorResponse,
+  sanitizeText
+} from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,12 +45,38 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    const { messages, documentContext, stream = true } = await req.json();
+    // Require authentication
+    const authResult = await requireAuth(req, corsHeaders);
+    if (authResult instanceof Response) {
+      return authResult;
+    }
+
+    // Parse and validate request body
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body", code: "VALIDATION_ERROR" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const bodyObj = body as Record<string, unknown>;
+
+    // Validate inputs
+    const messages = validateChatMessages(bodyObj.messages, { maxMessages: 50, maxContentLength: 30000 });
+    const stream = validateBoolean(bodyObj.stream, 'stream', { defaultValue: true });
+    const documentContext = validateDocumentContext(bodyObj.documentContext);
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY is not configured");
-      throw new Error("AI service not configured");
+      return new Response(
+        JSON.stringify({ error: "AI service not configured", code: "SERVICE_ERROR" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Build enhanced messages with document context
@@ -51,23 +86,30 @@ serve(async (req) => {
 
     // Add document context if available
     if (documentContext) {
+      const ctx = documentContext as Record<string, unknown>;
+      const extractedText = ctx.extractedText ? sanitizeText(String(ctx.extractedText)).substring(0, 10000) : 'N/A';
+      
       enhancedMessages.push({
         role: "system",
         content: `Document Context:
-- File: ${documentContext.fileName}
-- Type: ${documentContext.fileType}
-- Risk Score: ${documentContext.riskScore}/100 (${documentContext.riskLevel})
-- OCR Confidence: ${documentContext.ocrConfidence}%
-- Extracted Text (first 10000 chars): ${documentContext.extractedText?.substring(0, 10000) || 'N/A'}
-- Detected Clauses: ${documentContext.detectedClauses?.join(', ') || 'None'}
-- Document Sections: ${documentContext.sections?.map((s: any) => s.title).join(', ') || 'N/A'}`
+- File: ${ctx.fileName || 'Unknown'}
+- Type: ${ctx.fileType || 'Unknown'}
+- Risk Score: ${ctx.riskScore || 'N/A'}/100 (${ctx.riskLevel || 'N/A'})
+- OCR Confidence: ${ctx.ocrConfidence || 'N/A'}%
+- Extracted Text (first 10000 chars): ${extractedText}
+- Detected Clauses: ${Array.isArray(ctx.detectedClauses) ? ctx.detectedClauses.join(', ') : 'None'}
+- Document Sections: ${Array.isArray(ctx.sections) ? ctx.sections.map((s: any) => s.title).join(', ') : 'N/A'}`
       });
     }
 
-    // Add conversation history
-    enhancedMessages.push(...messages);
+    // Add sanitized conversation history
+    const sanitizedMessages = messages.map(m => ({
+      role: m.role,
+      content: sanitizeText(m.content)
+    }));
+    enhancedMessages.push(...sanitizedMessages);
 
-    console.log(`[AI-Chat] Processing request with ${messages.length} messages, stream=${stream}`);
+    console.log(`[AI-Chat] User: ${authResult.userId}, Processing ${messages.length} messages, stream=${stream}`);
 
     const response = await fetch("https://ai.gateway.clausewiseai.dev/v1/chat/completions", {
       method: "POST",
@@ -109,9 +151,12 @@ serve(async (req) => {
         );
       }
 
-      const errorText = await response.text();
-      console.error(`[AI-Chat] Error body: ${errorText}`);
-      throw new Error(`AI gateway error: ${response.status}`);
+      // Don't expose internal error details
+      await response.text(); // Consume the response body
+      return new Response(
+        JSON.stringify({ error: "AI service temporarily unavailable", code: "SERVICE_ERROR" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const latency = Date.now() - startTime;
@@ -140,11 +185,16 @@ serve(async (req) => {
 
   } catch (e) {
     const latency = Date.now() - startTime;
+    
+    if (e instanceof ValidationError) {
+      return createValidationErrorResponse(e, corsHeaders);
+    }
+
     console.error(`[AI-Chat] Error (${latency}ms):`, e);
 
     return new Response(
       JSON.stringify({ 
-        error: e instanceof Error ? e.message : "Unknown error occurred",
+        error: "An unexpected error occurred",
         code: "INTERNAL_ERROR"
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

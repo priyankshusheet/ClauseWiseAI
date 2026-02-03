@@ -1,4 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireAuth } from "../_shared/auth.ts";
+import { 
+  validateString, 
+  validateNumber,
+  validateEnum,
+  ValidationError,
+  createValidationErrorResponse,
+  sanitizeText
+} from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,6 +94,9 @@ const CLAUSE_CATEGORIES = [
   { name: "Interest", keywords: ["interest", "rate", "apr", "emi", "repayment"] },
 ];
 
+const VALID_DOCUMENT_TYPES = ['insurance', 'loan', 'creditCard', 'unknown'] as const;
+const VALID_LANGUAGES = ['en', 'hi', 'ta', 'te', 'bn', 'mr', 'gu', 'kn', 'ml', 'pa'] as const;
+
 const DOCUMENT_ANALYSIS_PROMPT = `You are an expert financial document analyst. Analyze the provided document text and provide a comprehensive, structured analysis.
 
 Format your response EXACTLY as follows (use these exact headers):
@@ -132,43 +144,67 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    const { 
-      fileName, 
-      fileType,
-      extractedText,
-      ocrConfidence,
-      documentType, // 'insurance', 'loan', 'creditCard', 'unknown'
-      language = 'en'
-    } = await req.json();
+    // Require authentication
+    const authResult = await requireAuth(req, corsHeaders);
+    if (authResult instanceof Response) {
+      return authResult;
+    }
 
-    console.log(`[Analyze-Document] Processing: ${fileName} (${fileType}), confidence: ${ocrConfidence}%`);
+    // Parse and validate request body
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body", code: "VALIDATION_ERROR" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const bodyObj = body as Record<string, unknown>;
+
+    // Validate inputs
+    const fileName = validateString(bodyObj.fileName, 'fileName', { required: true, maxLength: 255 });
+    const fileType = validateString(bodyObj.fileType, 'fileType', { maxLength: 100 });
+    const extractedText = validateString(bodyObj.extractedText, 'extractedText', { maxLength: 500000 });
+    const ocrConfidence = validateNumber(bodyObj.ocrConfidence, 'ocrConfidence', { min: 0, max: 100 });
+    const documentType = validateEnum(bodyObj.documentType, 'documentType', VALID_DOCUMENT_TYPES);
+    const language = validateEnum(bodyObj.language, 'language', VALID_LANGUAGES, { defaultValue: 'en' });
+
+    // Sanitize extracted text
+    const sanitizedText = extractedText ? sanitizeText(extractedText) : '';
+
+    console.log(`[Analyze-Document] User: ${authResult.userId}, Processing: ${fileName} (${fileType}), confidence: ${ocrConfidence}%`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
-      throw new Error("AI service not configured");
+      return new Response(
+        JSON.stringify({ error: "AI service not configured", code: "SERVICE_ERROR" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Step 1: Classify clauses
-    const classifiedClauses = classifyClauses(extractedText);
+    const classifiedClauses = classifyClauses(sanitizedText);
     
     // Step 2: Pattern-based risk analysis
-    const detectedType = documentType || detectDocumentType(extractedText);
-    const patternRisks = analyzeRiskPatterns(extractedText, detectedType);
+    const detectedType = documentType || detectDocumentType(sanitizedText);
+    const patternRisks = analyzeRiskPatterns(sanitizedText, detectedType);
     
     // Step 3: AI-powered deep analysis
     const aiAnalysis = await performAIAnalysis(
       LOVABLE_API_KEY,
-      fileName,
-      extractedText,
-      ocrConfidence,
+      fileName!,
+      sanitizedText,
+      ocrConfidence || 0,
       detectedType,
       classifiedClauses,
       patternRisks
     );
 
     // Step 4: Calculate final risk score
-    const riskScore = calculateRiskScore(patternRisks, ocrConfidence, classifiedClauses);
+    const riskScore = calculateRiskScore(patternRisks, ocrConfidence || 0, classifiedClauses);
     const riskLevel = riskScore >= 70 ? 'high' : riskScore >= 40 ? 'medium' : 'low';
 
     const latency = Date.now() - startTime;
@@ -186,7 +222,7 @@ serve(async (req) => {
         fileName,
         fileType,
         ocrConfidence,
-        textLength: extractedText?.length || 0,
+        textLength: sanitizedText?.length || 0,
         processingTime: latency,
         language,
       }
@@ -196,31 +232,38 @@ serve(async (req) => {
 
   } catch (e) {
     const latency = Date.now() - startTime;
-    console.error(`[Analyze-Document] Error (${latency}ms):`, e);
-
-    if (e.message?.includes("429") || e.message?.includes("rate limit")) {
-      return new Response(JSON.stringify({ 
-        error: "Rate limit exceeded",
-        code: "RATE_LIMIT",
-        retryAfter: 30
-      }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    
+    if (e instanceof ValidationError) {
+      return createValidationErrorResponse(e, corsHeaders);
     }
 
-    if (e.message?.includes("402")) {
-      return new Response(JSON.stringify({ 
-        error: "AI quota exceeded",
-        code: "QUOTA_EXCEEDED"
-      }), {
-        status: 402,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    console.error(`[Analyze-Document] Error (${latency}ms):`, e);
+
+    if (e instanceof Error) {
+      if (e.message?.includes("429") || e.message?.includes("rate limit")) {
+        return new Response(JSON.stringify({ 
+          error: "Rate limit exceeded",
+          code: "RATE_LIMIT",
+          retryAfter: 30
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (e.message?.includes("402")) {
+        return new Response(JSON.stringify({ 
+          error: "AI quota exceeded",
+          code: "QUOTA_EXCEEDED"
+        }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     return new Response(JSON.stringify({ 
-      error: e instanceof Error ? e.message : "Analysis failed",
+      error: "Analysis failed. Please try again.",
       code: "INTERNAL_ERROR"
     }), {
       status: 500,
@@ -380,8 +423,9 @@ ${extractedText?.substring(0, 12000) || 'No text extracted'}`;
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`AI analysis failed: ${response.status} - ${errorText}`);
+    // Consume response body to prevent resource leak
+    await response.text();
+    throw new Error(`AI analysis failed: ${response.status}`);
   }
 
   const data = await response.json();

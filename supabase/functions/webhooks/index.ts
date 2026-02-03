@@ -1,4 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8'
+import { requireAuth } from "../_shared/auth.ts";
+import { 
+  validateString, 
+  validateEnum,
+  ValidationError,
+  createValidationErrorResponse 
+} from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +18,16 @@ interface WebhookPayload {
   timestamp: string
   webhook_id: string
 }
+
+// Valid webhook events
+const VALID_EVENTS = [
+  'document.uploaded',
+  'document.analyzed',
+  'document.failed',
+  'risk.threshold_crossed',
+  'portfolio.updated',
+  'export.completed',
+] as const;
 
 async function signPayload(payload: string, secret: string): Promise<string> {
   const encoder = new TextEncoder()
@@ -55,7 +72,7 @@ async function deliverWebhook(
 
     const responseBody = await response.text()
 
-    // Log delivery
+    // Log delivery (truncate response for storage)
     await supabase.from('webhook_deliveries').insert({
       webhook_id: webhook.id,
       event_type: payload.event,
@@ -97,7 +114,7 @@ async function deliverWebhook(
       event_type: payload.event,
       payload,
       response_status: 0,
-      response_body: error instanceof Error ? error.message : 'Unknown error',
+      response_body: 'Delivery failed',
       attempt_number: attempt,
     })
 
@@ -120,37 +137,55 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   try {
-    const { event, user_id, data } = await req.json()
+    // Require authentication
+    const authResult = await requireAuth(req, corsHeaders);
+    if (authResult instanceof Response) {
+      return authResult;
+    }
 
-    if (!event || !user_id) {
+    // Parse and validate request body
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
       return new Response(
-        JSON.stringify({ error: 'Missing event or user_id' }),
+        JSON.stringify({ error: 'Invalid JSON body', code: 'VALIDATION_ERROR' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Supported events
-    const validEvents = [
-      'document.uploaded',
-      'document.analyzed',
-      'document.failed',
-      'risk.threshold_crossed',
-      'portfolio.updated',
-      'export.completed',
-    ]
+    const bodyObj = body as Record<string, unknown>;
 
-    if (!validEvents.includes(event)) {
+    // Validate inputs
+    const event = validateEnum(bodyObj.event, 'event', VALID_EVENTS, { required: true });
+    
+    if (!event) {
       return new Response(
-        JSON.stringify({ error: 'Invalid event type', valid_events: validEvents }),
+        JSON.stringify({ error: 'Invalid event type', valid_events: VALID_EVENTS }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Validate data is an object
+    if (bodyObj.data !== undefined && bodyObj.data !== null) {
+      if (typeof bodyObj.data !== 'object' || Array.isArray(bodyObj.data)) {
+        return new Response(
+          JSON.stringify({ error: 'data must be an object', code: 'VALIDATION_ERROR' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    const data = (bodyObj.data as Record<string, unknown>) || {};
+
+    // Use the authenticated user's ID
+    const userId = authResult.userId;
 
     // Get all active webhooks for this user and event
     const { data: webhooks, error } = await supabase
       .from('webhooks')
       .select('*')
-      .eq('user_id', user_id)
+      .eq('user_id', userId)
       .eq('is_active', true)
       .contains('events', [event])
 
@@ -193,9 +228,13 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
+    if (error instanceof ValidationError) {
+      return createValidationErrorResponse(error, corsHeaders);
+    }
+
     console.error('Webhook processing error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error', code: 'INTERNAL_ERROR' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

@@ -1,4 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8'
+import { 
+  validateString, 
+  ValidationError,
+  createValidationErrorResponse 
+} from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -71,7 +76,14 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Validate API key format (prefix_secret)
+    // Validate API key format
+    if (apiKey.length < 16 || apiKey.length > 128) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid API key format', code: 'UNAUTHORIZED' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const keyPrefix = apiKey.substring(0, 8)
     const keyHash = await hashApiKey(apiKey)
 
@@ -161,6 +173,14 @@ Deno.serve(async (req) => {
         }
 
         if (req.method === 'GET' && resourceId) {
+          // Validate resource ID format (UUID)
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resourceId)) {
+            return new Response(
+              JSON.stringify({ error: 'Invalid document ID format', code: 'VALIDATION_ERROR' }),
+              { status: 400, headers: responseHeaders }
+            )
+          }
+
           // Get single document
           const { data, error } = await supabase
             .from('document_analyses')
@@ -187,6 +207,14 @@ Deno.serve(async (req) => {
             return new Response(
               JSON.stringify({ error: 'Insufficient permissions', code: 'FORBIDDEN' }),
               { status: 403, headers: responseHeaders }
+            )
+          }
+
+          // Validate resource ID format (UUID)
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resourceId)) {
+            return new Response(
+              JSON.stringify({ error: 'Invalid document ID format', code: 'VALIDATION_ERROR' }),
+              { status: 400, headers: responseHeaders }
             )
           }
 
@@ -230,23 +258,45 @@ Deno.serve(async (req) => {
             )
           }
 
-          const body = await req.json()
-          const { data, error } = await supabase
-            .from('portfolios')
-            .insert({
-              user_id: userId,
-              name: body.name,
-              description: body.description,
-            })
-            .select()
-            .single()
+          let body: unknown;
+          try {
+            body = await req.json();
+          } catch {
+            return new Response(
+              JSON.stringify({ error: 'Invalid JSON body', code: 'VALIDATION_ERROR' }),
+              { status: 400, headers: responseHeaders }
+            )
+          }
 
-          if (error) throw error
+          const bodyObj = body as Record<string, unknown>;
 
-          return new Response(
-            JSON.stringify({ data }),
-            { status: 201, headers: responseHeaders }
-          )
+          // Validate input
+          try {
+            const name = validateString(bodyObj.name, 'name', { required: true, minLength: 1, maxLength: 100 });
+            const description = validateString(bodyObj.description, 'description', { maxLength: 500 });
+
+            const { data, error } = await supabase
+              .from('portfolios')
+              .insert({
+                user_id: userId,
+                name: name,
+                description: description,
+              })
+              .select()
+              .single()
+
+            if (error) throw error
+
+            return new Response(
+              JSON.stringify({ data }),
+              { status: 201, headers: responseHeaders }
+            )
+          } catch (e) {
+            if (e instanceof ValidationError) {
+              return createValidationErrorResponse(e, corsHeaders)
+            }
+            throw e;
+          }
         }
         break
       }
