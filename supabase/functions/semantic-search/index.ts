@@ -1,4 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireAuth } from "../_shared/auth.ts";
+import { 
+  validateString, 
+  validateNumber,
+  validateBoolean,
+  validateArray,
+  ValidationError,
+  createValidationErrorResponse 
+} from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,37 +34,62 @@ serve(async (req) => {
   }
 
   try {
-    const { 
-      query, 
-      documentChunks, 
-      topK = 5,
-      includeContext = true,
-      minSimilarity = 0.3
-    } = await req.json();
+    // Require authentication
+    const authResult = await requireAuth(req, corsHeaders);
+    if (authResult instanceof Response) {
+      return authResult;
+    }
 
-    if (!query || !documentChunks) {
+    // Parse and validate request body
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
       return new Response(
-        JSON.stringify({ error: "Query and documentChunks are required" }),
+        JSON.stringify({ error: "Invalid JSON body", code: "VALIDATION_ERROR" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`[Semantic-Search] Query: "${query.substring(0, 50)}..." across ${documentChunks.length} chunks`);
+    const bodyObj = body as Record<string, unknown>;
+
+    // Validate inputs
+    const query = validateString(bodyObj.query, 'query', { required: true, maxLength: 1000 });
+    const documentChunks = validateArray(bodyObj.documentChunks, 'documentChunks', { required: true, maxLength: 1000 });
+    const topK = validateNumber(bodyObj.topK, 'topK', { min: 1, max: 50, defaultValue: 5 });
+    const includeContext = validateBoolean(bodyObj.includeContext, 'includeContext', { defaultValue: true });
+    const minSimilarity = validateNumber(bodyObj.minSimilarity, 'minSimilarity', { min: 0, max: 1, defaultValue: 0.3 });
+
+    if (!query || !documentChunks) {
+      return new Response(
+        JSON.stringify({ error: "Query and documentChunks are required", code: "VALIDATION_ERROR" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[Semantic-Search] User: ${authResult.userId}, Query: "${query.substring(0, 50)}..." across ${documentChunks.length} chunks`);
 
     // Expand query with related terms
     const expandedQuery = expandQuery(query);
     
     // Score each chunk
-    const scoredChunks = documentChunks.map((chunk: any) => ({
-      ...chunk,
-      similarity: calculateSimilarity(expandedQuery, chunk.content, chunk.semanticSignature),
-    }));
+    const scoredChunks = documentChunks.map((chunk: any) => {
+      // Validate chunk structure
+      if (!chunk || typeof chunk !== 'object') {
+        return { ...chunk, similarity: 0 };
+      }
+      const content = typeof chunk.content === 'string' ? chunk.content : '';
+      return {
+        ...chunk,
+        similarity: calculateSimilarity(expandedQuery, content, chunk.semanticSignature),
+      };
+    });
 
     // Sort by similarity and filter
     const relevantChunks = scoredChunks
-      .filter((chunk: any) => chunk.similarity >= minSimilarity)
+      .filter((chunk: any) => chunk.similarity >= (minSimilarity || 0.3))
       .sort((a: any, b: any) => b.similarity - a.similarity)
-      .slice(0, topK);
+      .slice(0, topK || 5);
 
     // Build context from relevant chunks
     let ragContext = '';
@@ -91,9 +125,13 @@ serve(async (req) => {
     });
 
   } catch (e) {
+    if (e instanceof ValidationError) {
+      return createValidationErrorResponse(e, corsHeaders);
+    }
+
     console.error("[Semantic-Search] Error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Search failed" }),
+      JSON.stringify({ error: "Search failed", code: "INTERNAL_ERROR" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
