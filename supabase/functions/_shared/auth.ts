@@ -33,26 +33,18 @@ export async function requireAuth(
     global: { headers: { Authorization: authHeader } }
   });
 
-  // Validate the token using getClaims (faster than getUser)
-  const { data, error } = await supabase.auth.getClaims(token);
+  // Validate the token using getUser
+  const { data: { user }, error } = await supabase.auth.getUser(token);
   
-  if (error || !data?.claims) {
+  if (error || !user) {
+    console.error('[Auth] Token validation failed:', error?.message);
     return new Response(
       JSON.stringify({ error: 'Invalid or expired token', code: 'UNAUTHORIZED' }),
       { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  const userId = data.claims.sub;
-  
-  if (!userId) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid token claims', code: 'UNAUTHORIZED' }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  return { userId, supabase };
+  return { userId: user.id, supabase };
 }
 
 /**
@@ -77,13 +69,13 @@ export async function optionalAuth(
   const token = authHeader.replace('Bearer ', '');
   
   try {
-    const { data, error } = await supabase.auth.getClaims(token);
+    const { data: { user }, error } = await supabase.auth.getUser(token);
     
-    if (error || !data?.claims?.sub) {
+    if (error || !user) {
       return { userId: null, supabase };
     }
 
-    return { userId: data.claims.sub, supabase };
+    return { userId: user.id, supabase };
   } catch {
     return { userId: null, supabase };
   }
