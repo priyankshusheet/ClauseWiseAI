@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -816,6 +816,7 @@ export type Database = {
           name: string
           retry_count: number | null
           secret: string | null
+          secret_encrypted: boolean | null
           updated_at: string
           url: string
           user_id: string
@@ -830,6 +831,7 @@ export type Database = {
           name: string
           retry_count?: number | null
           secret?: string | null
+          secret_encrypted?: boolean | null
           updated_at?: string
           url: string
           user_id: string
@@ -844,6 +846,7 @@ export type Database = {
           name?: string
           retry_count?: number | null
           secret?: string | null
+          secret_encrypted?: boolean | null
           updated_at?: string
           url?: string
           user_id?: string
@@ -855,6 +858,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decrypt_webhook_secret: {
+        Args: { encrypted_secret: string; wh_id: string }
+        Returns: string
+      }
+      encrypt_webhook_secret: {
+        Args: { secret_value: string; wh_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
