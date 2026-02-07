@@ -1,14 +1,180 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// API Keys from environment
 const COHERE_API_KEY = Deno.env.get('COHERE_API_KEY');
-const API_ENDPOINT = 'https://api.cohere.com/v1/chat';
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
+
+// AI Provider interface for fallback mechanism
+interface AIProvider {
+  name: string;
+  endpoint: string;
+  getHeaders: (apiKey: string) => Record<string, string>;
+  formatBody: (systemPrompt: string, userPrompt: string, conversationId?: string) => any;
+  parseResponse: (data: any) => string | null;
+  apiKey: string | undefined;
+}
+
+// AI Providers with fallback order
+const getAIProviders = (): AIProvider[] => [
+  // Primary: Cohere (best for conversational context)
+  {
+    name: "Cohere",
+    endpoint: "https://api.cohere.com/v1/chat",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (systemPrompt, userPrompt, conversationId) => ({
+      model: "command-r-plus",
+      message: userPrompt,
+      preamble: systemPrompt,
+      temperature: 0.3,
+      max_tokens: 1000,
+      conversation_id: conversationId || 'general_chat'
+    }),
+    parseResponse: (data) => data.text || null,
+    apiKey: COHERE_API_KEY,
+  },
+  // Fallback 1: ClauseWiseAI AI Gateway (Gemini)
+  {
+    name: "ClauseWiseAI AI (Gemini)",
+    endpoint: "https://ai.gateway.clausewiseai.dev/v1/chat/completions",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (systemPrompt, userPrompt) => ({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 1000,
+    }),
+    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
+    apiKey: LOVABLE_API_KEY,
+  },
+  // Fallback 2: OpenAI
+  {
+    name: "OpenAI",
+    endpoint: "https://api.openai.com/v1/chat/completions",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (systemPrompt, userPrompt) => ({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 1000,
+    }),
+    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
+    apiKey: OPENAI_API_KEY,
+  },
+  // Fallback 3: Gemini (direct)
+  {
+    name: "Google Gemini",
+    endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+    getHeaders: (apiKey) => ({
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    }),
+    formatBody: (systemPrompt, userPrompt) => ({
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 1000,
+      }
+    }),
+    parseResponse: (data) => data.candidates?.[0]?.content?.parts?.[0]?.text || null,
+    apiKey: GEMINI_API_KEY,
+  },
+  // Fallback 4: Groq
+  {
+    name: "Groq",
+    endpoint: "https://api.groq.com/openai/v1/chat/completions",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (systemPrompt, userPrompt) => ({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 1000,
+    }),
+    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
+    apiKey: GROQ_API_KEY,
+  },
+];
+
+// Try AI providers with fallback
+async function callAIWithFallback(
+  systemPrompt: string, 
+  userPrompt: string, 
+  conversationId?: string
+): Promise<{ response: string; provider: string } | null> {
+  const providers = getAIProviders();
+  const errors: string[] = [];
+
+  for (const provider of providers) {
+    if (!provider.apiKey) {
+      errors.push(`${provider.name}: API key not configured`);
+      continue;
+    }
+
+    try {
+      console.log(`[AI-Chat-Analysis] Trying provider: ${provider.name}`);
+      
+      const response = await fetch(provider.endpoint, {
+        method: "POST",
+        headers: provider.getHeaders(provider.apiKey),
+        body: JSON.stringify(provider.formatBody(systemPrompt, userPrompt, conversationId)),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[AI-Chat-Analysis] ${provider.name} error: ${response.status} - ${errorText.substring(0, 200)}`);
+        errors.push(`${provider.name}: HTTP ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const content = provider.parseResponse(data);
+      
+      if (content) {
+        console.log(`[AI-Chat-Analysis] ${provider.name} responded successfully`);
+        return { response: content, provider: provider.name };
+      }
+      
+      errors.push(`${provider.name}: Empty response`);
+    } catch (error) {
+      console.error(`[AI-Chat-Analysis] ${provider.name} exception:`, error);
+      errors.push(`${provider.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  console.error(`[AI-Chat-Analysis] All providers failed:`, errors);
+  return null;
+}
 
 // Comprehensive financial products database with detailed information
 const financialKnowledge = {
@@ -1372,49 +1538,22 @@ ${conversationContext}${knowledgeContext}`;
       ? `User uploaded document: "${fileName}". Based on the document and conversation context, please answer: ${message}` 
       : message;
 
-    // Try Cohere API call
-    if (COHERE_API_KEY) {
-      try {
-        console.log('Making Cohere API call...');
-        const response = await fetch(API_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${COHERE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'command-r-plus',
-            message: userPrompt,
-            preamble: systemPrompt,
-            temperature: 0.3,
-            max_tokens: 1000,
-            conversation_id: hasDocument ? `doc_${fileName}` : 'general_chat'
-          }),
-        });
+    // Call AI with fallback mechanism
+    const conversationId = hasDocument ? `doc_${fileName}` : 'general_chat';
+    const aiResult = await callAIWithFallback(systemPrompt, userPrompt, conversationId);
 
-        console.log('Cohere API response status:', response.status);
-
-        if (response.ok) {
-          const data = await response.json();
-          const aiResponse = data.text;
-          
-          console.log('Cohere API response received');
-          
-          if (aiResponse) {
-            return new Response(JSON.stringify({ response: aiResponse }), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-        } else {
-          const errorText = await response.text();
-          console.error('Cohere API error response:', errorText);
-        }
-      } catch (apiError) {
-        console.error('Cohere API call failed:', apiError);
-      }
+    if (aiResult) {
+      console.log(`[AI-Chat-Analysis] Response from ${aiResult.provider}`);
+      return new Response(JSON.stringify({ 
+        response: aiResult.response,
+        provider: aiResult.provider 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Enhanced fallback response with knowledge base
+    // Enhanced fallback response with knowledge base (when all AI providers fail)
+    console.log('[AI-Chat-Analysis] All AI providers failed, using knowledge base fallback');
     let fallbackResponse = "I'm ClauseWise, your financial document analysis assistant.\n";
     if (knowledgeResults.length > 0) {
       fallbackResponse += `Here's what I found about your query:\n\n${knowledgeResults.join('\n\n')}\n\n`;
@@ -1426,14 +1565,18 @@ ${conversationContext}${knowledgeContext}`;
       fallbackResponse += `I can help you understand:\n• Credit card terms and conditions\n• Insurance policy details\n• Mutual fund information\n• Loan agreements\n• Hidden clauses and risks\n\nFeel free to ask about specific products or upload documents for analysis.`;
     }
     
-    return new Response(JSON.stringify({ response: fallbackResponse }), {
+    return new Response(JSON.stringify({ 
+      response: fallbackResponse,
+      provider: 'knowledge_base_fallback' 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Function error:', error);
     return new Response(JSON.stringify({ 
-      response: "I'm experiencing technical difficulties. Please try again shortly."
+      response: "I'm experiencing technical difficulties. Please try again shortly.",
+      provider: 'error_fallback'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

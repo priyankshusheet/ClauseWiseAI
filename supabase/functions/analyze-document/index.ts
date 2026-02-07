@@ -386,8 +386,118 @@ function calculateRiskScore(
   return Math.max(0, Math.min(100, score));
 }
 
+// AI Provider configurations for document analysis with fallback
+interface AIProvider {
+  name: string;
+  endpoint: string;
+  getHeaders: (apiKey: string) => Record<string, string>;
+  formatBody: (systemPrompt: string, userPrompt: string) => any;
+  parseResponse: (data: any) => string | null;
+  getApiKey: () => string | undefined;
+}
+
+const DOCUMENT_AI_PROVIDERS: AIProvider[] = [
+  // Primary: ClauseWiseAI AI Gateway (Gemini)
+  {
+    name: "ClauseWiseAI AI (Gemini)",
+    endpoint: "https://ai.gateway.clausewiseai.dev/v1/chat/completions",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (systemPrompt, userPrompt) => ({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 3000,
+    }),
+    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
+    getApiKey: () => Deno.env.get("LOVABLE_API_KEY"),
+  },
+  // Fallback 1: OpenAI
+  {
+    name: "OpenAI",
+    endpoint: "https://api.openai.com/v1/chat/completions",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (systemPrompt, userPrompt) => ({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 3000,
+    }),
+    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
+    getApiKey: () => Deno.env.get("OPENAI_API_KEY"),
+  },
+  // Fallback 2: Gemini (direct)
+  {
+    name: "Google Gemini",
+    endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+    getHeaders: (apiKey) => ({
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    }),
+    formatBody: (systemPrompt, userPrompt) => ({
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 3000,
+      }
+    }),
+    parseResponse: (data) => data.candidates?.[0]?.content?.parts?.[0]?.text || null,
+    getApiKey: () => Deno.env.get("GEMINI_API_KEY"),
+  },
+  // Fallback 3: Groq
+  {
+    name: "Groq",
+    endpoint: "https://api.groq.com/openai/v1/chat/completions",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (systemPrompt, userPrompt) => ({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 3000,
+    }),
+    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
+    getApiKey: () => Deno.env.get("GROQ_API_KEY"),
+  },
+  // Fallback 4: Cohere
+  {
+    name: "Cohere",
+    endpoint: "https://api.cohere.com/v1/chat",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (systemPrompt, userPrompt) => ({
+      model: "command-r-plus",
+      message: userPrompt,
+      preamble: systemPrompt,
+      temperature: 0.2,
+      max_tokens: 3000,
+    }),
+    parseResponse: (data) => data.text || null,
+    getApiKey: () => Deno.env.get("COHERE_API_KEY"),
+  },
+];
+
 async function performAIAnalysis(
-  apiKey: string,
+  _apiKey: string, // Kept for compatibility, but we use provider keys
   fileName: string,
   extractedText: string,
   ocrConfidence: number,
@@ -405,29 +515,60 @@ Classified Clauses: ${classifiedClauses.map(c => `${c.category} (${c.clauses.len
 Document Text (first 12000 chars):
 ${extractedText?.substring(0, 12000) || 'No text extracted'}`;
 
-  const response = await fetch("https://ai.gateway.clausewiseai.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        { role: "system", content: DOCUMENT_ANALYSIS_PROMPT },
-        { role: "user", content: contextSummary }
-      ],
-      temperature: 0.2,
-      max_tokens: 3000,
-    }),
-  });
+  const errors: string[] = [];
 
-  if (!response.ok) {
-    // Consume response body to prevent resource leak
-    await response.text();
-    throw new Error(`AI analysis failed: ${response.status}`);
+  for (const provider of DOCUMENT_AI_PROVIDERS) {
+    const apiKey = provider.getApiKey();
+    if (!apiKey) {
+      errors.push(`${provider.name}: API key not configured`);
+      continue;
+    }
+
+    try {
+      console.log(`[Analyze-Document] Trying provider: ${provider.name}`);
+      
+      const response = await fetch(provider.endpoint, {
+        method: "POST",
+        headers: provider.getHeaders(apiKey),
+        body: JSON.stringify(provider.formatBody(DOCUMENT_ANALYSIS_PROMPT, contextSummary)),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[Analyze-Document] ${provider.name} error: ${response.status} - ${errorText.substring(0, 200)}`);
+        
+        // Re-throw rate limit errors
+        if (response.status === 429) {
+          throw new Error(`429: Rate limit exceeded on ${provider.name}`);
+        }
+        if (response.status === 402) {
+          throw new Error(`402: Quota exceeded on ${provider.name}`);
+        }
+        
+        errors.push(`${provider.name}: HTTP ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const content = provider.parseResponse(data);
+      
+      if (content) {
+        console.log(`[Analyze-Document] ${provider.name} responded successfully`);
+        return content;
+      }
+      
+      errors.push(`${provider.name}: Empty response`);
+    } catch (error) {
+      // Re-throw rate limit and quota errors
+      if (error instanceof Error && (error.message.includes('429') || error.message.includes('402'))) {
+        throw error;
+      }
+      
+      console.error(`[Analyze-Document] ${provider.name} exception:`, error);
+      errors.push(`${provider.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || "Analysis could not be completed.";
+  console.error(`[Analyze-Document] All providers failed:`, errors);
+  return "Analysis could not be completed. All AI providers are currently unavailable. Please try again later.";
 }

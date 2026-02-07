@@ -37,6 +37,214 @@ When analyzing documents:
 
 Never provide specific financial advice - only analysis and education.`;
 
+// AI Provider configurations with fallback order
+interface AIProvider {
+  name: string;
+  endpoint: string;
+  getHeaders: (apiKey: string) => Record<string, string>;
+  formatBody: (messages: any[], stream: boolean) => any;
+  parseResponse: (data: any) => string | null;
+  getApiKey: () => string | undefined;
+}
+
+const AI_PROVIDERS: AIProvider[] = [
+  // Primary: ClauseWiseAI AI Gateway (Gemini)
+  {
+    name: "ClauseWiseAI AI (Gemini)",
+    endpoint: "https://ai.gateway.clausewiseai.dev/v1/chat/completions",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (messages, stream) => ({
+      model: "google/gemini-3-flash-preview",
+      messages,
+      stream,
+      temperature: 0.3,
+      max_tokens: 4096,
+    }),
+    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
+    getApiKey: () => Deno.env.get("LOVABLE_API_KEY"),
+  },
+  // Fallback 1: OpenAI
+  {
+    name: "OpenAI",
+    endpoint: "https://api.openai.com/v1/chat/completions",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (messages, stream) => ({
+      model: "gpt-4o-mini",
+      messages,
+      stream,
+      temperature: 0.3,
+      max_tokens: 4096,
+    }),
+    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
+    getApiKey: () => Deno.env.get("OPENAI_API_KEY"),
+  },
+  // Fallback 2: Gemini (direct)
+  {
+    name: "Google Gemini",
+    endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+    getHeaders: (apiKey) => ({
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    }),
+    formatBody: (messages, _stream) => ({
+      contents: messages.filter(m => m.role !== 'system').map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      })),
+      systemInstruction: {
+        parts: [{ text: messages.find(m => m.role === 'system')?.content || SYSTEM_PROMPT }]
+      },
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 4096,
+      }
+    }),
+    parseResponse: (data) => data.candidates?.[0]?.content?.parts?.[0]?.text || null,
+    getApiKey: () => Deno.env.get("GEMINI_API_KEY"),
+  },
+  // Fallback 3: Groq
+  {
+    name: "Groq",
+    endpoint: "https://api.groq.com/openai/v1/chat/completions",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (messages, stream) => ({
+      model: "llama-3.3-70b-versatile",
+      messages,
+      stream,
+      temperature: 0.3,
+      max_tokens: 4096,
+    }),
+    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
+    getApiKey: () => Deno.env.get("GROQ_API_KEY"),
+  },
+  // Fallback 4: Cohere
+  {
+    name: "Cohere",
+    endpoint: "https://api.cohere.com/v1/chat",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (messages, _stream) => {
+      const systemMsg = messages.find(m => m.role === 'system');
+      const userMessages = messages.filter(m => m.role !== 'system');
+      const lastMessage = userMessages.pop();
+      return {
+        model: "command-r-plus",
+        message: lastMessage?.content || '',
+        preamble: systemMsg?.content || SYSTEM_PROMPT,
+        chat_history: userMessages.map(m => ({
+          role: m.role === 'assistant' ? 'CHATBOT' : 'USER',
+          message: m.content
+        })),
+        temperature: 0.3,
+        max_tokens: 4096,
+      };
+    },
+    parseResponse: (data) => data.text || null,
+    getApiKey: () => Deno.env.get("COHERE_API_KEY"),
+  },
+];
+
+async function tryProvider(
+  provider: AIProvider,
+  messages: any[],
+  stream: boolean
+): Promise<{ success: boolean; response?: Response; error?: string }> {
+  const apiKey = provider.getApiKey();
+  if (!apiKey) {
+    return { success: false, error: `${provider.name}: API key not configured` };
+  }
+
+  try {
+    console.log(`[AI-Chat] Trying provider: ${provider.name}`);
+    
+    const response = await fetch(provider.endpoint, {
+      method: "POST",
+      headers: provider.getHeaders(apiKey),
+      body: JSON.stringify(provider.formatBody(messages, stream)),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[AI-Chat] ${provider.name} error: ${response.status} - ${errorText.substring(0, 200)}`);
+      
+      // Don't fallback on rate limits or quota - return specific error
+      if (response.status === 429) {
+        return { 
+          success: false, 
+          error: `RATE_LIMIT:${provider.name}` 
+        };
+      }
+      if (response.status === 402) {
+        return { 
+          success: false, 
+          error: `QUOTA_EXCEEDED:${provider.name}` 
+        };
+      }
+      
+      return { success: false, error: `${provider.name}: HTTP ${response.status}` };
+    }
+
+    console.log(`[AI-Chat] ${provider.name} responded successfully`);
+    return { success: true, response };
+  } catch (error) {
+    console.error(`[AI-Chat] ${provider.name} exception:`, error);
+    return { success: false, error: `${provider.name}: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+}
+
+async function callAIWithFallback(
+  messages: any[],
+  stream: boolean
+): Promise<{ response: Response; provider: string } | { error: string; code: string; status: number }> {
+  const errors: string[] = [];
+
+  for (const provider of AI_PROVIDERS) {
+    const result = await tryProvider(provider, messages, stream);
+    
+    if (result.success && result.response) {
+      return { response: result.response, provider: provider.name };
+    }
+    
+    if (result.error) {
+      // Handle specific errors that should not trigger fallback
+      if (result.error.startsWith('RATE_LIMIT:')) {
+        return {
+          error: "Rate limit exceeded. Please wait a moment before trying again.",
+          code: "RATE_LIMIT",
+          status: 429
+        };
+      }
+      if (result.error.startsWith('QUOTA_EXCEEDED:')) {
+        return {
+          error: "AI service quota exceeded. Please add credits to continue.",
+          code: "QUOTA_EXCEEDED",
+          status: 402
+        };
+      }
+      
+      errors.push(result.error);
+    }
+  }
+
+  console.error(`[AI-Chat] All providers failed:`, errors);
+  return {
+    error: "AI service temporarily unavailable. All providers failed.",
+    code: "SERVICE_ERROR",
+    status: 503
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -68,16 +276,6 @@ serve(async (req) => {
     const messages = validateChatMessages(bodyObj.messages, { maxMessages: 50, maxContentLength: 30000 });
     const stream = validateBoolean(bodyObj.stream, 'stream', { defaultValue: true });
     const documentContext = validateDocumentContext(bodyObj.documentContext);
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      return new Response(
-        JSON.stringify({ error: "AI service not configured", code: "SERVICE_ERROR" }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // Build enhanced messages with document context
     const enhancedMessages = [
@@ -111,75 +309,43 @@ serve(async (req) => {
 
     console.log(`[AI-Chat] User: ${authResult.userId}, Processing ${messages.length} messages, stream=${stream}`);
 
-    const response = await fetch("https://ai.gateway.clausewiseai.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: enhancedMessages,
-        stream: stream,
-        temperature: 0.3,
-        max_tokens: 4096,
-      }),
-    });
+    // Call AI with fallback mechanism
+    const result = await callAIWithFallback(enhancedMessages, stream);
 
-    if (!response.ok) {
-      const latency = Date.now() - startTime;
-      console.error(`[AI-Chat] Gateway error: ${response.status} (${latency}ms)`);
-
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ 
-            error: "Rate limit exceeded. Please wait a moment before trying again.",
-            code: "RATE_LIMIT",
-            retryAfter: 30
-          }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ 
-            error: "AI service quota exceeded. Please add credits to continue.",
-            code: "QUOTA_EXCEEDED"
-          }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Don't expose internal error details
-      await response.text(); // Consume the response body
+    if ('error' in result) {
       return new Response(
-        JSON.stringify({ error: "AI service temporarily unavailable", code: "SERVICE_ERROR" }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          error: result.error,
+          code: result.code,
+          ...(result.code === 'RATE_LIMIT' ? { retryAfter: 30 } : {})
+        }),
+        { status: result.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const latency = Date.now() - startTime;
-    console.log(`[AI-Chat] Gateway response received (${latency}ms)`);
+    console.log(`[AI-Chat] ${result.provider} response received (${latency}ms)`);
 
     // Return streaming response
     if (stream) {
-      return new Response(response.body, {
+      return new Response(result.response.body, {
         headers: { 
           ...corsHeaders, 
           "Content-Type": "text/event-stream",
-          "X-Response-Time": `${latency}ms`
+          "X-Response-Time": `${latency}ms`,
+          "X-AI-Provider": result.provider
         },
       });
     }
 
     // Non-streaming response
-    const data = await response.json();
+    const data = await result.response.json();
     return new Response(JSON.stringify(data), {
       headers: { 
         ...corsHeaders, 
         "Content-Type": "application/json",
-        "X-Response-Time": `${latency}ms`
+        "X-Response-Time": `${latency}ms`,
+        "X-AI-Provider": result.provider
       },
     });
 
