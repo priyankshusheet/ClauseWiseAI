@@ -45,7 +45,7 @@ async function signPayload(payload: string, secret: string): Promise<string> {
 }
 
 async function deliverWebhook(
-  webhook: { id: string; url: string; secret: string | null; retry_count: number },
+  webhook: { id: string; url: string; secret: string | null; secret_encrypted: boolean | null; retry_count: number },
   payload: WebhookPayload,
   supabase: ReturnType<typeof createClient>,
   attempt: number = 1
@@ -59,8 +59,27 @@ async function deliverWebhook(
     'X-Webhook-Attempt': attempt.toString(),
   }
 
+  // Decrypt secret if encrypted, then sign payload
   if (webhook.secret) {
-    headers['X-Webhook-Signature'] = await signPayload(payloadStr, webhook.secret)
+    let decryptedSecret = webhook.secret;
+    
+    if (webhook.secret_encrypted) {
+      // Call database function to decrypt the secret
+      const { data: decryptResult, error: decryptError } = await supabase
+        .rpc('decrypt_webhook_secret', { 
+          encrypted_secret: webhook.secret, 
+          wh_id: webhook.id 
+        });
+      
+      if (decryptError || !decryptResult) {
+        console.error('Failed to decrypt webhook secret:', decryptError);
+        // Continue without signature if decryption fails
+      } else {
+        decryptedSecret = decryptResult;
+      }
+    }
+    
+    headers['X-Webhook-Signature'] = await signPayload(payloadStr, decryptedSecret)
   }
 
   try {
