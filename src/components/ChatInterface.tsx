@@ -6,6 +6,7 @@ import { Send, Upload, FileText, Loader2, AlertCircle, Paperclip, LogIn } from '
 import { useToast } from '@/hooks/use-toast';
 import { aiService, Message, DocumentContext } from '@/services/aiService';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'framer-motion';
 import VoiceInput from './VoiceInput';
 import SuggestedQuestions from './SuggestedQuestions';
@@ -311,8 +312,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
                   {message.isUser ? (
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   ) : (
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <div className="prose prose-sm dark:prose-invert max-w-none overflow-x-auto">
                       <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
                         components={{
                           p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                           ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
@@ -324,6 +326,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
                           h3: ({ children }) => <h5 className="font-medium mb-1">{children}</h5>,
                           code: ({ children }) => (
                             <code className="bg-background/50 px-1 py-0.5 rounded text-xs">{children}</code>
+                          ),
+                          table: ({ children }) => (
+                            <div className="overflow-x-auto my-3 rounded-lg border border-border">
+                              <table className="min-w-full divide-y divide-border text-sm">
+                                {children}
+                              </table>
+                            </div>
+                          ),
+                          thead: ({ children }) => (
+                            <thead className="bg-muted/50">{children}</thead>
+                          ),
+                          tbody: ({ children }) => (
+                            <tbody className="divide-y divide-border bg-card">{children}</tbody>
+                          ),
+                          tr: ({ children }) => (
+                            <tr className="hover:bg-muted/30 transition-colors">{children}</tr>
+                          ),
+                          th: ({ children }) => (
+                            <th className="px-3 py-2 text-left font-semibold text-foreground whitespace-nowrap">{children}</th>
+                          ),
+                          td: ({ children }) => (
+                            <td className="px-3 py-2 text-foreground">{children}</td>
                           ),
                         }}
                       >
