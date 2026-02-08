@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { requireAuth } from "../_shared/auth.ts";
+import { optionalAuth } from "../_shared/auth.ts";
 import { 
   validateChatMessages, 
   validateBoolean, 
@@ -253,11 +253,8 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    // Require authentication
-    const authResult = await requireAuth(req, corsHeaders);
-    if (authResult instanceof Response) {
-      return authResult;
-    }
+    // Optional authentication - allow unauthenticated users for trial
+    const { userId } = await optionalAuth(req);
 
     // Parse and validate request body
     let body: unknown;
@@ -307,7 +304,7 @@ serve(async (req) => {
     }));
     enhancedMessages.push(...sanitizedMessages);
 
-    console.log(`[AI-Chat] User: ${authResult.userId}, Processing ${messages.length} messages, stream=${stream}`);
+    console.log(`[AI-Chat] User: ${userId || 'anonymous'}, Processing ${messages.length} messages, stream=${stream}`);
 
     // Call AI with fallback mechanism
     const result = await callAIWithFallback(enhancedMessages, stream);
