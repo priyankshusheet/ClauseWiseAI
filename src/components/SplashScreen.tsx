@@ -1,5 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
+import clausewiseLogo from '@/assets/clausewise-logo.png';
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -22,8 +22,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       <div className="fixed inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 flex items-center justify-center z-50 animate-fade-out">
         <div className="text-center animate-scale-out">
           <div className="mb-8">
-            <div className="w-20 h-20 mx-auto bg-white rounded-2xl flex items-center justify-center shadow-2xl animate-pulse">
-              <span className="text-blue-600 font-bold text-2xl">CW</span>
+            <div className="w-24 h-24 mx-auto rounded-2xl shadow-2xl animate-pulse overflow-hidden">
+              <img src={clausewiseLogo} alt="ClauseWise" className="w-full h-full object-cover" />
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 animate-fade-out">
@@ -41,8 +41,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
     <div className="fixed inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 flex items-center justify-center z-50">
       <div className="text-center">
         <div className="mb-8">
-          <div className="w-20 h-20 mx-auto bg-white rounded-2xl flex items-center justify-center shadow-2xl animate-bounce">
-            <span className="text-blue-600 font-bold text-2xl">CW</span>
+          <div className="w-24 h-24 mx-auto rounded-2xl shadow-2xl animate-bounce overflow-hidden">
+            <img src={clausewiseLogo} alt="ClauseWise" className="w-full h-full object-cover" />
           </div>
         </div>
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 animate-fade-in">
