@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import clausewiseLogo from '@/assets/clausewise-logo.png';
+import { successFeedback } from '@/utils/haptics';
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -46,6 +47,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       setTimeout(() => {
         setPhase(3);
         setShowParticles(false); // unmount particles to free DOM
+        successFeedback();
       }, 2000),
       setTimeout(() => setPhase(4), 2500),
       setTimeout(onComplete, 3000),
