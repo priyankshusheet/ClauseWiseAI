@@ -3,6 +3,7 @@ import { motion, Variants } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, FileSearch, MessageSquare, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { tapFeedback } from '@/utils/haptics';
 
 const HeroSection = () => {
   const capabilities = [
@@ -96,7 +97,7 @@ const HeroSection = () => {
             variants={itemVariants}
             className="flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
-            <Link to="/upload">
+            <Link to="/upload" onClick={() => tapFeedback()}>
               <motion.div
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.98 }}
@@ -111,7 +112,7 @@ const HeroSection = () => {
               </motion.div>
             </Link>
             
-            <Link to="/chat">
+            <Link to="/chat" onClick={() => tapFeedback()}>
               <motion.div
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.98 }}

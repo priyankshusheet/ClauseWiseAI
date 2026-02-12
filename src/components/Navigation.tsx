@@ -16,7 +16,8 @@ import {
   Menu,
   FolderOpen,
   GitCompare,
-  Settings
+  Settings,
+  Download
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
@@ -28,6 +29,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { tapFeedback, toggleFeedback, navFeedback, successFeedback } from '@/utils/haptics';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,8 +38,10 @@ const Navigation = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { user, signOut, loading } = useAuth();
+  const { canInstall, isInstalled, install } = usePWAInstall();
 
   const handleNavigation = (href: string) => {
+    navFeedback();
     if (href.startsWith('#')) {
       const element = document.querySelector(href);
       if (element) {
@@ -47,8 +52,22 @@ const Navigation = () => {
   };
 
   const handleSignOut = async () => {
+    tapFeedback();
     await signOut();
     navigate('/');
+  };
+
+  const handleInstall = async () => {
+    tapFeedback();
+    const accepted = await install();
+    if (accepted) {
+      successFeedback();
+    }
+  };
+
+  const handleToggleTheme = () => {
+    toggleFeedback();
+    toggleTheme();
   };
 
   const getUserInitials = () => {
@@ -82,7 +101,7 @@ const Navigation = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
+          <Link to="/" className="flex items-center space-x-2 group" onClick={() => navFeedback()}>
             <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow duration-300">
               <span className="text-primary-foreground font-bold text-sm">CW</span>
             </div>
@@ -96,6 +115,7 @@ const Navigation = () => {
                 <Link
                   key={item.name}
                   to={item.href}
+                  onClick={() => navFeedback()}
                   className={`text-muted-foreground hover:text-foreground font-medium transition-colors duration-200 flex items-center space-x-1.5 group py-2 ${
                     location.pathname === item.href ? 'text-primary' : ''
                   }`}
@@ -125,7 +145,7 @@ const Navigation = () => {
               <Sun className="h-4 w-4 text-muted-foreground" />
               <Switch
                 checked={theme === 'dark'}
-                onCheckedChange={toggleTheme}
+                onCheckedChange={handleToggleTheme}
                 className="data-[state=checked]:bg-primary"
               />
               <Moon className="h-4 w-4 text-muted-foreground" />
@@ -139,7 +159,7 @@ const Navigation = () => {
             ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 px-2">
+                  <Button variant="ghost" className="flex items-center gap-2 px-2" onClick={() => tapFeedback()}>
                     <Avatar className="w-8 h-8">
                       <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                         {getUserInitials()}
@@ -151,15 +171,15 @@ const Navigation = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => navigate('/history')}>
+                  <DropdownMenuItem onClick={() => { navFeedback(); navigate('/history'); }}>
                     <History className="w-4 h-4 mr-2" />
                     Analysis History
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/portfolio')}>
+                  <DropdownMenuItem onClick={() => { navFeedback(); navigate('/portfolio'); }}>
                     <FolderOpen className="w-4 h-4 mr-2" />
                     Portfolio
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <DropdownMenuItem onClick={() => { navFeedback(); navigate('/settings'); }}>
                     <Settings className="w-4 h-4 mr-2" />
                     Settings
                   </DropdownMenuItem>
@@ -172,12 +192,12 @@ const Navigation = () => {
               </DropdownMenu>
             ) : (
               <>
-                <Link to="/auth">
+                <Link to="/auth" onClick={() => navFeedback()}>
                   <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/5">
                     Sign In
                   </Button>
                 </Link>
-                <Link to="/upload">
+                <Link to="/upload" onClick={() => navFeedback()}>
                   <Button size="sm" className="bg-primary hover:bg-primary/90 shadow-md">
                     Try Free
                   </Button>
@@ -189,7 +209,7 @@ const Navigation = () => {
           {/* Mobile menu button */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
+              <Button variant="ghost" size="icon" className="md:hidden" onClick={() => tapFeedback()}>
                 <Menu className="w-5 h-5" />
               </Button>
             </SheetTrigger>
@@ -217,7 +237,7 @@ const Navigation = () => {
                     <Link
                       key={item.name}
                       to={item.href}
-                      onClick={() => setIsOpen(false)}
+                      onClick={() => { navFeedback(); setIsOpen(false); }}
                       className={`flex items-center space-x-3 text-muted-foreground hover:text-foreground font-medium transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-muted ${
                         location.pathname === item.href ? 'text-primary bg-primary/5' : ''
                       }`}
@@ -236,6 +256,23 @@ const Navigation = () => {
                     </button>
                   )
                 ))}
+
+                {/* Install App Button */}
+                {canInstall && (
+                  <button
+                    onClick={handleInstall}
+                    className="flex items-center space-x-3 text-primary font-medium transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-primary/10 border border-primary/20 mt-2"
+                  >
+                    <Download className="w-5 h-5" />
+                    <span>Install App</span>
+                  </button>
+                )}
+                {isInstalled && (
+                  <div className="flex items-center space-x-3 text-muted-foreground py-3 px-2 rounded-lg bg-muted/30 mt-2">
+                    <Download className="w-5 h-5 text-secondary" />
+                    <span className="text-sm">App Installed ✓</span>
+                  </div>
+                )}
                 
                 {/* Mobile Dark Mode Toggle */}
                 <div className="flex items-center justify-between py-3 px-2 border-t border-border mt-4">
@@ -244,7 +281,7 @@ const Navigation = () => {
                     <Sun className="h-4 w-4 text-muted-foreground" />
                     <Switch
                       checked={theme === 'dark'}
-                      onCheckedChange={toggleTheme}
+                      onCheckedChange={handleToggleTheme}
                       className="data-[state=checked]:bg-primary"
                     />
                     <Moon className="h-4 w-4 text-muted-foreground" />
@@ -263,12 +300,12 @@ const Navigation = () => {
                     </Button>
                   ) : (
                     <>
-                      <Link to="/auth" onClick={() => setIsOpen(false)}>
+                      <Link to="/auth" onClick={() => { navFeedback(); setIsOpen(false); }}>
                         <Button variant="outline" className="w-full border-primary/30 text-primary">
                           Sign In
                         </Button>
                       </Link>
-                      <Link to="/upload" onClick={() => setIsOpen(false)}>
+                      <Link to="/upload" onClick={() => { navFeedback(); setIsOpen(false); }}>
                         <Button className="w-full bg-primary hover:bg-primary/90">
                           Try Free
                         </Button>
