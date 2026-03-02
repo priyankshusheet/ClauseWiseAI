@@ -176,9 +176,10 @@ serve(async (req) => {
 
     console.log(`[Analyze-Document] User: ${authResult.userId}, Processing: ${fileName} (${fileType}), confidence: ${ocrConfidence}%`);
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const COHERE_KEY = Deno.env.get("COHERE_API_KEY");
+    const GROQ_KEY = Deno.env.get("GROQ_API_KEY");
 
-    if (!LOVABLE_API_KEY) {
+    if (!COHERE_KEY && !GROQ_KEY) {
       return new Response(
         JSON.stringify({ error: "AI service not configured", code: "SERVICE_ERROR" }),
         { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -194,7 +195,7 @@ serve(async (req) => {
     
     // Step 3: AI-powered deep analysis
     const aiAnalysis = await performAIAnalysis(
-      LOVABLE_API_KEY,
+      COHERE_KEY || GROQ_KEY || '',
       fileName!,
       sanitizedText,
       ocrConfidence || 0,
@@ -397,16 +398,16 @@ interface AIProvider {
 }
 
 const DOCUMENT_AI_PROVIDERS: AIProvider[] = [
-  // Primary: ClauseWiseAI AI Gateway (Gemini)
+  // Primary: Cohere
   {
-    name: "ClauseWiseAI AI (Gemini)",
-    endpoint: "https://ai.gateway.clausewiseai.dev/v1/chat/completions",
+    name: "Cohere",
+    endpoint: "https://api.cohere.com/v2/chat",
     getHeaders: (apiKey) => ({
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     }),
     formatBody: (systemPrompt, userPrompt) => ({
-      model: "google/gemini-3-flash-preview",
+      model: "command-r-plus",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
@@ -414,49 +415,10 @@ const DOCUMENT_AI_PROVIDERS: AIProvider[] = [
       temperature: 0.2,
       max_tokens: 3000,
     }),
-    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
-    getApiKey: () => Deno.env.get("LOVABLE_API_KEY"),
+    parseResponse: (data) => data.message?.content?.[0]?.text || null,
+    getApiKey: () => Deno.env.get("COHERE_API_KEY"),
   },
-  // Fallback 1: OpenAI
-  {
-    name: "OpenAI",
-    endpoint: "https://api.openai.com/v1/chat/completions",
-    getHeaders: (apiKey) => ({
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    }),
-    formatBody: (systemPrompt, userPrompt) => ({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.2,
-      max_tokens: 3000,
-    }),
-    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
-    getApiKey: () => Deno.env.get("OPENAI_API_KEY"),
-  },
-  // Fallback 2: Gemini (direct)
-  {
-    name: "Google Gemini",
-    endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
-    getHeaders: (apiKey) => ({
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    }),
-    formatBody: (systemPrompt, userPrompt) => ({
-      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 3000,
-      }
-    }),
-    parseResponse: (data) => data.candidates?.[0]?.content?.parts?.[0]?.text || null,
-    getApiKey: () => Deno.env.get("GEMINI_API_KEY"),
-  },
-  // Fallback 3: Groq
+  // Secondary: Groq
   {
     name: "Groq",
     endpoint: "https://api.groq.com/openai/v1/chat/completions",
@@ -476,23 +438,44 @@ const DOCUMENT_AI_PROVIDERS: AIProvider[] = [
     parseResponse: (data) => data.choices?.[0]?.message?.content || null,
     getApiKey: () => Deno.env.get("GROQ_API_KEY"),
   },
-  // Fallback 4: Cohere
+  // Tertiary: OpenAI
   {
-    name: "Cohere",
-    endpoint: "https://api.cohere.com/v1/chat",
+    name: "OpenAI",
+    endpoint: "https://api.openai.com/v1/chat/completions",
     getHeaders: (apiKey) => ({
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     }),
     formatBody: (systemPrompt, userPrompt) => ({
-      model: "command-r-plus",
-      message: userPrompt,
-      preamble: systemPrompt,
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
       temperature: 0.2,
       max_tokens: 3000,
     }),
-    parseResponse: (data) => data.text || null,
-    getApiKey: () => Deno.env.get("COHERE_API_KEY"),
+    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
+    getApiKey: () => Deno.env.get("OPENAI_API_KEY"),
+  },
+  // Tertiary: Gemini (direct)
+  {
+    name: "Google Gemini",
+    endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+    getHeaders: (apiKey) => ({
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    }),
+    formatBody: (systemPrompt, userPrompt) => ({
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 3000,
+      }
+    }),
+    parseResponse: (data) => data.candidates?.[0]?.content?.parts?.[0]?.text || null,
+    getApiKey: () => Deno.env.get("GEMINI_API_KEY"),
   },
 ];
 

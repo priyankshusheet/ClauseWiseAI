@@ -10,7 +10,9 @@ import {
 } from "../_shared/validation.ts";
 
 const cohereApiKey = Deno.env.get('COHERE_API_KEY');
-
+const groqApiKey = Deno.env.get('GROQ_API_KEY');
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -107,28 +109,99 @@ Write in clear, conversational language that anyone can understand. Use bullet p
 Based on the filename and document type (${fileType}), provide a general analysis of what consumers should typically look for in this type of document, including common risks and important terms to watch out for.`;
     }
 
-    if (cohereApiKey) {
+    // Try AI providers with fallback: Cohere → Groq → OpenAI → Gemini
+    let analysisText: string | null = null;
+    let providerUsed = 'fallback';
+
+    // Primary: Cohere
+    if (!analysisText && cohereApiKey) {
       try {
-        const response = await fetch('https://api.cohere.com/v1/chat', {
+        console.log('[Document-Analysis] Trying Cohere...');
+        const response = await fetch('https://api.cohere.com/v2/chat', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${cohereApiKey}`,
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Authorization': `Bearer ${cohereApiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: 'command-r-plus',
-            message: analysisPrompt,
-            preamble: systemPrompt,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: analysisPrompt }
+            ],
             temperature: 0.3,
             max_tokens: 2500
           }),
         });
-
         if (response.ok) {
           const data = await response.json();
-          const analysisText = data.text;
-          
-          if (analysisText) {
+          analysisText = data.message?.content?.[0]?.text || null;
+          if (analysisText) providerUsed = 'Cohere';
+        } else { await response.text(); console.error('[Document-Analysis] Cohere error:', response.status); }
+      } catch (e) { console.error('[Document-Analysis] Cohere failed:', e); }
+    }
+
+    // Secondary: Groq
+    if (!analysisText && groqApiKey) {
+      try {
+        console.log('[Document-Analysis] Trying Groq...');
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${groqApiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: analysisPrompt }],
+            temperature: 0.3, max_tokens: 2500
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          analysisText = data.choices?.[0]?.message?.content || null;
+          if (analysisText) providerUsed = 'Groq';
+        } else { await response.text(); console.error('[Document-Analysis] Groq error:', response.status); }
+      } catch (e) { console.error('[Document-Analysis] Groq failed:', e); }
+    }
+
+    // Tertiary: OpenAI
+    if (!analysisText && openaiApiKey) {
+      try {
+        console.log('[Document-Analysis] Trying OpenAI...');
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${openaiApiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: analysisPrompt }],
+            temperature: 0.3, max_tokens: 2500
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          analysisText = data.choices?.[0]?.message?.content || null;
+          if (analysisText) providerUsed = 'OpenAI';
+        } else { await response.text(); console.error('[Document-Analysis] OpenAI error:', response.status); }
+      } catch (e) { console.error('[Document-Analysis] OpenAI failed:', e); }
+    }
+
+    // Tertiary: Gemini
+    if (!analysisText && geminiApiKey) {
+      try {
+        console.log('[Document-Analysis] Trying Gemini...');
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: analysisPrompt }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            generationConfig: { temperature: 0.3, maxOutputTokens: 2500 }
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          analysisText = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+          if (analysisText) providerUsed = 'Gemini';
+        } else { await response.text(); console.error('[Document-Analysis] Gemini error:', response.status); }
+      } catch (e) { console.error('[Document-Analysis] Gemini failed:', e); }
+    }
+
+    if (analysisText) {
             // Extract risk level from the analysis
             const riskLevel = analysisText.toLowerCase().includes('high risk') || analysisText.toLowerCase().includes('risk: high') ? 'high' :
                              analysisText.toLowerCase().includes('medium risk') || analysisText.toLowerCase().includes('risk: medium') ? 'medium' : 'low';
@@ -150,23 +223,14 @@ Based on the filename and document type (${fileType}), provide a general analysi
               riskLevel: riskLevel,
               analysis: analysisText,
               summary: sanitizedText ? 
-                `Document analysis completed using OCR with ${ocrConfidence}% confidence. ${identifiedSections} sections were analyzed${(hiddenClausesCount || 0) > 0 ? ` and ${hiddenClausesCount} potentially concerning clauses were identified` : ''}. Please review the detailed analysis below for important insights about this document.` :
+                `Document analysis completed (${providerUsed}) using OCR with ${ocrConfidence}% confidence. ${identifiedSections} sections were analyzed${(hiddenClausesCount || 0) > 0 ? ` and ${hiddenClausesCount} potentially concerning clauses were identified` : ''}. Please review the detailed analysis below for important insights about this document.` :
                 'Document analysis completed based on file type and general document patterns. Please review the analysis below for guidance on what to look for in this type of document.'
             };
 
-            console.log('[Document-Analysis] Analysis completed successfully');
+            console.log(`[Document-Analysis] Analysis completed via ${providerUsed}`);
             return new Response(JSON.stringify(structuredAnalysis), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
-          }
-        } else {
-          // Consume response body
-          await response.text();
-          console.error('[Document-Analysis] Cohere API error:', response.status);
-        }
-      } catch (apiError) {
-        console.error('[Document-Analysis] Cohere API call failed:', apiError);
-      }
     }
 
     // Enhanced fallback response
