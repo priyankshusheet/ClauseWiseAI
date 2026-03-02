@@ -48,25 +48,47 @@ interface AIProvider {
 }
 
 const AI_PROVIDERS: AIProvider[] = [
-  // Primary: ClauseWiseAI AI Gateway (Gemini)
+  // Primary: Cohere
   {
-    name: "ClauseWiseAI AI (Gemini)",
-    endpoint: "https://ai.gateway.clausewiseai.dev/v1/chat/completions",
+    name: "Cohere",
+    endpoint: "https://api.cohere.com/v2/chat",
+    getHeaders: (apiKey) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    formatBody: (messages, _stream) => {
+      return {
+        model: "command-r-plus",
+        messages: messages.map(m => ({
+          role: m.role === 'assistant' ? 'assistant' : m.role === 'system' ? 'system' : 'user',
+          content: m.content
+        })),
+        temperature: 0.3,
+        max_tokens: 4096,
+      };
+    },
+    parseResponse: (data) => data.message?.content?.[0]?.text || null,
+    getApiKey: () => Deno.env.get("COHERE_API_KEY"),
+  },
+  // Secondary: Groq
+  {
+    name: "Groq",
+    endpoint: "https://api.groq.com/openai/v1/chat/completions",
     getHeaders: (apiKey) => ({
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     }),
     formatBody: (messages, stream) => ({
-      model: "google/gemini-3-flash-preview",
+      model: "llama-3.3-70b-versatile",
       messages,
       stream,
       temperature: 0.3,
       max_tokens: 4096,
     }),
     parseResponse: (data) => data.choices?.[0]?.message?.content || null,
-    getApiKey: () => Deno.env.get("LOVABLE_API_KEY"),
+    getApiKey: () => Deno.env.get("GROQ_API_KEY"),
   },
-  // Fallback 1: OpenAI
+  // Tertiary: OpenAI
   {
     name: "OpenAI",
     endpoint: "https://api.openai.com/v1/chat/completions",
@@ -84,7 +106,7 @@ const AI_PROVIDERS: AIProvider[] = [
     parseResponse: (data) => data.choices?.[0]?.message?.content || null,
     getApiKey: () => Deno.env.get("OPENAI_API_KEY"),
   },
-  // Fallback 2: Gemini (direct)
+  // Tertiary: Gemini (direct)
   {
     name: "Google Gemini",
     endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
@@ -107,51 +129,6 @@ const AI_PROVIDERS: AIProvider[] = [
     }),
     parseResponse: (data) => data.candidates?.[0]?.content?.parts?.[0]?.text || null,
     getApiKey: () => Deno.env.get("GEMINI_API_KEY"),
-  },
-  // Fallback 3: Groq
-  {
-    name: "Groq",
-    endpoint: "https://api.groq.com/openai/v1/chat/completions",
-    getHeaders: (apiKey) => ({
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    }),
-    formatBody: (messages, stream) => ({
-      model: "llama-3.3-70b-versatile",
-      messages,
-      stream,
-      temperature: 0.3,
-      max_tokens: 4096,
-    }),
-    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
-    getApiKey: () => Deno.env.get("GROQ_API_KEY"),
-  },
-  // Fallback 4: Cohere
-  {
-    name: "Cohere",
-    endpoint: "https://api.cohere.com/v1/chat",
-    getHeaders: (apiKey) => ({
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    }),
-    formatBody: (messages, _stream) => {
-      const systemMsg = messages.find(m => m.role === 'system');
-      const userMessages = messages.filter(m => m.role !== 'system');
-      const lastMessage = userMessages.pop();
-      return {
-        model: "command-r-plus",
-        message: lastMessage?.content || '',
-        preamble: systemMsg?.content || SYSTEM_PROMPT,
-        chat_history: userMessages.map(m => ({
-          role: m.role === 'assistant' ? 'CHATBOT' : 'USER',
-          message: m.content
-        })),
-        temperature: 0.3,
-        max_tokens: 4096,
-      };
-    },
-    parseResponse: (data) => data.text || null,
-    getApiKey: () => Deno.env.get("COHERE_API_KEY"),
   },
 ];
 
