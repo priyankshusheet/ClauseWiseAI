@@ -57,7 +57,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
   if (prefersReducedMotion) {
     return (
-      <div className="fixed inset-0 bg-gradient-to-br from-indigo-700 via-purple-700 to-indigo-900 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-950 flex items-center justify-center z-50">
         <div className="text-center">
           <img src={clausewiseLogo} alt="ClauseWise" className="w-24 h-24 mx-auto rounded-2xl" />
           <h1 className="text-4xl font-bold text-white mt-6">ClauseWise</h1>
@@ -74,7 +74,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           key="splash"
           className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, #312e81 0%, #6d28d9 50%, #312e81 100%)',
+            background: 'linear-gradient(135deg, #1e1b4b 0%, #4c1d95 50%, #1e1b4b 100%)',
             backgroundSize: '200% 200%',
           }}
           animate={{
@@ -85,7 +85,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
             scale: 1.1,
             transition: { duration: 0.5, ease: 'easeInOut' },
           }}
-          transition={{ duration: 2, ease: 'easeInOut' }}
+          transition={{ duration: 3, ease: 'easeInOut' }}
         >
           {/* Particles */}
           {showParticles &&
@@ -115,8 +115,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                         scale: 0,
                       }
                     : {
-                        x: [`${p.x}vw`, `${p.x + (Math.random() - 0.5) * 6}vw`],
-                        y: [`${p.y}vh`, `${p.y + (Math.random() - 0.5) * 6}vh`],
+                        x: [`${p.x}vw`, `${p.x + (Math.random() - 0.5) * 4}vw`],
+                        y: [`${p.y}vh`, `${p.y + (Math.random() - 0.5) * 4}vh`],
                         opacity: [0.4, 0.8, 0.4],
                       }
                 }
@@ -140,12 +140,12 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
           {/* Radial glow behind logo */}
           <motion.div
-            className="absolute rounded-full"
+            className={`absolute rounded-full ${phase >= 2 ? 'animate-glow-pulse' : ''}`}
             style={{
-              width: 200,
-              height: 200,
-              background: 'radial-gradient(circle, rgba(139,92,246,0.5) 0%, transparent 70%)',
-              filter: 'blur(40px)',
+              width: 300,
+              height: 300,
+              background: 'radial-gradient(circle, rgba(139,92,246,0.4) 0%, transparent 70%)',
+              filter: 'blur(60px)',
             }}
             initial={{ opacity: 0, scale: 0 }}
             animate={
@@ -153,14 +153,14 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                 ? { opacity: 1, scale: 1.5 }
                 : { opacity: 0, scale: 0 }
             }
-            transition={{ duration: 0.8, ease: 'easeOut' }}
+            transition={{ duration: 1, ease: 'easeOut' }}
           />
 
-          {/* Logo */}
+          {/* Logo Content */}
           <motion.div className="relative z-10 flex flex-col items-center">
             <motion.div
-              className="rounded-2xl shadow-2xl overflow-hidden"
-              style={{ width: 96, height: 96 }}
+              className="rounded-3xl shadow-2xl overflow-hidden border border-white/10"
+              style={{ width: 100, height: 100 }}
               initial={{ scale: 0, opacity: 0 }}
               animate={
                 phase >= 2
@@ -169,9 +169,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
               }
               transition={{
                 type: 'spring',
-                stiffness: 200,
-                damping: 15,
-                delay: phase >= 2 ? 0.3 : 0,
+                stiffness: 150,
+                damping: 12,
+                delay: 0.2,
               }}
             >
               <img
@@ -183,28 +183,28 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
             {/* Title */}
             <motion.h1
-              className="text-4xl md:text-5xl font-bold text-white mt-6"
+              className="text-4xl md:text-5xl font-bold text-white mt-8 tracking-tight"
               initial={{ opacity: 0, y: 20 }}
               animate={
                 phase >= 3
                   ? { opacity: 1, y: 0 }
                   : { opacity: 0, y: 20 }
               }
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             >
               ClauseWise
             </motion.h1>
 
             {/* Tagline */}
             <motion.p
-              className="text-indigo-200 text-lg mt-2"
+              className="text-indigo-200/80 text-lg md:text-xl font-medium mt-3"
               initial={{ opacity: 0, y: 15 }}
               animate={
                 phase >= 3
                   ? { opacity: 1, y: 0 }
                   : { opacity: 0, y: 15 }
               }
-              transition={{ duration: 0.4, ease: 'easeOut', delay: 0.15 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
             >
               Your AI Financial Buddy
             </motion.p>
