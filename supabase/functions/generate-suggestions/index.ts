@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { optionalAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -83,6 +84,10 @@ serve(async (req) => {
   }
 
   try {
+    // Validate auth if token provided (supports trial users without auth)
+    const { userId } = await optionalAuth(req);
+    console.log(`[generate-suggestions] User: ${userId || 'anonymous'}`);
+
     const { conversationHistory, documentContext } = await req.json();
 
     if (!conversationHistory || conversationHistory.length < 2) {
