@@ -72,6 +72,8 @@ const Auth = () => {
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
       });
+      
+      console.log('[Auth] Sign-in attempt:', { email: formData.email.trim().toLowerCase(), hasError: !!error, errorMsg: error?.message, hasUser: !!data?.user });
 
       if (error) {
         console.error('Sign in error:', error);
@@ -319,9 +321,11 @@ const Auth = () => {
       if (error) {
         setAuthError(error.message);
       } else {
+        // Sign out so user can test sign-in with new password
+        await supabase.auth.signOut();
         toast({
           title: "Password Reset Successful",
-          description: "You can now sign in with your new password.",
+          description: "Please sign in with your new password.",
         });
         setFormData({ ...formData, password: '', newPassword: '', confirmPassword: '' });
         setCurrentView('signin');
