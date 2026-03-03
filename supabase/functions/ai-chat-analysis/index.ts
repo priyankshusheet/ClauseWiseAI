@@ -1,11 +1,11 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { optionalAuth } from "../_shared/auth.ts";
 
 // API Keys from environment
 const COHERE_API_KEY = Deno.env.get('COHERE_API_KEY');
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 
 const corsHeaders = {
@@ -1475,6 +1475,10 @@ serve(async (req) => {
   }
 
   try {
+    // Validate auth if token provided (supports trial users without auth)
+    const { userId } = await optionalAuth(req);
+    console.log(`[AI-Chat-Analysis] User: ${userId || 'anonymous'}`);
+
     const { message, hasDocument, fileName, conversationHistory = [] } = await req.json();
     
     console.log('Processing message:', message);
