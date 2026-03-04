@@ -96,8 +96,23 @@ const CLAUSE_CATEGORIES = [
 
 const VALID_DOCUMENT_TYPES = ['insurance', 'loan', 'creditCard', 'unknown'] as const;
 const VALID_LANGUAGES = ['en', 'hi', 'ta', 'te', 'bn', 'mr', 'gu', 'kn', 'ml', 'pa'] as const;
+const VALID_COUNTRIES = ['IN', 'US', 'GB', 'AE', 'SG'] as const;
 
-const DOCUMENT_ANALYSIS_PROMPT = `You are an expert financial document analyst. Analyze the provided document text and provide a comprehensive, structured analysis.
+const JURISDICTION_ANALYSIS_PROMPTS: Record<string, string> = {
+  IN: `You are an expert Indian financial document analyst. Analyze using Indian regulations:
+- IRDAI guidelines for insurance, RBI Master Directions for banking/loans, SEBI regulations for investments
+- Indian Contract Act 1872, Consumer Protection Act 2019, SARFAESI Act 2002
+- Use Indian terminology: EMI, lakh, crore, TDS, GST, CIBIL, repo rate
+- Reference specific Indian regulatory circulars when applicable
+- Use ₹ (INR) for all monetary amounts
+- Check for IRDAI free-look periods, RBI-mandated prepayment rules, SEBI exit loads`,
+  US: `You are an expert US financial document analyst. Use US regulations: TILA, RESPA, CARD Act, Dodd-Frank, CFPB guidelines. Use $ (USD).`,
+  GB: `You are an expert UK financial document analyst. Use FCA regulations, Consumer Rights Act 2015, FSMA 2000. Use £ (GBP).`,
+  AE: `You are an expert UAE financial document analyst. Use UAE Central Bank, DFSA, ADGM rules. Use AED.`,
+  SG: `You are an expert Singapore financial document analyst. Use MAS regulations, Insurance Act, SFA. Use SGD.`,
+};
+
+const DOCUMENT_ANALYSIS_PROMPT = `Analyze the provided document text and provide a comprehensive, structured analysis.
 
 Format your response EXACTLY as follows (use these exact headers):
 
@@ -170,6 +185,7 @@ serve(async (req) => {
     const ocrConfidence = validateNumber(bodyObj.ocrConfidence, 'ocrConfidence', { min: 0, max: 100 });
     const documentType = validateEnum(bodyObj.documentType, 'documentType', VALID_DOCUMENT_TYPES);
     const language = validateEnum(bodyObj.language, 'language', VALID_LANGUAGES, { defaultValue: 'en' });
+    const country = (bodyObj.country as string) || 'IN';
 
     // Sanitize extracted text
     const sanitizedText = extractedText ? sanitizeText(extractedText) : '';
@@ -193,7 +209,10 @@ serve(async (req) => {
     const detectedType = documentType || detectDocumentType(sanitizedText);
     const patternRisks = analyzeRiskPatterns(sanitizedText, detectedType);
     
-    // Step 3: AI-powered deep analysis
+    // Step 3: AI-powered deep analysis with jurisdiction
+    const jurisdictionPrompt = JURISDICTION_ANALYSIS_PROMPTS[country] || JURISDICTION_ANALYSIS_PROMPTS.IN;
+    const fullAnalysisPrompt = jurisdictionPrompt + "\n\n" + DOCUMENT_ANALYSIS_PROMPT;
+    
     const aiAnalysis = await performAIAnalysis(
       COHERE_KEY || GROQ_KEY || '',
       fileName!,
@@ -201,7 +220,8 @@ serve(async (req) => {
       ocrConfidence || 0,
       detectedType,
       classifiedClauses,
-      patternRisks
+      patternRisks,
+      fullAnalysisPrompt
     );
 
     // Step 4: Calculate final risk score
@@ -480,14 +500,16 @@ const DOCUMENT_AI_PROVIDERS: AIProvider[] = [
 ];
 
 async function performAIAnalysis(
-  _apiKey: string, // Kept for compatibility, but we use provider keys
+  _apiKey: string,
   fileName: string,
   extractedText: string,
   ocrConfidence: number,
   documentType: string,
   classifiedClauses: any[],
-  patternRisks: any[]
+  patternRisks: any[],
+  systemPrompt?: string
 ): Promise<string> {
+  const analysisPrompt = systemPrompt || DOCUMENT_ANALYSIS_PROMPT;
   const contextSummary = `
 Document: ${fileName}
 Type: ${documentType}
@@ -513,7 +535,7 @@ ${extractedText?.substring(0, 12000) || 'No text extracted'}`;
       const response = await fetch(provider.endpoint, {
         method: "POST",
         headers: provider.getHeaders(apiKey),
-        body: JSON.stringify(provider.formatBody(DOCUMENT_ANALYSIS_PROMPT, contextSummary)),
+        body: JSON.stringify(provider.formatBody(analysisPrompt, contextSummary)),
       });
 
       if (!response.ok) {
