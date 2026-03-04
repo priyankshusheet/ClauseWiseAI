@@ -88,21 +88,20 @@ const UploadPage = () => {
     }
   };
 
-  const startOCRAnalysis = () => {
+  const startUnifiedAnalysis = async () => {
+    // First do OCR, then immediately do AI analysis in one flow
     setShowOCR(true);
   };
 
-  const handleOCRComplete = (result: OCRAnalysisResult) => {
-    // Convert to local format
-    const localResult: LocalOCRResult = {
-      ...result,
-      hiddenClauses: result.hiddenClauses,
-    };
+  const handleOCRComplete = async (result: OCRAnalysisResult) => {
+    const localResult: LocalOCRResult = { ...result, hiddenClauses: result.hiddenClauses };
     setOcrResult(localResult);
     toast({
-      title: "OCR Analysis Complete",
-      description: `Extracted ${result.extractedText.length} characters with ${result.confidence.toFixed(1)}% confidence`,
+      title: "OCR Complete — Starting AI Analysis",
+      description: `Extracted ${result.extractedText.length} characters. Running AI analysis now...`,
     });
+    // Automatically start AI analysis after OCR completes
+    await startAIAnalysisWithOCR(localResult);
   };
 
   const formatTextWithBold = (text: string) => {
@@ -172,16 +171,12 @@ const UploadPage = () => {
     return { score: riskScore, level: riskLevel };
   };
 
-  const startAIAnalysis = async () => {
+  const startAIAnalysisWithOCR = async (ocrData?: LocalOCRResult) => {
     if (!selectedFile) return;
+    const activeOcr = ocrData || ocrResult;
 
-    // Check trial limits for non-authenticated users
     if (!user && !canAnalyzeDocument) {
-      toast({
-        title: "Trial Limit Reached",
-        description: "Please sign in to continue analyzing documents.",
-        variant: "destructive"
-      });
+      toast({ title: "Trial Limit Reached", description: "Please sign in to continue.", variant: "destructive" });
       return;
     }
 
@@ -191,23 +186,19 @@ const UploadPage = () => {
         fileName: selectedFile.name,
         fileType: selectedFile.type,
         analysisType: 'comprehensive',
-        ...(ocrResult && {
-          extractedText: ocrResult.extractedText,
-          ocrConfidence: ocrResult.confidence,
-          identifiedSections: ocrResult.sections.length,
-          hiddenClausesCount: ocrResult.hiddenClauses.length
+        country: localStorage.getItem('clausewise_country') || 'IN',
+        ...(activeOcr && {
+          extractedText: activeOcr.extractedText,
+          ocrConfidence: activeOcr.confidence,
+          identifiedSections: activeOcr.sections.length,
+          hiddenClausesCount: activeOcr.hiddenClauses.length
         })
       };
 
-      const { data, error } = await supabase.functions.invoke('document-analysis', {
-        body: analysisData
-      });
-
+      const { data, error } = await supabase.functions.invoke('document-analysis', { body: analysisData });
       if (error) throw error;
 
-      // Calculate dynamic risk assessment
-      const dynamicRisk = calculateDynamicRisk(ocrResult);
-
+      const dynamicRisk = calculateDynamicRisk(activeOcr || null);
       let processedResult = {
         riskScore: data.riskScore || dynamicRisk.score,
         riskLevel: data.riskLevel || dynamicRisk.level,
@@ -215,7 +206,6 @@ const UploadPage = () => {
         summary: data.summary || 'Document has been analyzed.'
       };
 
-      // Override with dynamic calculation if backend didn't provide proper risk assessment
       if (data.riskScore === 50 || !data.riskScore) {
         processedResult.riskScore = dynamicRisk.score;
         processedResult.riskLevel = dynamicRisk.level;
@@ -223,12 +213,8 @@ const UploadPage = () => {
 
       setAnalysisResult(processedResult);
       
-      // Record trial usage for non-authenticated users
-      if (!user) {
-        recordDocumentAnalysis();
-      }
+      if (!user) recordDocumentAnalysis();
       
-      // Auto-save to history if user is logged in
       if (user && selectedFile) {
         setIsSaving(true);
         const savedRecord = await saveAnalysis({
@@ -239,30 +225,23 @@ const UploadPage = () => {
           risk_level: processedResult.riskLevel,
           analysis_summary: processedResult.summary,
           analysis_result: processedResult as unknown as Record<string, unknown>,
-          ocr_result: ocrResult as unknown as Record<string, unknown>,
+          ocr_result: (activeOcr || null) as unknown as Record<string, unknown>,
           is_saved: false,
         });
-        if (savedRecord) {
-          setSavedAnalysisId(savedRecord.id);
-        }
+        if (savedRecord) setSavedAnalysisId(savedRecord.id);
         setIsSaving(false);
       }
       
-      toast({
-        title: "Analysis completed",
-        description: "Your document has been thoroughly analyzed.",
-      });
+      toast({ title: "Analysis completed", description: "Your document has been thoroughly analyzed." });
     } catch (error) {
       console.error('Analysis error:', error);
-      toast({
-        title: "Analysis failed",
-        description: "Unable to process the document. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Analysis failed", description: "Unable to process. Please try again.", variant: "destructive" });
     } finally {
       setIsAnalyzing(false);
     }
   };
+
+  const startAIAnalysis = async () => startAIAnalysisWithOCR();
 
   const handleSaveToggle = async () => {
     if (savedAnalysisId) {
@@ -501,25 +480,19 @@ const UploadPage = () => {
                       <p className="text-muted-foreground">Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
                     <div className="flex justify-center space-x-4">
-                      {!showOCR && (
-                        <Button onClick={startOCRAnalysis}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          Start OCR Analysis
+                      {!showOCR && !analysisResult && (
+                        <Button onClick={startUnifiedAnalysis} disabled={isAnalyzing}>
+                          <Zap className="w-4 h-4 mr-2" />
+                          Analyze Document
                         </Button>
                       )}
-                      {ocrResult && (
-                        <Button onClick={startAIAnalysis} disabled={isAnalyzing}>
-                          {isAnalyzing ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Analyzing...
-                            </>
-                          ) : (
-                            'AI Analysis'
-                          )}
+                      {isAnalyzing && (
+                        <Button disabled>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Analyzing...
                         </Button>
                       )}
-                      <Button variant="outline" onClick={() => setSelectedFile(null)}>
+                      <Button variant="outline" onClick={() => { setSelectedFile(null); setShowOCR(false); setAnalysisResult(null); setOcrResult(null); }}>
                         Select Different File
                       </Button>
                     </div>
