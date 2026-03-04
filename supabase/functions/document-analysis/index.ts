@@ -61,22 +61,7 @@ serve(async (req) => {
       console.log(`[Document-Analysis] OCR Data: ${sanitizedText.length} characters, ${ocrConfidence}% confidence, ${identifiedSections} sections, ${hiddenClausesCount} hidden clauses`);
     }
 
-    // Get country preference from request
-    const country = (bodyObj.country as string) || 'IN';
-    
-    const JURISDICTION_CONTEXT: Record<string, string> = {
-      IN: `You are ClauseWise, an expert Indian financial document analyzer. Apply Indian regulations (IRDAI, RBI, SEBI, Consumer Protection Act 2019, Indian Contract Act 1872). Use Indian terminology (EMI, lakh, crore, TDS, GST, CIBIL). Use ₹ (INR). Reference IRDAI free-look periods, RBI prepayment rules.`,
-      US: `You are ClauseWise, a US financial document analyzer. Apply US regulations (TILA, RESPA, CARD Act, Dodd-Frank, CFPB). Use $ (USD).`,
-      GB: `You are ClauseWise, a UK financial document analyzer. Apply UK regulations (FCA, Consumer Rights Act 2015). Use £ (GBP).`,
-      AE: `You are ClauseWise, a UAE financial document analyzer. Apply UAE Central Bank rules. Use AED.`,
-      SG: `You are ClauseWise, a Singapore financial document analyzer. Apply MAS regulations. Use SGD.`,
-    };
-
-    const jurisdictionContext = JURISDICTION_CONTEXT[country] || JURISDICTION_CONTEXT.IN;
-
-    const systemPrompt = `${jurisdictionContext}
-
-Analyze the document and provide a comprehensive, human-readable analysis in plain text format.
+    const systemPrompt = `You are ClauseWise, an expert financial document analyzer. Analyze the document and provide a comprehensive, human-readable analysis in plain text format.
 
 Focus on:
 - Document overview and purpose

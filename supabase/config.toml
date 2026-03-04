@@ -32,6 +32,3 @@ verify_jwt = false
 
 [functions.generate-suggestions]
 verify_jwt = false
-
-[functions.memory]
-verify_jwt = false
