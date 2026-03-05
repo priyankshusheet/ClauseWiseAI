@@ -145,7 +145,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
     setIsProcessing(true);
     setStreamingContent('');
 
-    // Create placeholder for assistant message
+    // Create placeholder for assistant message with typing indicator
     const assistantMessageId = (Date.now() + 1).toString();
     setMessages(prev => [...prev, {
       id: assistantMessageId,
@@ -184,6 +184,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
             // Record trial usage for non-authenticated users
             if (!user) {
               recordChatMessage();
+            }
+            
+            // Store memory for authenticated users (every 3rd message)
+            if (user && newHistory.length % 3 === 0 && accumulatedContent.length > 100) {
+              import('@/integrations/supabase/client').then(({ supabase }) => {
+                supabase.functions.invoke('memory', {
+                  body: {
+                    action: 'store',
+                    content: `User asked: "${inputValue.substring(0, 200)}" — AI responded about: ${accumulatedContent.substring(0, 300)}`,
+                    memoryType: documentContext ? 'document_discussion' : 'general_chat',
+                    metadata: {
+                      documentName: documentContext?.fileName,
+                      timestamp: new Date().toISOString(),
+                    },
+                  },
+                }).catch(err => console.warn('Memory store failed (non-critical):', err));
+              });
             }
             
             // Add to conversation history
@@ -353,7 +370,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
                       >
                         {message.content || ' '}
                       </ReactMarkdown>
-                      {message.isStreaming && (
+                      {message.isStreaming && !message.content && (
+                        <div className="flex items-center gap-1.5 py-1">
+                          <span className="text-sm text-muted-foreground italic">Thinking</span>
+                          <span className="flex gap-0.5">
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </span>
+                        </div>
+                      )}
+                      {message.isStreaming && message.content && (
                         <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-0.5" />
                       )}
                     </div>
