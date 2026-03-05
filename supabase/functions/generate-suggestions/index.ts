@@ -48,7 +48,7 @@ const PROVIDERS: Provider[] = [
     endpoint: "https://api.cohere.com/v2/chat",
     getHeaders: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
     formatBody: (messages) => ({
-      model: "command-r-plus",
+      model: "command-a-03-2025",
       messages: messages.map(m => ({
         role: m.role === 'assistant' ? 'assistant' : m.role === 'system' ? 'system' : 'user',
         content: m.content,

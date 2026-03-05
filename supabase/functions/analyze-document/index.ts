@@ -407,7 +407,7 @@ const DOCUMENT_AI_PROVIDERS: AIProvider[] = [
       "Content-Type": "application/json",
     }),
     formatBody: (systemPrompt, userPrompt) => ({
-      model: "command-r-plus",
+      model: "command-a-03-2025",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }

@@ -121,7 +121,7 @@ Based on the filename and document type (${fileType}), provide a general analysi
           method: 'POST',
           headers: { 'Authorization': `Bearer ${cohereApiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'command-r-plus',
+            model: 'command-a-03-2025',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: analysisPrompt }

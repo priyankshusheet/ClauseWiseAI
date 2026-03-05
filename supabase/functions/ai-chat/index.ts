@@ -58,7 +58,7 @@ const AI_PROVIDERS: AIProvider[] = [
     }),
     formatBody: (messages, _stream) => {
       return {
-        model: "command-r-plus",
+        model: "command-a-03-2025",
         messages: messages.map(m => ({
           role: m.role === 'assistant' ? 'assistant' : m.role === 'system' ? 'system' : 'user',
           content: m.content
@@ -155,19 +155,7 @@ async function tryProvider(
       const errorText = await response.text();
       console.error(`[AI-Chat] ${provider.name} error: ${response.status} - ${errorText.substring(0, 200)}`);
       
-      // Don't fallback on rate limits or quota - return specific error
-      if (response.status === 429) {
-        return { 
-          success: false, 
-          error: `RATE_LIMIT:${provider.name}` 
-        };
-      }
-      if (response.status === 402) {
-        return { 
-          success: false, 
-          error: `QUOTA_EXCEEDED:${provider.name}` 
-        };
-      }
+      // Continue to next provider on rate limits, quota, or other errors
       
       return { success: false, error: `${provider.name}: HTTP ${response.status}` };
     }
@@ -194,22 +182,6 @@ async function callAIWithFallback(
     }
     
     if (result.error) {
-      // Handle specific errors that should not trigger fallback
-      if (result.error.startsWith('RATE_LIMIT:')) {
-        return {
-          error: "Rate limit exceeded. Please wait a moment before trying again.",
-          code: "RATE_LIMIT",
-          status: 429
-        };
-      }
-      if (result.error.startsWith('QUOTA_EXCEEDED:')) {
-        return {
-          error: "AI service quota exceeded. Please add credits to continue.",
-          code: "QUOTA_EXCEEDED",
-          status: 402
-        };
-      }
-      
       errors.push(result.error);
     }
   }
