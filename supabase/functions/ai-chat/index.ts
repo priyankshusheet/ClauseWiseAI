@@ -194,6 +194,36 @@ async function callAIWithFallback(
   };
 }
 
+function normalizeToOpenAIFormat(provider: string, data: any) {
+  if (provider === "OpenAI" || provider === "Groq") {
+    return data;
+  }
+
+  if (provider === "Cohere") {
+    const content = data?.message?.content?.[0]?.text || "";
+    return {
+      choices: [
+        {
+          message: { role: "assistant", content }
+        }
+      ]
+    };
+  }
+
+  if (provider === "Google Gemini") {
+    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    return {
+      choices: [
+        {
+          message: { role: "assistant", content }
+        }
+      ]
+    };
+  }
+
+  return data;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -272,11 +302,36 @@ serve(async (req) => {
     const latency = Date.now() - startTime;
     console.log(`[AI-Chat] ${result.provider} response received (${latency}ms)`);
 
-    // Return streaming response
+    // Return streaming response (OpenAI-compatible SSE)
     if (stream) {
-      return new Response(result.response.body, {
-        headers: { 
-          ...corsHeaders, 
+      if (result.provider === "OpenAI" || result.provider === "Groq") {
+        return new Response(result.response.body, {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/event-stream",
+            "X-Response-Time": `${latency}ms`,
+            "X-AI-Provider": result.provider
+          },
+        });
+      }
+
+      const providerData = await result.response.json();
+      const normalized = normalizeToOpenAIFormat(result.provider, providerData);
+      const content = normalized?.choices?.[0]?.message?.content || "";
+
+      const streamBody = new ReadableStream({
+        start(controller) {
+          const encoder = new TextEncoder();
+          const payload = JSON.stringify({ choices: [{ delta: { content } }] });
+          controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        }
+      });
+
+      return new Response(streamBody, {
+        headers: {
+          ...corsHeaders,
           "Content-Type": "text/event-stream",
           "X-Response-Time": `${latency}ms`,
           "X-AI-Provider": result.provider
@@ -284,11 +339,12 @@ serve(async (req) => {
       });
     }
 
-    // Non-streaming response
+    // Non-streaming response normalized to OpenAI shape
     const data = await result.response.json();
-    return new Response(JSON.stringify(data), {
-      headers: { 
-        ...corsHeaders, 
+    const normalized = normalizeToOpenAIFormat(result.provider, data);
+    return new Response(JSON.stringify(normalized), {
+      headers: {
+        ...corsHeaders,
         "Content-Type": "application/json",
         "X-Response-Time": `${latency}ms`,
         "X-AI-Provider": result.provider
