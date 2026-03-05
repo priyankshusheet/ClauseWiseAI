@@ -171,12 +171,16 @@ class AIService {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let rawTextBuffer = '';
+      let hasReceivedDelta = false;
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        const chunkText = decoder.decode(value, { stream: true });
+        rawTextBuffer += chunkText;
+        buffer += chunkText;
 
         // Process complete lines
         let newlineIndex: number;
@@ -203,6 +207,7 @@ class AIService {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
+              hasReceivedDelta = true;
               options.onDelta(content);
             }
           } catch {
@@ -224,12 +229,38 @@ class AIService {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
+              hasReceivedDelta = true;
               options.onDelta(content);
             }
           } catch {
             // Ignore incomplete data
           }
         }
+      }
+
+      // Safety: if stream returned plain JSON instead of SSE, recover gracefully
+      if (!hasReceivedDelta && rawTextBuffer.trim()) {
+        try {
+          const parsed = JSON.parse(rawTextBuffer);
+          const fallbackContent =
+            parsed?.choices?.[0]?.message?.content ||
+            parsed?.message?.content?.[0]?.text ||
+            parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+          if (fallbackContent) {
+            options.onDelta(fallbackContent);
+            options.onDone();
+            return;
+          }
+        } catch {
+          // Not JSON, continue to fallback below
+        }
+      }
+
+      if (!hasReceivedDelta) {
+        console.warn('[AIService] Stream completed with no deltas, using fallback response');
+        this.provideFallbackResponse(options, documentContext);
+        return;
       }
 
       options.onDone();
