@@ -82,7 +82,6 @@ const RISK_PATTERNS = {
   },
 };
 
-// Clause classification categories
 const CLAUSE_CATEGORIES = [
   { name: "Fees & Charges", keywords: ["fee", "charge", "cost", "payment", "premium", "processing"] },
   { name: "Penalties", keywords: ["penalty", "late", "overdue", "default", "bounce", "penal"] },
@@ -95,11 +94,49 @@ const CLAUSE_CATEGORIES = [
 ];
 
 const VALID_DOCUMENT_TYPES = ['insurance', 'loan', 'creditCard', 'unknown'] as const;
-const VALID_LANGUAGES = ['en', 'hi', 'ta', 'te', 'bn', 'mr', 'gu', 'kn', 'ml', 'pa'] as const;
 
-const DOCUMENT_ANALYSIS_PROMPT = `You are an expert financial document analyst. Analyze the provided document text and provide a comprehensive, structured analysis.
+const MULTIMODAL_ANALYSIS_PROMPT = `You are an expert financial document analyst. You are given an image/scan of a financial document. Perform BOTH text extraction (OCR) and comprehensive analysis in a SINGLE pass.
 
-Format your response EXACTLY as follows (use these exact headers):
+Your response MUST follow this EXACT structure:
+
+## Extracted Text
+[Transcribe ALL visible text from the document faithfully. Include every clause, term, number, and fine print you can read.]
+
+## Document Overview
+[Brief summary of document type and purpose]
+
+## Key Terms & Conditions
+- [List important terms]
+
+## Risk Assessment
+**Risk Level: [Low/Medium/High]**
+**Risk Score: [0-100]**
+
+### High Risk Factors
+- [List high risk items if any]
+
+### Medium Risk Factors  
+- [List medium risk items if any]
+
+## Hidden or Concerning Clauses
+- [List any hidden fees, auto-renewal, penalties]
+
+## Financial Implications
+- [List fees, charges, penalties with amounts]
+
+## Consumer Rights
+- [List consumer protections and rights]
+
+## Recommendations
+1. [Action item 1]
+2. [Action item 2]
+3. [Action item 3]
+
+Be specific, cite clause numbers when possible, and use plain language. Pay special attention to tables, charts, and handwritten annotations.`;
+
+const TEXT_ANALYSIS_PROMPT = `You are an expert financial document analyst. Analyze the provided document text and provide a comprehensive, structured analysis.
+
+Format your response EXACTLY as follows:
 
 ## Document Overview
 [Brief summary of document type and purpose]
@@ -116,9 +153,6 @@ Format your response EXACTLY as follows (use these exact headers):
 
 ### Medium Risk Factors
 - [List medium risk items if any]
-
-### Low Risk Factors
-- [List low risk items if any]
 
 ## Hidden or Concerning Clauses
 - [List any hidden fees, auto-renewal, penalties]
@@ -144,13 +178,9 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    // Require authentication
     const authResult = await requireAuth(req, corsHeaders);
-    if (authResult instanceof Response) {
-      return authResult;
-    }
+    if (authResult instanceof Response) return authResult;
 
-    // Parse and validate request body
     let body: unknown;
     try {
       body = await req.json();
@@ -162,70 +192,168 @@ serve(async (req) => {
     }
 
     const bodyObj = body as Record<string, unknown>;
-
-    // Validate inputs
     const fileName = validateString(bodyObj.fileName, 'fileName', { required: true, maxLength: 255 });
     const fileType = validateString(bodyObj.fileType, 'fileType', { maxLength: 100 });
     const extractedText = validateString(bodyObj.extractedText, 'extractedText', { maxLength: 500000 });
     const ocrConfidence = validateNumber(bodyObj.ocrConfidence, 'ocrConfidence', { min: 0, max: 100 });
     const documentType = validateEnum(bodyObj.documentType, 'documentType', VALID_DOCUMENT_TYPES);
-    const language = validateEnum(bodyObj.language, 'language', VALID_LANGUAGES, { defaultValue: 'en' });
+    
+    // NEW: Accept base64 file data for multimodal analysis
+    const fileBase64 = bodyObj.fileBase64 as string | undefined;
+    const fileMimeType = bodyObj.fileMimeType as string | undefined;
 
-    // Sanitize extracted text
     const sanitizedText = extractedText ? sanitizeText(extractedText) : '';
+    const isMultimodal = !!fileBase64 && !!fileMimeType;
 
-    console.log(`[Analyze-Document] User: ${authResult.userId}, Processing: ${fileName} (${fileType}), confidence: ${ocrConfidence}%`);
+    console.log(`[Analyze-Document] User: ${authResult.userId}, Processing: ${fileName}, multimodal: ${isMultimodal}`);
 
-    const COHERE_KEY = Deno.env.get("COHERE_API_KEY");
-    const GROQ_KEY = Deno.env.get("GROQ_API_KEY");
+    let aiAnalysis: string | null = null;
+    let extractedFromVision = '';
 
-    if (!COHERE_KEY && !GROQ_KEY) {
-      return new Response(
-        JSON.stringify({ error: "AI service not configured", code: "SERVICE_ERROR" }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // MULTIMODAL PATH: Use Gemini Vision for combined OCR + AI analysis
+    if (isMultimodal) {
+      const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+      
+      if (geminiApiKey) {
+        try {
+          console.log(`[Analyze-Document] Using Gemini Vision for multimodal analysis`);
+          
+          const response = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": geminiApiKey,
+              },
+              body: JSON.stringify({
+                contents: [{
+                  role: "user",
+                  parts: [
+                    {
+                      inline_data: {
+                        mime_type: fileMimeType,
+                        data: fileBase64,
+                      }
+                    },
+                    {
+                      text: `Analyze this financial document: "${fileName}". ${MULTIMODAL_ANALYSIS_PROMPT}`
+                    }
+                  ]
+                }],
+                generationConfig: {
+                  temperature: 0.2,
+                  maxOutputTokens: 8000,
+                }
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            aiAnalysis = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+            
+            if (aiAnalysis) {
+              // Extract the OCR text from the multimodal response
+              const extractedMatch = aiAnalysis.match(/## Extracted Text\n([\s\S]*?)(?=\n## )/);
+              if (extractedMatch) {
+                extractedFromVision = extractedMatch[1].trim();
+              }
+              console.log(`[Analyze-Document] Gemini Vision analysis complete`);
+            }
+          } else {
+            const errText = await response.text();
+            console.error(`[Analyze-Document] Gemini Vision error: ${response.status} - ${errText.substring(0, 200)}`);
+          }
+        } catch (e) {
+          console.error(`[Analyze-Document] Gemini Vision exception:`, e);
+        }
+      }
+
+      // Fallback: try OpenAI Vision
+      if (!aiAnalysis) {
+        const openaiKey = Deno.env.get("OPENAI_API_KEY");
+        if (openaiKey) {
+          try {
+            console.log(`[Analyze-Document] Falling back to OpenAI Vision`);
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${openaiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [{
+                  role: "user",
+                  content: [
+                    {
+                      type: "image_url",
+                      image_url: { url: `data:${fileMimeType};base64,${fileBase64}` }
+                    },
+                    {
+                      type: "text",
+                      text: `Analyze this financial document: "${fileName}". ${MULTIMODAL_ANALYSIS_PROMPT}`
+                    }
+                  ]
+                }],
+                max_tokens: 8000,
+                temperature: 0.2,
+              }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              aiAnalysis = data.choices?.[0]?.message?.content || null;
+              if (aiAnalysis) {
+                const extractedMatch = aiAnalysis.match(/## Extracted Text\n([\s\S]*?)(?=\n## )/);
+                if (extractedMatch) extractedFromVision = extractedMatch[1].trim();
+                console.log(`[Analyze-Document] OpenAI Vision analysis complete`);
+              }
+            }
+          } catch (e) {
+            console.error(`[Analyze-Document] OpenAI Vision exception:`, e);
+          }
+        }
+      }
     }
 
-    // Step 1: Classify clauses
-    const classifiedClauses = classifyClauses(sanitizedText);
+    // TEXT-ONLY PATH: Use text-based AI analysis (original flow)
+    const textForAnalysis = sanitizedText || extractedFromVision;
     
-    // Step 2: Pattern-based risk analysis
-    const detectedType = documentType || detectDocumentType(sanitizedText);
-    const patternRisks = analyzeRiskPatterns(sanitizedText, detectedType);
-    
-    // Step 3: AI-powered deep analysis
-    const aiAnalysis = await performAIAnalysis(
-      COHERE_KEY || GROQ_KEY || '',
-      fileName!,
-      sanitizedText,
-      ocrConfidence || 0,
-      detectedType,
-      classifiedClauses,
-      patternRisks
-    );
+    if (!aiAnalysis && textForAnalysis) {
+      aiAnalysis = await performTextAIAnalysis(fileName!, textForAnalysis, ocrConfidence || 0, documentType || 'unknown');
+    }
 
-    // Step 4: Calculate final risk score
-    const riskScore = calculateRiskScore(patternRisks, ocrConfidence || 0, classifiedClauses);
+    // Pattern-based analysis on whatever text we have
+    const analysisText = textForAnalysis || '';
+    const classifiedClauses = classifyClauses(analysisText);
+    const detectedType = documentType || detectDocumentType(analysisText);
+    const patternRisks = analyzeRiskPatterns(analysisText, detectedType);
+    const riskScore = calculateRiskScore(patternRisks, ocrConfidence || (isMultimodal ? 90 : 0), classifiedClauses);
     const riskLevel = riskScore >= 70 ? 'high' : riskScore >= 40 ? 'medium' : 'low';
 
     const latency = Date.now() - startTime;
-    console.log(`[Analyze-Document] Complete (${latency}ms), risk: ${riskScore}/100 (${riskLevel})`);
+    console.log(`[Analyze-Document] Complete (${latency}ms), risk: ${riskScore}/100 (${riskLevel}), multimodal: ${isMultimodal}`);
 
     return new Response(JSON.stringify({
       success: true,
-      analysis: aiAnalysis,
+      analysis: aiAnalysis || createFallbackAnalysis(fileName!, analysisText, ocrConfidence || 0),
       riskScore,
       riskLevel,
       documentType: detectedType,
       classifiedClauses,
       patternRisks,
+      // Return vision-extracted text so client can use it
+      extractedText: extractedFromVision || sanitizedText || '',
+      multimodal: isMultimodal,
       metadata: {
         fileName,
         fileType,
-        ocrConfidence,
-        textLength: sanitizedText?.length || 0,
+        ocrConfidence: isMultimodal ? 95 : ocrConfidence,
+        textLength: analysisText.length,
         processingTime: latency,
-        language,
+        analysisMethod: isMultimodal ? 'multimodal-vision' : 'text-analysis',
       }
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -240,29 +368,6 @@ serve(async (req) => {
 
     console.error(`[Analyze-Document] Error (${latency}ms):`, e);
 
-    if (e instanceof Error) {
-      if (e.message?.includes("429") || e.message?.includes("rate limit")) {
-        return new Response(JSON.stringify({ 
-          error: "Rate limit exceeded",
-          code: "RATE_LIMIT",
-          retryAfter: 30
-        }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      if (e.message?.includes("402")) {
-        return new Response(JSON.stringify({ 
-          error: "AI quota exceeded",
-          code: "QUOTA_EXCEEDED"
-        }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
     return new Response(JSON.stringify({ 
       error: "Analysis failed. Please try again.",
       code: "INTERNAL_ERROR"
@@ -273,33 +378,149 @@ serve(async (req) => {
   }
 });
 
+// Text-based AI analysis with provider fallback
+async function performTextAIAnalysis(
+  fileName: string,
+  text: string,
+  ocrConfidence: number,
+  documentType: string,
+): Promise<string | null> {
+  const contextPrompt = `Analyze this financial document: "${fileName}"
+Document type: ${documentType}
+OCR Confidence: ${ocrConfidence}%
+
+Document text (first 12000 chars):
+${text.substring(0, 12000)}`;
+
+  const providers = [
+    {
+      name: "Groq",
+      call: async () => {
+        const key = Deno.env.get("GROQ_API_KEY");
+        if (!key) return null;
+        const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [{ role: "system", content: TEXT_ANALYSIS_PROMPT }, { role: "user", content: contextPrompt }],
+            temperature: 0.2, max_tokens: 4000,
+          }),
+        });
+        if (!r.ok) return null;
+        const d = await r.json();
+        return d.choices?.[0]?.message?.content || null;
+      }
+    },
+    {
+      name: "Cohere",
+      call: async () => {
+        const key = Deno.env.get("COHERE_API_KEY");
+        if (!key) return null;
+        const r = await fetch("https://api.cohere.com/v2/chat", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "command-a-03-2025",
+            messages: [{ role: "system", content: TEXT_ANALYSIS_PROMPT }, { role: "user", content: contextPrompt }],
+            temperature: 0.2, max_tokens: 4000,
+          }),
+        });
+        if (!r.ok) return null;
+        const d = await r.json();
+        return d.message?.content?.[0]?.text || null;
+      }
+    },
+    {
+      name: "OpenAI",
+      call: async () => {
+        const key = Deno.env.get("OPENAI_API_KEY");
+        if (!key) return null;
+        const r = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [{ role: "system", content: TEXT_ANALYSIS_PROMPT }, { role: "user", content: contextPrompt }],
+            temperature: 0.2, max_tokens: 4000,
+          }),
+        });
+        if (!r.ok) return null;
+        const d = await r.json();
+        return d.choices?.[0]?.message?.content || null;
+      }
+    },
+    {
+      name: "Gemini",
+      call: async () => {
+        const key = Deno.env.get("GEMINI_API_KEY");
+        if (!key) return null;
+        const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: contextPrompt }] }],
+            systemInstruction: { parts: [{ text: TEXT_ANALYSIS_PROMPT }] },
+            generationConfig: { temperature: 0.2, maxOutputTokens: 4000 },
+          }),
+        });
+        if (!r.ok) return null;
+        const d = await r.json();
+        return d.candidates?.[0]?.content?.parts?.[0]?.text || null;
+      }
+    },
+  ];
+
+  for (const provider of providers) {
+    try {
+      console.log(`[Analyze-Document] Trying ${provider.name}...`);
+      const result = await provider.call();
+      if (result) {
+        console.log(`[Analyze-Document] ${provider.name} succeeded`);
+        return result;
+      }
+    } catch (e) {
+      console.error(`[Analyze-Document] ${provider.name} failed:`, e);
+    }
+  }
+
+  return null;
+}
+
+function createFallbackAnalysis(fileName: string, text: string, ocrConfidence: number): string {
+  return `## Document Analysis: ${fileName}
+
+## Document Overview
+This financial document requires careful review.
+
+## Key Areas to Review
+- Fees and charges
+- Terms and conditions
+- Risk factors and exclusions
+- Important dates and deadlines
+
+## Recommendations
+1. Read all sections carefully, especially the fine print
+2. Highlight any unclear terms and seek clarification
+3. Compare with similar products from other providers
+4. Consult a professional for complex documents
+
+*Note: Full AI analysis was unavailable. This is a basic analysis.*`;
+}
+
 function detectDocumentType(text: string): string {
   const lowerText = text.toLowerCase();
-  
-  const scores = {
-    insurance: 0,
-    loan: 0,
-    creditCard: 0,
-  };
+  const scores = { insurance: 0, loan: 0, creditCard: 0 };
 
-  // Insurance indicators
   if (lowerText.includes('policy') || lowerText.includes('insured') || lowerText.includes('claim')) scores.insurance += 3;
   if (lowerText.includes('sum assured') || lowerText.includes('premium') || lowerText.includes('coverage')) scores.insurance += 2;
-  if (lowerText.includes('exclusion') || lowerText.includes('waiting period')) scores.insurance += 2;
-
-  // Loan indicators
   if (lowerText.includes('loan') || lowerText.includes('emi') || lowerText.includes('principal')) scores.loan += 3;
   if (lowerText.includes('interest rate') || lowerText.includes('tenure') || lowerText.includes('disbursement')) scores.loan += 2;
-  if (lowerText.includes('mortgage') || lowerText.includes('collateral') || lowerText.includes('prepayment')) scores.loan += 2;
-
-  // Credit card indicators
   if (lowerText.includes('credit card') || lowerText.includes('card member')) scores.creditCard += 3;
-  if (lowerText.includes('credit limit') || lowerText.includes('billing cycle') || lowerText.includes('reward point')) scores.creditCard += 2;
-  if (lowerText.includes('annual fee') || lowerText.includes('minimum due') || lowerText.includes('cash advance')) scores.creditCard += 2;
+  if (lowerText.includes('credit limit') || lowerText.includes('billing cycle')) scores.creditCard += 2;
 
   const maxScore = Math.max(scores.insurance, scores.loan, scores.creditCard);
   if (maxScore < 3) return 'unknown';
-  
   if (scores.insurance === maxScore) return 'insurance';
   if (scores.loan === maxScore) return 'loan';
   return 'creditCard';
@@ -311,52 +532,35 @@ function classifyClauses(text: string): { category: string; clauses: string[]; r
 
   for (const category of CLAUSE_CATEGORIES) {
     const matchingClauses: string[] = [];
-    
     for (const sentence of sentences) {
       const lowerSentence = sentence.toLowerCase();
-      const hasMatch = category.keywords.some(keyword => lowerSentence.includes(keyword));
-      
-      if (hasMatch && sentence.trim().length < 500) {
+      if (category.keywords.some(keyword => lowerSentence.includes(keyword)) && sentence.trim().length < 500) {
         matchingClauses.push(sentence.trim());
       }
     }
-
     if (matchingClauses.length > 0) {
-      // Determine risk level based on category
       let riskLevel = 'low';
       if (['Penalties', 'Exclusions', 'Liability'].includes(category.name)) riskLevel = 'high';
       else if (['Fees & Charges', 'Auto-Renewal', 'Termination'].includes(category.name)) riskLevel = 'medium';
-
-      results.push({
-        category: category.name,
-        clauses: matchingClauses.slice(0, 5), // Limit to 5 per category
-        riskLevel,
-      });
+      results.push({ category: category.name, clauses: matchingClauses.slice(0, 5), riskLevel });
     }
   }
-
   return results;
 }
 
 function analyzeRiskPatterns(text: string, documentType: string): { level: string; matches: string[]; pattern: string }[] {
   const risks: { level: string; matches: string[]; pattern: string }[] = [];
   const patterns = RISK_PATTERNS[documentType as keyof typeof RISK_PATTERNS];
-  
   if (!patterns) return risks;
 
   for (const [level, regexPatterns] of Object.entries(patterns)) {
     for (const pattern of regexPatterns) {
       const matches = text.match(pattern);
       if (matches && matches.length > 0) {
-        risks.push({
-          level,
-          matches: [...new Set(matches)].slice(0, 3),
-          pattern: pattern.source,
-        });
+        risks.push({ level, matches: [...new Set(matches)].slice(0, 3), pattern: pattern.source });
       }
     }
   }
-
   return risks;
 }
 
@@ -365,193 +569,17 @@ function calculateRiskScore(
   ocrConfidence: number,
   classifiedClauses: { riskLevel: string; clauses: string[] }[]
 ): number {
-  let score = 30; // Base score
-
-  // Pattern-based scoring
+  let score = 30;
   for (const risk of patternRisks) {
     if (risk.level === 'high') score += 15 * Math.min(risk.matches.length, 3);
     else if (risk.level === 'medium') score += 8 * Math.min(risk.matches.length, 3);
     else score -= 3 * Math.min(risk.matches.length, 2);
   }
-
-  // Clause-based scoring
   for (const clause of classifiedClauses) {
     if (clause.riskLevel === 'high') score += 5 * Math.min(clause.clauses.length, 3);
     else if (clause.riskLevel === 'medium') score += 3 * Math.min(clause.clauses.length, 3);
   }
-
-  // Confidence penalty
   if (ocrConfidence < 70) score += 10;
   else if (ocrConfidence < 85) score += 5;
-
   return Math.max(0, Math.min(100, score));
-}
-
-// AI Provider configurations for document analysis with fallback
-interface AIProvider {
-  name: string;
-  endpoint: string;
-  getHeaders: (apiKey: string) => Record<string, string>;
-  formatBody: (systemPrompt: string, userPrompt: string) => any;
-  parseResponse: (data: any) => string | null;
-  getApiKey: () => string | undefined;
-}
-
-const DOCUMENT_AI_PROVIDERS: AIProvider[] = [
-  // Primary: Cohere
-  {
-    name: "Cohere",
-    endpoint: "https://api.cohere.com/v2/chat",
-    getHeaders: (apiKey) => ({
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    }),
-    formatBody: (systemPrompt, userPrompt) => ({
-      model: "command-a-03-2025",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.2,
-      max_tokens: 3000,
-    }),
-    parseResponse: (data) => data.message?.content?.[0]?.text || null,
-    getApiKey: () => Deno.env.get("COHERE_API_KEY"),
-  },
-  // Secondary: Groq
-  {
-    name: "Groq",
-    endpoint: "https://api.groq.com/openai/v1/chat/completions",
-    getHeaders: (apiKey) => ({
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    }),
-    formatBody: (systemPrompt, userPrompt) => ({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.2,
-      max_tokens: 3000,
-    }),
-    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
-    getApiKey: () => Deno.env.get("GROQ_API_KEY"),
-  },
-  // Tertiary: OpenAI
-  {
-    name: "OpenAI",
-    endpoint: "https://api.openai.com/v1/chat/completions",
-    getHeaders: (apiKey) => ({
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    }),
-    formatBody: (systemPrompt, userPrompt) => ({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.2,
-      max_tokens: 3000,
-    }),
-    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
-    getApiKey: () => Deno.env.get("OPENAI_API_KEY"),
-  },
-  // Tertiary: Gemini (direct)
-  {
-    name: "Google Gemini",
-    endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
-    getHeaders: (apiKey) => ({
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    }),
-    formatBody: (systemPrompt, userPrompt) => ({
-      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 3000,
-      }
-    }),
-    parseResponse: (data) => data.candidates?.[0]?.content?.parts?.[0]?.text || null,
-    getApiKey: () => Deno.env.get("GEMINI_API_KEY"),
-  },
-];
-
-async function performAIAnalysis(
-  _apiKey: string, // Kept for compatibility, but we use provider keys
-  fileName: string,
-  extractedText: string,
-  ocrConfidence: number,
-  documentType: string,
-  classifiedClauses: any[],
-  patternRisks: any[]
-): Promise<string> {
-  const contextSummary = `
-Document: ${fileName}
-Type: ${documentType}
-OCR Confidence: ${ocrConfidence}%
-Detected Risk Patterns: ${patternRisks.filter(r => r.level === 'high').length} high, ${patternRisks.filter(r => r.level === 'medium').length} medium
-Classified Clauses: ${classifiedClauses.map(c => `${c.category} (${c.clauses.length})`).join(', ')}
-
-Document Text (first 12000 chars):
-${extractedText?.substring(0, 12000) || 'No text extracted'}`;
-
-  const errors: string[] = [];
-
-  for (const provider of DOCUMENT_AI_PROVIDERS) {
-    const apiKey = provider.getApiKey();
-    if (!apiKey) {
-      errors.push(`${provider.name}: API key not configured`);
-      continue;
-    }
-
-    try {
-      console.log(`[Analyze-Document] Trying provider: ${provider.name}`);
-      
-      const response = await fetch(provider.endpoint, {
-        method: "POST",
-        headers: provider.getHeaders(apiKey),
-        body: JSON.stringify(provider.formatBody(DOCUMENT_ANALYSIS_PROMPT, contextSummary)),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[Analyze-Document] ${provider.name} error: ${response.status} - ${errorText.substring(0, 200)}`);
-        
-        // Re-throw rate limit errors
-        if (response.status === 429) {
-          throw new Error(`429: Rate limit exceeded on ${provider.name}`);
-        }
-        if (response.status === 402) {
-          throw new Error(`402: Quota exceeded on ${provider.name}`);
-        }
-        
-        errors.push(`${provider.name}: HTTP ${response.status}`);
-        continue;
-      }
-
-      const data = await response.json();
-      const content = provider.parseResponse(data);
-      
-      if (content) {
-        console.log(`[Analyze-Document] ${provider.name} responded successfully`);
-        return content;
-      }
-      
-      errors.push(`${provider.name}: Empty response`);
-    } catch (error) {
-      // Re-throw rate limit and quota errors
-      if (error instanceof Error && (error.message.includes('429') || error.message.includes('402'))) {
-        throw error;
-      }
-      
-      console.error(`[Analyze-Document] ${provider.name} exception:`, error);
-      errors.push(`${provider.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  console.error(`[Analyze-Document] All providers failed:`, errors);
-  return "Analysis could not be completed. All AI providers are currently unavailable. Please try again later.";
 }

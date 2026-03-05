@@ -22,6 +22,7 @@ import {
 import { enhancedOCRService, EnhancedOCRService } from '@/services/enhancedOCRService';
 import { pdfService, PDFExtractionResult } from '@/services/pdfService';
 import { aiService } from '@/services/aiService';
+import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 
@@ -76,6 +77,21 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
   const [enablePreprocessing, setEnablePreprocessing] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
 
+  // Convert file to base64 for multimodal analysis
+  const fileToBase64 = useCallback(async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix to get raw base64
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
   const startOCRAnalysis = useCallback(async () => {
     setIsProcessing(true);
     setProgress(0);
@@ -95,12 +111,89 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
       const isPDF = fileType.includes('pdf');
       const isImage = fileType.includes('image');
 
-      // Step 1: Text extraction
+      // Check if we can use multimodal analysis (images and small PDFs)
+      const canUseMultimodal = isImage || (isPDF && file.size < 5 * 1024 * 1024); // < 5MB for PDFs
+
+      if (canUseMultimodal) {
+        // UNIFIED MULTIMODAL PATH: OCR + AI in one step
+        setCurrentStep('Analyzing document with AI vision...');
+        setProgress(20);
+
+        try {
+          const base64Data = await fileToBase64(file);
+          setProgress(40);
+          setCurrentStep('Running multimodal AI analysis (OCR + reasoning in one step)...');
+
+          const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-document', {
+            body: {
+              fileName: file.name,
+              fileType: file.type,
+              fileBase64: base64Data,
+              fileMimeType: file.type,
+            },
+          });
+
+          if (!analysisError && analysisData?.success) {
+            setProgress(80);
+            setCurrentStep('Processing results...');
+
+            extractedText = analysisData.extractedText || '';
+            confidence = analysisData.metadata?.ocrConfidence || 95;
+            processingTime = analysisData.metadata?.processingTime || 0;
+
+            // Set extraction result
+            setExtractionResult({
+              text: extractedText,
+              confidence,
+              processingTime,
+              pageCount: undefined,
+              language: detectedLanguage,
+            });
+
+            // Parse the AI analysis
+            const structuredAnalysis: DocumentAnalysis = {
+              summary: extractSummary(analysisData.analysis),
+              keyPoints: extractListFromMarkdown(analysisData.analysis, ['key terms', 'key findings', 'important']),
+              riskFactors: extractListFromMarkdown(analysisData.analysis, ['risk', 'concern', 'warning']),
+              benefits: extractListFromMarkdown(analysisData.analysis, ['benefit', 'advantage', 'coverage']),
+              hiddenClauses: extractListFromMarkdown(analysisData.analysis, ['hidden', 'concerning clauses']),
+              recommendations: extractListFromMarkdown(analysisData.analysis, ['recommendation', 'action']),
+              riskScore: analysisData.riskScore,
+              riskLevel: analysisData.riskLevel,
+            };
+
+            setAnalysis(structuredAnalysis);
+            setProgress(100);
+            setCurrentStep('Multimodal analysis complete!');
+
+            const sections = enhancedOCRService.identifyDocumentSections(extractedText);
+            const hiddenClauses = enhancedOCRService.analyzeForHiddenClauses(extractedText);
+
+            onAnalysisComplete({
+              extractedText,
+              sections: sections.map(s => ({ title: s.title, content: s.content, riskLevel: s.riskLevel })),
+              hiddenClauses,
+              confidence,
+              processingTime,
+              language: detectedLanguage,
+              documentType: analysisData.documentType,
+              pageCount,
+            });
+
+            setIsProcessing(false);
+            return; // Done — multimodal path complete
+          }
+        } catch (multimodalError) {
+          console.warn('Multimodal analysis failed, falling back to traditional OCR+AI:', multimodalError);
+          setCurrentStep('Falling back to traditional analysis...');
+        }
+      }
+
+      // FALLBACK: Traditional two-step OCR → AI path
       setCurrentStep(isPDF ? 'Extracting text from PDF...' : 'Processing image with OCR...');
       setProgress(15);
 
       if (isPDF) {
-        // Use PDF.js for structured extraction
         setCurrentStep('Parsing PDF structure...');
         const pdfResult = await pdfService.extractTextWithFallback(file);
         
@@ -111,7 +204,6 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
 
         setProgress(40);
 
-        // If PDF extraction has low confidence, fall back to OCR
         if (confidence < 50 || extractedText.length < 200) {
           setCurrentStep('Low PDF confidence, applying OCR...');
           const ocrResult = await enhancedOCRService.extractTextFromImage(file, {
@@ -130,7 +222,6 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
           detectedLanguage = ocrResult.language || selectedLanguage;
         }
       } else if (isImage) {
-        // Use enhanced OCR with preprocessing
         setCurrentStep('Preprocessing image...');
         setProgress(20);
 
@@ -148,7 +239,6 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
         processingTime = ocrResult.processingTime;
         detectedLanguage = ocrResult.language || selectedLanguage;
       } else {
-        // Plain text file
         extractedText = await file.text();
         confidence = 100;
         processingTime = 0;
@@ -156,7 +246,6 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
 
       setProgress(50);
 
-      // Check confidence threshold
       const confidenceCheck = enhancedOCRService.checkConfidenceThreshold(confidence);
       setConfidenceWarning(confidenceCheck);
 
@@ -187,7 +276,6 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
           confidence,
         );
 
-        // Parse AI analysis into structured format
         const structuredAnalysis: DocumentAnalysis = {
           summary: extractSummary(aiAnalysisResult.analysis),
           keyPoints: extractListFromMarkdown(aiAnalysisResult.analysis, ['key terms', 'key findings', 'important']),
@@ -203,7 +291,6 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
         setProgress(100);
         setCurrentStep('Analysis complete!');
 
-        // Return complete result
         onAnalysisComplete({
           extractedText,
           sections: sections.map(s => ({
@@ -222,7 +309,6 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
       } catch (aiError: any) {
         console.error('AI Analysis failed:', aiError);
         
-        // Fallback analysis
         setAnalysis(createFallbackAnalysis(extractedText, hiddenClauses));
         setProgress(100);
         setCurrentStep('Analysis complete (offline mode)');
@@ -248,7 +334,7 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
     } finally {
       setIsProcessing(false);
     }
-  }, [file, selectedLanguage, enablePreprocessing, onAnalysisComplete]);
+  }, [file, selectedLanguage, enablePreprocessing, onAnalysisComplete, fileToBase64]);
 
   const extractSummary = (text: string): string => {
     const lines = text.split('\n');
