@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, Eye, Download, Bookmark, BookmarkCheck, History, Search, Zap, Shield, LogIn } from 'lucide-react';
+import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, Eye, Download, Bookmark, History, Search, Zap, Shield, LogIn } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
@@ -12,18 +12,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
 import { useFileValidation } from '@/hooks/useFileValidation';
-import { UploadSkeleton, AnalysisSkeleton } from '@/components/LoadingStates';
 import { FadeIn } from '@/components/PageTransition';
 import { useTrialUsage } from '@/hooks/useTrialUsage';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-interface AnalysisResult {
-  riskScore: number;
-  riskLevel: string;
-  analysis: string;
-  summary: string;
-}
 
-// Use the imported type from OCRAnalysis component
 interface LocalOCRResult {
   extractedText: string;
   sections: any[];
@@ -33,13 +25,12 @@ interface LocalOCRResult {
   language?: string;
   documentType?: string;
   pageCount?: number;
+  structuredAnalysis?: any;
 }
 
 const UploadPage = () => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [ocrResult, setOcrResult] = useState<LocalOCRResult | null>(null);
   const [showOCR, setShowOCR] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -49,398 +40,175 @@ const UploadPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { saveAnalysis, toggleSaved } = useAnalysisHistory();
-  const { validateWithToast, maxSizeMB, allowedExtensions } = useFileValidation();
+  const { validateWithToast } = useFileValidation();
   const { canAnalyzeDocument, remainingDocuments, recordDocumentAnalysis, limits } = useTrialUsage();
 
   const handleDragEvents = {
-    onDragOver: (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragOver(true);
-    },
-    onDragLeave: (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragOver(false);
-    },
+    onDragOver: (e: React.DragEvent) => { e.preventDefault(); setIsDragOver(true); },
+    onDragLeave: (e: React.DragEvent) => { e.preventDefault(); setIsDragOver(false); },
     onDrop: (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragOver(false);
       const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        processFileSelection(files[0]);
-      }
+      if (files.length > 0) processFileSelection(files[0]);
     }
   };
 
   const processFileSelection = async (file: File) => {
-    // Use enhanced file validation
     const isValid = await validateWithToast(file);
-    
     if (isValid) {
       setSelectedFile(file);
-      setAnalysisResult(null);
       setOcrResult(null);
       setShowOCR(false);
       setSavedAnalysisId(null);
-      toast({
-        title: "File ready for analysis",
-        description: `${file.name} has been selected successfully.`,
-      });
+      toast({ title: "File ready for analysis", description: `${file.name} has been selected successfully.` });
     }
   };
 
-  const startOCRAnalysis = () => {
+  const startAnalysis = () => {
+    if (!user && !canAnalyzeDocument) {
+      toast({ title: "Trial Limit Reached", description: "Please sign in to continue.", variant: "destructive" });
+      return;
+    }
     setShowOCR(true);
   };
 
-  const handleOCRComplete = (result: OCRAnalysisResult) => {
-    // Convert to local format
-    const localResult: LocalOCRResult = {
-      ...result,
-      hiddenClauses: result.hiddenClauses,
-    };
+  const handleOCRComplete = async (result: OCRAnalysisResult) => {
+    const localResult: LocalOCRResult = { ...result };
     setOcrResult(localResult);
-    toast({
-      title: "OCR Analysis Complete",
-      description: `Extracted ${result.extractedText.length} characters with ${result.confidence.toFixed(1)}% confidence`,
-    });
-  };
 
-  const formatTextWithBold = (text: string) => {
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, index) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        const boldText = part.slice(2, -2);
-        return <strong key={index} className="font-semibold">{boldText}</strong>;
-      }
-      return part;
-    });
-  };
+    if (!user) recordDocumentAnalysis();
 
-  const calculateDynamicRisk = (ocrData: LocalOCRResult | null): { score: number; level: string } => {
-    if (!ocrData) {
-      return { score: 50, level: 'medium' };
-    }
-
-    let riskScore = 30; // Base low risk
-    const { hiddenClauses, confidence, extractedText } = ocrData;
-
-    // Risk factors based on hidden clauses
-    if (hiddenClauses.length >= 5) {
-      riskScore += 40; // High risk for many hidden clauses
-    } else if (hiddenClauses.length >= 3) {
-      riskScore += 25; // Medium-high risk
-    } else if (hiddenClauses.length >= 1) {
-      riskScore += 15; // Moderate risk
-    }
-
-    // Risk based on OCR confidence
-    if (confidence < 70) {
-      riskScore += 20; // Low confidence means higher risk
-    } else if (confidence < 85) {
-      riskScore += 10;
-    }
-
-    // Risk based on document complexity (text length and structure)
-    if (extractedText.length > 10000) {
-      riskScore += 10; // Complex documents have higher risk
-    }
-
-    // Check for high-risk keywords
-    const highRiskKeywords = [
-      'penalty', 'termination', 'cancellation fee', 'auto-renewal', 
-      'binding arbitration', 'non-refundable', 'liability exclusion',
-      'force majeure', 'early termination fee', 'liquidated damages'
-    ];
-    
-    const foundHighRiskKeywords = highRiskKeywords.filter(keyword => 
-      extractedText.toLowerCase().includes(keyword.toLowerCase())
-    );
-    
-    riskScore += foundHighRiskKeywords.length * 5;
-
-    // Cap the risk score at 100
-    riskScore = Math.min(riskScore, 100);
-
-    // Determine risk level
-    let riskLevel = 'low';
-    if (riskScore >= 75) {
-      riskLevel = 'high';
-    } else if (riskScore >= 50) {
-      riskLevel = 'medium';
-    }
-
-    return { score: riskScore, level: riskLevel };
-  };
-
-  const startAIAnalysis = async () => {
-    if (!selectedFile) return;
-
-    // Check trial limits for non-authenticated users
-    if (!user && !canAnalyzeDocument) {
-      toast({
-        title: "Trial Limit Reached",
-        description: "Please sign in to continue analyzing documents.",
-        variant: "destructive"
+    // Auto-save to history
+    if (user && selectedFile && result.structuredAnalysis) {
+      setIsSaving(true);
+      const sa = result.structuredAnalysis;
+      const savedRecord = await saveAnalysis({
+        file_name: selectedFile.name,
+        file_type: selectedFile.type,
+        file_size: selectedFile.size,
+        risk_score: sa.riskScore || 50,
+        risk_level: sa.riskLevel || 'medium',
+        analysis_summary: sa.summary || 'Analysis complete',
+        analysis_result: sa as unknown as Record<string, unknown>,
+        ocr_result: result as unknown as Record<string, unknown>,
+        is_saved: false,
       });
-      return;
+      if (savedRecord) setSavedAnalysisId(savedRecord.id);
+      setIsSaving(false);
     }
 
-    setIsAnalyzing(true);
-    try {
-      const analysisData = {
+    toast({ title: "Analysis Complete", description: `Analyzed with ${result.confidence.toFixed(0)}% confidence` });
+  };
+
+  const handleDiscussDocument = () => {
+    if (selectedFile && ocrResult) {
+      const documentContext = {
         fileName: selectedFile.name,
         fileType: selectedFile.type,
-        analysisType: 'comprehensive',
-        ...(ocrResult && {
+        extractedText: ocrResult.extractedText,
+        riskScore: ocrResult.structuredAnalysis?.riskScore,
+        riskLevel: ocrResult.structuredAnalysis?.riskLevel,
+        ocrResult: {
           extractedText: ocrResult.extractedText,
-          ocrConfidence: ocrResult.confidence,
-          identifiedSections: ocrResult.sections.length,
-          hiddenClausesCount: ocrResult.hiddenClauses.length
-        })
+          confidence: ocrResult.confidence,
+          sections: ocrResult.sections,
+          hiddenClauses: ocrResult.hiddenClauses,
+        },
+        analysisResult: ocrResult.structuredAnalysis,
+        timestamp: new Date().toISOString()
       };
-
-      const { data, error } = await supabase.functions.invoke('document-analysis', {
-        body: analysisData
-      });
-
-      if (error) throw error;
-
-      // Calculate dynamic risk assessment
-      const dynamicRisk = calculateDynamicRisk(ocrResult);
-
-      let processedResult = {
-        riskScore: data.riskScore || dynamicRisk.score,
-        riskLevel: data.riskLevel || dynamicRisk.level,
-        analysis: data.analysis || 'Analysis completed successfully.',
-        summary: data.summary || 'Document has been analyzed.'
-      };
-
-      // Override with dynamic calculation if backend didn't provide proper risk assessment
-      if (data.riskScore === 50 || !data.riskScore) {
-        processedResult.riskScore = dynamicRisk.score;
-        processedResult.riskLevel = dynamicRisk.level;
-      }
-
-      setAnalysisResult(processedResult);
-      
-      // Record trial usage for non-authenticated users
-      if (!user) {
-        recordDocumentAnalysis();
-      }
-      
-      // Auto-save to history if user is logged in
-      if (user && selectedFile) {
-        setIsSaving(true);
-        const savedRecord = await saveAnalysis({
-          file_name: selectedFile.name,
-          file_type: selectedFile.type,
-          file_size: selectedFile.size,
-          risk_score: processedResult.riskScore,
-          risk_level: processedResult.riskLevel,
-          analysis_summary: processedResult.summary,
-          analysis_result: processedResult as unknown as Record<string, unknown>,
-          ocr_result: ocrResult as unknown as Record<string, unknown>,
-          is_saved: false,
-        });
-        if (savedRecord) {
-          setSavedAnalysisId(savedRecord.id);
-        }
-        setIsSaving(false);
-      }
-      
-      toast({
-        title: "Analysis completed",
-        description: "Your document has been thoroughly analyzed.",
-      });
-    } catch (error) {
-      console.error('Analysis error:', error);
-      toast({
-        title: "Analysis failed",
-        description: "Unable to process the document. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
+      localStorage.setItem('documentContext', JSON.stringify(documentContext));
+      navigate('/chat');
+      toast({ title: "Document loaded in chat", description: "You can now discuss this document with full context." });
     }
   };
 
   const handleSaveToggle = async () => {
     if (savedAnalysisId) {
       await toggleSaved(savedAnalysisId, true);
-      toast({
-        title: "Analysis saved",
-        description: "This analysis has been added to your saved items.",
-      });
-    }
-  };
-
-  const handleDiscussDocument = () => {
-    if (selectedFile && analysisResult && ocrResult) {
-      // Store document context in localStorage for the chat
-      const documentContext = {
-        fileName: selectedFile.name,
-        analysisResult,
-        ocrResult,
-        timestamp: new Date().toISOString()
-      };
-      localStorage.setItem('documentContext', JSON.stringify(documentContext));
-      
-      // Navigate to chat page
-      navigate('/chat');
-      
-      toast({
-        title: "Document loaded in chat",
-        description: "You can now discuss this document with the AI assistant.",
-      });
+      toast({ title: "Analysis saved", description: "Added to your saved items." });
     }
   };
 
   const downloadAnalysisReport = async () => {
-    if (!analysisResult || !selectedFile) return;
+    if (!ocrResult?.structuredAnalysis || !selectedFile) return;
+    const sa = ocrResult.structuredAnalysis;
 
     try {
-      // Dynamic import for jsPDF and html2canvas
       const { default: jsPDF } = await import('jspdf');
-      
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const margin = 20;
       const lineHeight = 7;
       let yPosition = margin;
 
-      // Helper function to add text with word wrapping
       const addWrappedText = (text: string, fontSize: number = 10, isBold: boolean = false) => {
         doc.setFontSize(fontSize);
-        if (isBold) {
-          doc.setFont(undefined, 'bold');
-        } else {
-          doc.setFont(undefined, 'normal');
-        }
-        
+        doc.setFont(undefined as any, isBold ? 'bold' : 'normal');
         const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
         lines.forEach((line: string) => {
-          if (yPosition > doc.internal.pageSize.getHeight() - margin) {
-            doc.addPage();
-            yPosition = margin;
-          }
+          if (yPosition > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); yPosition = margin; }
           doc.text(line, margin, yPosition);
           yPosition += lineHeight;
         });
-        yPosition += 3; // Extra spacing after paragraphs
+        yPosition += 3;
       };
 
       // Header
-      doc.setFillColor(67, 56, 202); // Primary color
+      doc.setFillColor(67, 56, 202);
       doc.rect(0, 0, pageWidth, 30, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(18);
-      doc.setFont(undefined, 'bold');
+      doc.setFont(undefined as any, 'bold');
       doc.text('ClauseWise - Document Analysis Report', margin, 20);
-      
       yPosition = 45;
       doc.setTextColor(0, 0, 0);
 
-      // Document Information
       addWrappedText('Document Information', 14, true);
       addWrappedText(`File Name: ${selectedFile.name}`);
       addWrappedText(`Analysis Date: ${new Date().toLocaleDateString()}`);
-      addWrappedText(`File Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`);
-      
-      if (ocrResult) {
-        addWrappedText(`OCR Confidence: ${ocrResult.confidence.toFixed(1)}%`);
-        addWrappedText(`Processing Time: ${ocrResult.processingTime}ms`);
-        addWrappedText(`Text Length: ${ocrResult.extractedText.length} characters`);
-      }
-
-      yPosition += 10;
-
-      // Risk Assessment
-      addWrappedText('Risk Assessment', 14, true);
-      
-      // Risk score with color coding
-      const riskColor = analysisResult.riskLevel === 'high' ? [220, 38, 38] : 
-                       analysisResult.riskLevel === 'medium' ? [245, 158, 11] : [34, 197, 94];
-      
-      doc.setTextColor(riskColor[0], riskColor[1], riskColor[2]);
-      addWrappedText(`Risk Score: ${analysisResult.riskScore}/100 (${analysisResult.riskLevel.toUpperCase()} RISK)`, 12, true);
-      doc.setTextColor(0, 0, 0);
-
+      addWrappedText(`Risk Score: ${sa.riskScore}/100 (${sa.riskLevel?.toUpperCase()} RISK)`);
       yPosition += 5;
 
-      // Analysis Content
-      addWrappedText('Comprehensive Analysis', 14, true);
-      
-      // Clean and format the analysis text
-      const cleanAnalysis = analysisResult.analysis.replace(/\*\*(.*?)\*\*/g, '$1');
-      addWrappedText(cleanAnalysis);
+      addWrappedText('Executive Summary', 14, true);
+      addWrappedText(sa.summary || 'N/A');
+      yPosition += 5;
 
-      yPosition += 10;
-
-      // OCR Hidden Clauses
-      if (ocrResult && ocrResult.hiddenClauses.length > 0) {
-        addWrappedText('OCR-Detected Hidden Clauses', 14, true);
-        ocrResult.hiddenClauses.slice(0, 5).forEach((clause, index) => {
-          addWrappedText(`${index + 1}. ${clause}`);
+      if (sa.clauses?.length) {
+        addWrappedText('Key Clauses', 14, true);
+        sa.clauses.forEach((c: any, i: number) => {
+          const riskLabel = c.riskLevel?.toUpperCase() || 'N/A';
+          addWrappedText(`${i + 1}. [${riskLabel}] ${c.category}: ${c.text?.substring(0, 200)}`, 9);
+          addWrappedText(`   → ${c.explanation}`, 9);
         });
-        yPosition += 5;
       }
 
-      // Summary
-      addWrappedText('Executive Summary', 14, true);
-      const cleanSummary = analysisResult.summary.replace(/\*\*(.*?)\*\*/g, '$1');
-      addWrappedText(cleanSummary);
+      if (sa.recommendations?.length) {
+        yPosition += 5;
+        addWrappedText('Recommendations', 14, true);
+        sa.recommendations.forEach((r: any, i: number) => {
+          addWrappedText(`${i + 1}. [${r.priority?.toUpperCase()}] ${r.action} — ${r.reason}`, 9);
+        });
+      }
 
-      // Footer
-      const finalY = doc.internal.pageSize.getHeight() - 20;
+      const finalY = doc.internal.pageSize.getHeight() - 15;
       doc.setFontSize(8);
       doc.setTextColor(128, 128, 128);
-      doc.text('Generated by ClauseWise - AI-Powered Document Analysis', margin, finalY);
-      doc.text(`Report generated on ${new Date().toLocaleString()}`, margin, finalY + 5);
+      doc.text('Generated by ClauseWise', margin, finalY);
 
-      // Save the PDF
-      const fileName = `ClauseWise_Analysis_${selectedFile.name.replace(/\.[^/.]+$/, "")}_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
-
-      toast({
-        title: "Report downloaded",
-        description: "Your analysis report has been saved successfully.",
-      });
+      doc.save(`ClauseWise_${selectedFile.name.replace(/\.[^/.]+$/, "")}_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast({ title: "Report downloaded" });
     } catch (error) {
-      console.error('PDF generation error:', error);
-      toast({
-        title: "Download failed",
-        description: "Unable to generate the report. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getRiskStyling = (riskLevel: string) => {
-    const level = riskLevel?.toLowerCase();
-    switch (level) {
-      case 'low': return 'text-secondary bg-secondary/10';
-      case 'medium': return 'text-accent bg-accent/10';
-      case 'high': return 'text-destructive bg-destructive/10';
-      default: return 'text-muted-foreground bg-muted';
+      console.error('PDF error:', error);
+      toast({ title: "Download failed", variant: "destructive" });
     }
   };
 
   const features = [
-    {
-      icon: Search,
-      title: 'Advanced OCR Scanning',
-      description: 'Extract text from PDFs and images with high accuracy using state-of-the-art OCR technology.',
-    },
-    {
-      icon: Zap,
-      title: 'Real-time Analysis',
-      description: 'Get comprehensive analysis results within seconds of upload with AI-powered insights.',
-    },
-    {
-      icon: Shield,
-      title: 'Hidden Clause Detection',
-      description: 'Automatically identify potentially problematic clauses and terms that might be easily missed.',
-    }
+    { icon: Search, title: 'Unified OCR + AI', description: 'Combined multimodal analysis extracts and analyzes in one step.' },
+    { icon: Zap, title: 'Structured Results', description: 'Get color-coded clauses, risk factors, and financial implications.' },
+    { icon: Shield, title: 'Hidden Clause Detection', description: 'AI identifies problematic clauses with severity ratings.' }
   ];
 
   return (
@@ -451,24 +219,22 @@ const UploadPage = () => {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              OCR-Powered Document Analysis
+              AI-Powered Document Analysis
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Upload any document format for intelligent text extraction and comprehensive analysis of terms, conditions, and hidden clauses
+              Upload any financial document for comprehensive multimodal analysis with color-coded risk assessment
             </p>
           </div>
 
-          {/* Trial usage notice for non-authenticated users */}
           {!user && (
             <Alert className="mb-6 bg-primary/5 border-primary/20">
               <AlertDescription className="flex items-center justify-between">
                 <span className="text-foreground">
-                  <strong>Free Trial:</strong> {remainingDocuments} of {limits.documents} document analyses remaining.
+                  <strong>Free Trial:</strong> {remainingDocuments} of {limits.documents} analyses remaining.
                 </span>
                 <Link to="/auth">
                   <Button variant="outline" size="sm" className="ml-4">
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Sign in for unlimited
+                    <LogIn className="w-4 h-4 mr-2" />Sign in for unlimited
                   </Button>
                 </Link>
               </AlertDescription>
@@ -479,16 +245,14 @@ const UploadPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-foreground">
                 <Upload className="w-5 h-5" />
-                <span>File Upload & OCR Analysis</span>
+                <span>Upload & Analyze</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div
                 className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-                  isDragOver
-                    ? 'border-primary bg-primary/5'
-                    : selectedFile
-                    ? 'border-secondary bg-secondary/5'
+                  isDragOver ? 'border-primary bg-primary/5'
+                    : selectedFile ? 'border-secondary bg-secondary/5'
                     : 'border-border hover:border-primary'
                 }`}
                 {...handleDragEvents}
@@ -502,24 +266,12 @@ const UploadPage = () => {
                     </div>
                     <div className="flex justify-center space-x-4">
                       {!showOCR && (
-                        <Button onClick={startOCRAnalysis}>
+                        <Button onClick={startAnalysis}>
                           <Eye className="w-4 h-4 mr-2" />
-                          Start OCR Analysis
+                          Analyze Document
                         </Button>
                       )}
-                      {ocrResult && (
-                        <Button onClick={startAIAnalysis} disabled={isAnalyzing}>
-                          {isAnalyzing ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Analyzing...
-                            </>
-                          ) : (
-                            'AI Analysis'
-                          )}
-                        </Button>
-                      )}
-                      <Button variant="outline" onClick={() => setSelectedFile(null)}>
+                      <Button variant="outline" onClick={() => { setSelectedFile(null); setShowOCR(false); setOcrResult(null); }}>
                         Select Different File
                       </Button>
                     </div>
@@ -528,12 +280,11 @@ const UploadPage = () => {
                   <div className="space-y-4">
                     <Upload className="w-16 h-16 text-muted-foreground mx-auto" />
                     <div>
-                      <h3 className="text-lg font-semibold text-foreground">Upload Document for OCR Analysis</h3>
-                      <p className="text-muted-foreground">Drag and drop your file here or click to browse</p>
+                      <h3 className="text-lg font-semibold text-foreground">Upload Document</h3>
+                      <p className="text-muted-foreground">Drag and drop or click to browse</p>
                     </div>
                     <Button
                       onClick={() => document.getElementById('file-input')?.click()}
-                      className="mx-auto"
                       disabled={!user && !canAnalyzeDocument}
                     >
                       Choose File
@@ -554,99 +305,39 @@ const UploadPage = () => {
             </CardContent>
           </Card>
 
-          {/* OCR Analysis Component */}
+          {/* Analysis Component - unified single step */}
           {showOCR && selectedFile && (
             <div className="mb-8">
               <OCRAnalysis file={selectedFile} onAnalysisComplete={handleOCRComplete} />
             </div>
           )}
 
-          {/* AI Analysis Results */}
-          {analysisResult && (
-            <div className="space-y-6">
-              <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-foreground">
-                    <FileText className="w-5 h-5" />
-                    <span>AI Analysis Results</span>
-                    {ocrResult && (
-                      <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded">
-                        OCR Enhanced
-                      </span>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                    <div>
-                      <h3 className="font-semibold text-foreground">Risk Assessment</h3>
-                      <p className="text-muted-foreground">Overall document complexity and risk evaluation</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold text-foreground">{analysisResult.riskScore}/100</div>
-                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getRiskStyling(analysisResult.riskLevel)}`}>
-                        {analysisResult.riskLevel.charAt(0).toUpperCase() + analysisResult.riskLevel.slice(1)} Risk
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-4">Comprehensive Analysis</h3>
-                    <div className="prose dark:prose-invert max-w-none">
-                      <div className="p-4 bg-muted rounded-lg">
-                        <div className="text-sm text-foreground whitespace-pre-wrap font-sans leading-relaxed">
-                          {formatTextWithBold(analysisResult.analysis)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* OCR-specific findings */}
-                  {ocrResult && ocrResult.hiddenClauses.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-4 flex items-center">
-                        <Eye className="w-5 h-5 mr-2 text-destructive" />
-                        OCR-Detected Hidden Clauses
-                      </h3>
-                      <div className="space-y-3">
-                        {ocrResult.hiddenClauses.slice(0, 3).map((clause, index) => (
-                          <div key={index} className="p-3 bg-destructive/10 border-l-4 border-destructive rounded-lg">
-                            <span className="text-foreground text-sm">{clause}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+          {/* Action Buttons after analysis */}
+          {ocrResult && (
+            <Card className="mb-8">
+              <CardContent className="py-6">
+                <div className="flex flex-wrap justify-center gap-3">
+                  <Button onClick={handleDiscussDocument}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Discuss This Document
+                  </Button>
+                  <Button variant="outline" onClick={downloadAnalysisReport}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Report
+                  </Button>
+                  {savedAnalysisId && (
+                    <Button variant="outline" onClick={handleSaveToggle}>
+                      <Bookmark className="w-4 h-4 mr-2" />
+                      Save Analysis
+                    </Button>
                   )}
-
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-4">Executive Summary</h3>
-                    <div className="p-4 bg-primary/5 rounded-lg">
-                      <div className="text-foreground">{formatTextWithBold(analysisResult.summary)}</div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap justify-center gap-3 pt-4">
-                    <Button onClick={handleDiscussDocument}>
-                      Discuss This Document
-                    </Button>
-                    <Button variant="outline" onClick={downloadAnalysisReport}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download Report
-                    </Button>
-                    {savedAnalysisId && (
-                      <Button variant="outline" onClick={handleSaveToggle}>
-                        <Bookmark className="w-4 h-4 mr-2" />
-                        Save Analysis
-                      </Button>
-                    )}
-                    <Button variant="ghost" onClick={() => navigate('/history')}>
-                      <History className="w-4 h-4 mr-2" />
-                      View History
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <Button variant="ghost" onClick={() => navigate('/history')}>
+                    <History className="w-4 h-4 mr-2" />
+                    View History
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           <div className="grid md:grid-cols-3 gap-6 mt-8">

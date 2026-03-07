@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Send, Upload, FileText, Loader2, AlertCircle, Paperclip, LogIn } from 'lucide-react';
+import { Send, Upload, FileText, Loader2, AlertCircle, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { aiService, Message, DocumentContext } from '@/services/aiService';
 import ReactMarkdown from 'react-markdown';
@@ -15,6 +15,8 @@ import { useTrialUsage } from '@/hooks/useTrialUsage';
 import { useAuth } from '@/components/AuthProvider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
+import { pdfService } from '@/services/pdfService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ChatMessage {
   id: string;
@@ -45,6 +47,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
   const [conversationHistory, setConversationHistory] = useState<Message[]>([]);
   const [streamingContent, setStreamingContent] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isExtractingFile, setIsExtractingFile] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,11 +69,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
     if (storedContext) {
       try {
         const context = JSON.parse(storedContext);
-        setDocumentContext(context);
+        
+        // Build proper DocumentContext with extracted text
+        const docContext: DocumentContext = {
+          fileName: context.fileName,
+          fileType: context.fileType || 'application/pdf',
+          riskScore: context.analysisResult?.riskScore || context.riskScore,
+          riskLevel: context.analysisResult?.riskLevel || context.riskLevel,
+          ocrConfidence: context.ocrResult?.confidence,
+          extractedText: context.ocrResult?.extractedText || context.extractedText || '',
+          detectedClauses: context.ocrResult?.hiddenClauses?.map?.((c: any) => 
+            typeof c === 'string' ? c : c.clause
+          ) || [],
+          sections: context.ocrResult?.sections || [],
+        };
+        
+        setDocumentContext(docContext);
+        
+        const riskScore = docContext.riskScore || 0;
+        const riskLevel = docContext.riskLevel || 'unknown';
+        const textPreview = docContext.extractedText 
+          ? `\n\nI have the full document text (${docContext.extractedText.length} characters) loaded and ready for detailed discussion.` 
+          : '';
         
         const contextMessage: ChatMessage = {
           id: `context-${Date.now()}`,
-          content: `I've loaded "${context.fileName}" for analysis. Risk Score: ${context.analysisResult?.riskScore || context.riskScore}/100 (${context.analysisResult?.riskLevel || context.riskLevel}). Ask me anything about this document!`,
+          content: `I've loaded **"${context.fileName}"** for analysis.\n\n📊 **Risk Score:** ${riskScore}/100 (${riskLevel})\n📝 **Document loaded with full text context**${textPreview}\n\nAsk me anything specific about this document — I can reference exact clauses and terms!`,
           isUser: false,
           timestamp: new Date()
         };
@@ -80,7 +104,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
         
         toast({
           title: "Document loaded",
-          description: `Analysis for ${context.fileName} is available.`,
+          description: `Full analysis context for ${context.fileName} is ready.`,
         });
       } catch (error) {
         console.error('Error parsing document context:', error);
@@ -88,35 +112,116 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
     }
   }, [toast]);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const validTypes = ['application/pdf', 'text/plain'];
-      const validExtensions = ['.pdf', '.txt', '.doc', '.docx'];
+    if (!file) return;
+    
+    const validTypes = ['application/pdf', 'text/plain'];
+    const validExtensions = ['.pdf', '.txt', '.doc', '.docx'];
+    
+    const isValidType = validTypes.includes(file.type) || 
+      validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+    
+    if (!isValidType) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a PDF, DOC, or text file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadedFile(file);
+    setIsExtractingFile(true);
+
+    // Actually extract text from the file
+    try {
+      let extractedText = '';
       
-      const isValidType = validTypes.includes(file.type) || 
-        validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
-      
-      if (isValidType) {
-        setUploadedFile(file);
+      if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+        extractedText = await file.text();
+      } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        try {
+          const pdfResult = await pdfService.extractTextWithFallback(file);
+          extractedText = pdfResult.text;
+        } catch {
+          // If PDF extraction fails, try sending as base64 to AI
+          extractedText = '[PDF content - will be analyzed by AI]';
+        }
+      }
+
+      if (extractedText && extractedText.length > 50) {
+        const newContext: DocumentContext = {
+          fileName: file.name,
+          fileType: file.type,
+          extractedText: extractedText,
+        };
+        setDocumentContext(newContext);
+
         toast({
-          title: "File selected",
-          description: `${file.name} ready for analysis`,
+          title: "Document loaded",
+          description: `${file.name} text extracted (${extractedText.length} chars). Ask questions about it!`,
         });
       } else {
-        toast({
-          title: "Invalid file type",
-          description: "Please select a PDF, DOC, or text file",
-          variant: "destructive",
+        // For files where extraction is difficult, send to backend for analysis
+        const base64 = await fileToBase64(file);
+        
+        const { data, error } = await supabase.functions.invoke('analyze-document', {
+          body: {
+            fileName: file.name,
+            fileType: file.type,
+            fileBase64: base64,
+            fileMimeType: file.type,
+          },
         });
+
+        if (!error && data?.extractedText) {
+          const newContext: DocumentContext = {
+            fileName: file.name,
+            fileType: file.type,
+            extractedText: data.extractedText,
+            riskScore: data.riskScore,
+            riskLevel: data.riskLevel,
+          };
+          setDocumentContext(newContext);
+
+          toast({
+            title: "Document analyzed",
+            description: `${file.name} analyzed. Risk: ${data.riskLevel}. Ask questions about it!`,
+          });
+        } else {
+          toast({
+            title: "File selected",
+            description: `${file.name} ready — mention it in your question.`,
+          });
+        }
       }
+    } catch (err) {
+      console.error('File extraction error:', err);
+      toast({
+        title: "File selected",
+        description: `${file.name} ready for discussion`,
+      });
+    } finally {
+      setIsExtractingFile(false);
     }
+  };
+
+  const fileToBase64 = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   const processMessage = async () => {
     if (!inputValue.trim() && !uploadedFile) return;
 
-    // Check trial limits for non-authenticated users
     if (!user && !canSendChatMessage) {
       toast({
         title: "Trial Limit Reached",
@@ -136,7 +241,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
 
     setMessages(prev => [...prev, userMessage]);
     
-    // Build message for AI
     const newMessage: Message = { role: 'user', content: inputValue };
     const newHistory = [...conversationHistory, newMessage];
     setConversationHistory(newHistory);
@@ -145,7 +249,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
     setIsProcessing(true);
     setStreamingContent('');
 
-    // Create placeholder for assistant message with typing indicator
     const assistantMessageId = (Date.now() + 1).toString();
     setMessages(prev => [...prev, {
       id: assistantMessageId,
@@ -166,7 +269,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
             accumulatedContent += delta;
             setStreamingContent(accumulatedContent);
             
-            // Update the assistant message in real-time
             setMessages(prev => prev.map(msg => 
               msg.id === assistantMessageId 
                 ? { ...msg, content: accumulatedContent }
@@ -174,36 +276,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
             ));
           },
           onDone: () => {
-            // Finalize the message
             setMessages(prev => prev.map(msg => 
               msg.id === assistantMessageId 
                 ? { ...msg, content: accumulatedContent, isStreaming: false }
                 : msg
             ));
             
-            // Record trial usage for non-authenticated users
             if (!user) {
               recordChatMessage();
             }
             
-            // Store memory for authenticated users (every 3rd message)
             if (user && newHistory.length % 3 === 0 && accumulatedContent.length > 100) {
-              import('@/integrations/supabase/client').then(({ supabase }) => {
-                supabase.functions.invoke('memory', {
-                  body: {
-                    action: 'store',
-                    content: `User asked: "${inputValue.substring(0, 200)}" — AI responded about: ${accumulatedContent.substring(0, 300)}`,
-                    memoryType: documentContext ? 'document_discussion' : 'general_chat',
-                    metadata: {
-                      documentName: documentContext?.fileName,
-                      timestamp: new Date().toISOString(),
-                    },
+              supabase.functions.invoke('memory', {
+                body: {
+                  action: 'store',
+                  content: `User asked: "${inputValue.substring(0, 200)}" — AI responded about: ${accumulatedContent.substring(0, 300)}`,
+                  memoryType: documentContext ? 'document_discussion' : 'general_chat',
+                  metadata: {
+                    documentName: documentContext?.fileName,
+                    timestamp: new Date().toISOString(),
                   },
-                }).catch(err => console.warn('Memory store failed (non-critical):', err));
-              });
+                },
+              }).catch(err => console.warn('Memory store failed (non-critical):', err));
             }
             
-            // Add to conversation history
             setConversationHistory(prev => [...prev, { role: 'assistant', content: accumulatedContent }]);
             setStreamingContent('');
             setIsProcessing(false);
@@ -212,7 +308,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
             console.error('Chat error:', err);
             setError(err.message);
             
-            // Update message with error
             setMessages(prev => prev.map(msg => 
               msg.id === assistantMessageId 
                 ? { ...msg, content: `I encountered an error: ${err.message}. Please try again.`, isStreaming: false }
@@ -230,7 +325,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
         }
       );
 
-      // Clear file after sending
       setUploadedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -279,7 +373,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
               {documentContext && (
                 <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full flex items-center gap-1">
                   <FileText className="w-3 h-3" />
-                  Document Loaded
+                  {documentContext.fileName}
                 </span>
               )}
             </p>
@@ -346,26 +440,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
                           ),
                           table: ({ children }) => (
                             <div className="overflow-x-auto my-3 rounded-lg border border-border">
-                              <table className="min-w-full divide-y divide-border text-sm">
-                                {children}
-                              </table>
+                              <table className="min-w-full divide-y divide-border text-sm">{children}</table>
                             </div>
                           ),
-                          thead: ({ children }) => (
-                            <thead className="bg-muted/50">{children}</thead>
-                          ),
-                          tbody: ({ children }) => (
-                            <tbody className="divide-y divide-border bg-card">{children}</tbody>
-                          ),
-                          tr: ({ children }) => (
-                            <tr className="hover:bg-muted/30 transition-colors">{children}</tr>
-                          ),
-                          th: ({ children }) => (
-                            <th className="px-3 py-2 text-left font-semibold text-foreground whitespace-nowrap">{children}</th>
-                          ),
-                          td: ({ children }) => (
-                            <td className="px-3 py-2 text-foreground">{children}</td>
-                          ),
+                          thead: ({ children }) => <thead className="bg-muted/50">{children}</thead>,
+                          tbody: ({ children }) => <tbody className="divide-y divide-border bg-card">{children}</tbody>,
+                          tr: ({ children }) => <tr className="hover:bg-muted/30 transition-colors">{children}</tr>,
+                          th: ({ children }) => <th className="px-3 py-2 text-left font-semibold text-foreground whitespace-nowrap">{children}</th>,
+                          td: ({ children }) => <td className="px-3 py-2 text-foreground">{children}</td>,
                         }}
                       >
                         {message.content || ' '}
@@ -408,9 +490,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
         </motion.div>
       )}
 
-      {/* Trial usage notice and Input Area */}
+      {/* Input Area */}
       <div className="p-4 border-t border-border bg-card/50">
-        {/* Trial usage notice for non-authenticated users */}
         {!user && (
           <Alert className="mb-3 bg-primary/5 border-primary/20">
             <AlertDescription className="flex items-center justify-between text-sm">
@@ -433,7 +514,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
             className="mb-3 flex items-center gap-2 p-2 bg-muted rounded-lg"
           >
             <FileText className="w-4 h-4 text-primary" />
-            <span className="text-sm text-foreground flex-1 truncate">{uploadedFile.name}</span>
+            <span className="text-sm text-foreground flex-1 truncate">
+              {uploadedFile.name}
+              {isExtractingFile && <span className="text-muted-foreground ml-2">(extracting text...)</span>}
+              {!isExtractingFile && documentContext?.extractedText && (
+                <span className="text-success ml-2">✓ Text loaded</span>
+              )}
+            </span>
             <Button
               variant="ghost"
               size="sm"
@@ -452,14 +539,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
             type="file"
             ref={fileInputRef}
             onChange={handleFileSelect}
-            accept=".pdf,.doc,.docx,.txt"
+            accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
             className="hidden"
           />
           <Button
             variant="outline"
             size="icon"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isProcessing}
+            disabled={isProcessing || isExtractingFile}
             className="shrink-0"
           >
             <Upload className="w-4 h-4" />
@@ -474,14 +561,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder={documentContext ? "Ask about your document..." : "Ask about financial products..."}
+            placeholder={documentContext ? `Ask about "${documentContext.fileName}"...` : "Ask about financial products..."}
             disabled={isProcessing}
             className="flex-1"
           />
           
           <Button
             onClick={processMessage}
-            disabled={isProcessing || (!inputValue.trim() && !uploadedFile)}
+            disabled={isProcessing || isExtractingFile || (!inputValue.trim() && !uploadedFile)}
             className="shrink-0"
           >
             {isProcessing ? (
