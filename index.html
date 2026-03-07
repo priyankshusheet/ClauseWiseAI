@@ -1,55 +1,43 @@
+
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="icon" type="image/png" href="/clausewise-logo-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ClauseWise - AI Financial Buddy</title>
-    <meta
-      name="description"
-      content="Your AI companion for understanding financial documents, terms, and conditions. Simplify complex financial jargon instantly."
-    />
+    <meta name="description" content="Your AI companion for understanding financial documents, terms, and conditions. Simplify complex financial jargon instantly." />
     <meta property="og:title" content="ClauseWise - AI Financial Buddy" />
-    <meta
-      property="og:description"
-      content="Your AI companion for understanding financial documents, terms, and conditions."
-    />
-    <meta property="og:image" content="/og-banner.png" />
+    <meta property="og:description" content="Your AI companion for understanding financial documents, terms, and conditions." />
+    <meta property="og:image" content="https://f56bf0f3-3293-415f-b7b4-4d5dafd25f25.clausewiseaiproject.com/og-banner.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:type" content="website" />
-    <meta
-      property="og:url"
-      content="https://f56bf0f3-3293-415f-b7b4-4d5dafd25f25.clausewiseaiproject.com/"
-    />
+    <meta property="og:url" content="https://f56bf0f3-3293-415f-b7b4-4d5dafd25f25.clausewiseaiproject.com/" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="ClauseWise - AI Financial Buddy" />
-    <meta
-      name="twitter:description"
-      content="Your AI companion for understanding financial documents, terms, and conditions."
-    />
-    <meta name="twitter:image" content="/og-banner.png" />
+    <meta name="twitter:description" content="Your AI companion for understanding financial documents, terms, and conditions." />
+    <meta name="twitter:image" content="https://f56bf0f3-3293-415f-b7b4-4d5dafd25f25.clausewiseaiproject.com/og-banner.png" />
     <meta name="theme-color" content="#2563eb" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="ClauseWise" />
-    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/clausewise-logo-192.png" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("/sw.js")
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
-              console.log("SW registered: ", registration);
+              console.log('SW registered: ', registration);
             })
             .catch((registrationError) => {
-              console.log("SW registration failed: ", registrationError);
+              console.log('SW registration failed: ', registrationError);
             });
         });
       }

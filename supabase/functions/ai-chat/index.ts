@@ -27,6 +27,12 @@ Your role is to:
 4. Provide actionable recommendations
 5. Compare terms against industry standards
 
+When a document is loaded in context:
+- Reference SPECIFIC clauses and sections from the extracted text
+- Quote relevant portions of the document
+- Provide analysis grounded in the actual document content
+- Don't give generic advice — be specific to THIS document
+
 When analyzing documents:
 - Always cite specific clauses you're referencing
 - Rate risk levels (Low/Medium/High) with clear justification
@@ -35,238 +41,6 @@ When analyzing documents:
 - Format responses with clear sections and bullet points
 
 Never provide specific financial advice - only analysis and education.`;
-
-// AI Provider configurations — ordered by speed and streaming support
-interface AIProvider {
-  name: string;
-  endpoint: string;
-  getHeaders: (apiKey: string) => Record<string, string>;
-  formatBody: (messages: any[], stream: boolean) => any;
-  parseResponse: (data: any) => string | null;
-  getApiKey: () => string | undefined;
-  supportsStreaming: boolean;
-}
-
-const AI_PROVIDERS: AIProvider[] = [
-  // Primary: Groq — fastest, native OpenAI-compatible streaming
-  {
-    name: "Groq",
-    endpoint: "https://api.groq.com/openai/v1/chat/completions",
-    getHeaders: (apiKey) => ({
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    }),
-    formatBody: (messages, stream) => ({
-      model: "llama-3.3-70b-versatile",
-      messages,
-      stream,
-      temperature: 0.3,
-      max_tokens: 4096,
-    }),
-    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
-    getApiKey: () => Deno.env.get("GROQ_API_KEY"),
-    supportsStreaming: true,
-  },
-  // Secondary: OpenAI — reliable, native streaming
-  {
-    name: "OpenAI",
-    endpoint: "https://api.openai.com/v1/chat/completions",
-    getHeaders: (apiKey) => ({
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    }),
-    formatBody: (messages, stream) => ({
-      model: "gpt-4o-mini",
-      messages,
-      stream,
-      temperature: 0.3,
-      max_tokens: 4096,
-    }),
-    parseResponse: (data) => data.choices?.[0]?.message?.content || null,
-    getApiKey: () => Deno.env.get("OPENAI_API_KEY"),
-    supportsStreaming: true,
-  },
-  // Tertiary: Gemini
-  {
-    name: "Google Gemini",
-    endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse",
-    getHeaders: (apiKey) => ({
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    }),
-    formatBody: (messages, _stream) => ({
-      contents: messages.filter((m: any) => m.role !== 'system').map((m: any) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }]
-      })),
-      systemInstruction: {
-        parts: [{ text: messages.find((m: any) => m.role === 'system')?.content || SYSTEM_PROMPT }]
-      },
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 4096,
-      }
-    }),
-    parseResponse: (data) => data.candidates?.[0]?.content?.parts?.[0]?.text || null,
-    getApiKey: () => Deno.env.get("GEMINI_API_KEY"),
-    supportsStreaming: true,
-  },
-  // Fallback: Cohere — slowest, no native streaming
-  {
-    name: "Cohere",
-    endpoint: "https://api.cohere.com/v2/chat",
-    getHeaders: (apiKey) => ({
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    }),
-    formatBody: (messages, _stream) => ({
-      model: "command-a-03-2025",
-      messages: messages.map((m: any) => ({
-        role: m.role === 'assistant' ? 'assistant' : m.role === 'system' ? 'system' : 'user',
-        content: m.content
-      })),
-      temperature: 0.3,
-      max_tokens: 4096,
-    }),
-    parseResponse: (data) => data.message?.content?.[0]?.text || null,
-    getApiKey: () => Deno.env.get("COHERE_API_KEY"),
-    supportsStreaming: false,
-  },
-];
-
-async function tryProvider(
-  provider: AIProvider,
-  messages: any[],
-  stream: boolean
-): Promise<{ success: boolean; response?: Response; error?: string }> {
-  const apiKey = provider.getApiKey();
-  if (!apiKey) {
-    return { success: false, error: `${provider.name}: API key not configured` };
-  }
-
-  try {
-    console.log(`[AI-Chat] Trying provider: ${provider.name}`);
-    
-    // Only request streaming from providers that support it
-    const shouldStream = stream && provider.supportsStreaming;
-    
-    const response = await fetch(provider.endpoint, {
-      method: "POST",
-      headers: provider.getHeaders(apiKey),
-      body: JSON.stringify(provider.formatBody(messages, shouldStream)),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[AI-Chat] ${provider.name} error: ${response.status} - ${errorText.substring(0, 200)}`);
-      return { success: false, error: `${provider.name}: HTTP ${response.status}` };
-    }
-
-    console.log(`[AI-Chat] ${provider.name} responded successfully`);
-    return { success: true, response };
-  } catch (error) {
-    console.error(`[AI-Chat] ${provider.name} exception:`, error);
-    return { success: false, error: `${provider.name}: ${error instanceof Error ? error.message : 'Unknown error'}` };
-  }
-}
-
-async function callAIWithFallback(
-  messages: any[],
-  stream: boolean
-): Promise<{ response: Response; provider: AIProvider } | { error: string; code: string; status: number }> {
-  const errors: string[] = [];
-
-  for (const provider of AI_PROVIDERS) {
-    const result = await tryProvider(provider, messages, stream);
-    
-    if (result.success && result.response) {
-      return { response: result.response, provider };
-    }
-    
-    if (result.error) {
-      errors.push(result.error);
-    }
-  }
-
-  console.error(`[AI-Chat] All providers failed:`, errors);
-  return {
-    error: "AI service temporarily unavailable. All providers failed.",
-    code: "SERVICE_ERROR",
-    status: 503
-  };
-}
-
-// Convert Gemini SSE stream to OpenAI-compatible SSE stream
-function convertGeminiStreamToOpenAI(geminiStream: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
-  const reader = geminiStream.getReader();
-  const decoder = new TextDecoder();
-  const encoder = new TextEncoder();
-  let buffer = '';
-
-  return new ReadableStream({
-    async pull(controller) {
-      try {
-        const { done, value } = await reader.read();
-        if (done) {
-          // Flush remaining buffer
-          if (buffer.trim()) {
-            processGeminiLines(buffer, controller, encoder);
-          }
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-          controller.close();
-          return;
-        }
-
-        buffer += decoder.decode(value, { stream: true });
-        
-        // Process complete lines
-        let newlineIndex;
-        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
-          const line = buffer.slice(0, newlineIndex).trim();
-          buffer = buffer.slice(newlineIndex + 1);
-          
-          if (!line.startsWith('data: ') || line === '') continue;
-          const jsonStr = line.slice(6).trim();
-          if (!jsonStr || jsonStr === '[DONE]') continue;
-          
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-              const openAIChunk = JSON.stringify({
-                choices: [{ delta: { content: text } }]
-              });
-              controller.enqueue(encoder.encode(`data: ${openAIChunk}\n\n`));
-            }
-          } catch {
-            // skip incomplete JSON
-          }
-        }
-      } catch (e) {
-        controller.error(e);
-      }
-    },
-    cancel() {
-      reader.cancel();
-    }
-  });
-}
-
-function processGeminiLines(text: string, controller: ReadableStreamDefaultController, encoder: TextEncoder) {
-  for (const line of text.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith('data: ')) continue;
-    const jsonStr = trimmed.slice(6).trim();
-    if (!jsonStr || jsonStr === '[DONE]') continue;
-    try {
-      const parsed = JSON.parse(jsonStr);
-      const content = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (content) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`));
-      }
-    } catch { /* skip */ }
-  }
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -299,19 +73,30 @@ serve(async (req) => {
 
     if (documentContext) {
       const ctx = documentContext as Record<string, unknown>;
-      const extractedText = ctx.extractedText ? sanitizeText(String(ctx.extractedText)).substring(0, 10000) : 'N/A';
+      const extractedText = ctx.extractedText ? sanitizeText(String(ctx.extractedText)).substring(0, 15000) : '';
       
-      enhancedMessages.push({
-        role: "system",
-        content: `Document Context:
-- File: ${ctx.fileName || 'Unknown'}
-- Type: ${ctx.fileType || 'Unknown'}
-- Risk Score: ${ctx.riskScore || 'N/A'}/100 (${ctx.riskLevel || 'N/A'})
-- OCR Confidence: ${ctx.ocrConfidence || 'N/A'}%
-- Extracted Text (first 10000 chars): ${extractedText}
-- Detected Clauses: ${Array.isArray(ctx.detectedClauses) ? ctx.detectedClauses.join(', ') : 'None'}
-- Document Sections: ${Array.isArray(ctx.sections) ? ctx.sections.map((s: any) => s.title).join(', ') : 'N/A'}`
-      });
+      if (extractedText) {
+        enhancedMessages.push({
+          role: "system",
+          content: `DOCUMENT LOADED FOR ANALYSIS:
+File: ${ctx.fileName || 'Unknown'}
+Type: ${ctx.fileType || 'Unknown'}
+Risk Score: ${ctx.riskScore || 'N/A'}/100 (${ctx.riskLevel || 'N/A'})
+OCR Confidence: ${ctx.ocrConfidence || 'N/A'}%
+
+FULL DOCUMENT TEXT:
+${extractedText}
+
+DETECTED CLAUSES: ${Array.isArray(ctx.detectedClauses) ? ctx.detectedClauses.join(', ') : 'None'}
+
+IMPORTANT: Base all your answers on the actual document text above. Quote specific sections when answering questions. Do NOT give generic answers.`
+        });
+      } else {
+        enhancedMessages.push({
+          role: "system",
+          content: `Document "${ctx.fileName}" is referenced but no text was extracted. Ask the user to re-upload or provide more details.`
+        });
+      }
     }
 
     // Fetch relevant memories for authenticated users
@@ -324,7 +109,6 @@ serve(async (req) => {
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
 
-        // Generate embedding for the query to find relevant memories
         const COHERE_KEY = Deno.env.get("COHERE_API_KEY");
         if (COHERE_KEY && lastUserMessage.length > 10) {
           const embedResponse = await fetch("https://api.cohere.com/v2/embed", {
@@ -361,7 +145,6 @@ serve(async (req) => {
                   role: "system",
                   content: `Relevant context from previous interactions:\n${memoryContext}\n\nUse this context to provide personalized, continuous advice.`
                 });
-                console.log(`[AI-Chat] Loaded ${memories.length} relevant memories for user`);
               }
             }
           }
@@ -377,93 +160,140 @@ serve(async (req) => {
     }));
     enhancedMessages.push(...sanitizedMessages);
 
-    console.log(`[AI-Chat] User: ${userId || 'anonymous'}, Processing ${messages.length} messages, stream=${stream}`);
+    console.log(`[AI-Chat] User: ${userId || 'anonymous'}, Messages: ${messages.length}, stream=${stream}, hasDocContext=${!!documentContext}`);
 
-    const result = await callAIWithFallback(enhancedMessages, stream);
+    // Use ClauseWiseAI AI Gateway as primary
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if ('error' in result) {
-      return new Response(
-        JSON.stringify({ error: result.error, code: result.code }),
-        { status: result.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const latency = Date.now() - startTime;
-    console.log(`[AI-Chat] ${result.provider.name} response received (${latency}ms)`);
-
-    const responseHeaders = {
-      ...corsHeaders,
-      "X-Response-Time": `${latency}ms`,
-      "X-AI-Provider": result.provider.name,
-    };
-
-    if (stream) {
-      // Providers with native OpenAI-compatible streaming
-      if (result.provider.name === "Groq" || result.provider.name === "OpenAI") {
-        return new Response(result.response.body, {
-          headers: { ...responseHeaders, "Content-Type": "text/event-stream" },
+    if (LOVABLE_API_KEY && stream) {
+      try {
+        const response = await fetch("https://ai.gateway.clausewiseai.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: enhancedMessages,
+            stream: true,
+            temperature: 0.3,
+          }),
         });
-      }
 
-      // Gemini streaming — convert SSE format to OpenAI-compatible
-      if (result.provider.name === "Google Gemini" && result.response.body) {
-        const convertedStream = convertGeminiStreamToOpenAI(result.response.body);
-        return new Response(convertedStream, {
-          headers: { ...responseHeaders, "Content-Type": "text/event-stream" },
-        });
-      }
-
-      // Non-streaming providers (Cohere) — wrap in single SSE event
-      const providerData = await result.response.json();
-      const content = result.provider.parseResponse(providerData) || "";
-
-      const streamBody = new ReadableStream({
-        start(controller) {
-          const encoder = new TextEncoder();
-          // Send content in small chunks to simulate streaming
-          const words = content.split(' ');
-          let i = 0;
-          const sendChunk = () => {
-            if (i < words.length) {
-              const chunk = words.slice(i, i + 3).join(' ') + ' ';
-              const payload = JSON.stringify({ choices: [{ delta: { content: chunk } }] });
-              controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
-              i += 3;
-              // Small delay between chunks for visual streaming effect
-              setTimeout(sendChunk, 0);
-            } else {
-              controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-              controller.close();
-            }
-          };
-          sendChunk();
+        if (response.ok && response.body) {
+          const latency = Date.now() - startTime;
+          console.log(`[AI-Chat] ClauseWiseAI AI streaming response (${latency}ms)`);
+          return new Response(response.body, {
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "text/event-stream",
+              "X-Response-Time": `${latency}ms`,
+              "X-AI-Provider": "ClauseWiseAI AI",
+            },
+          });
         }
-      });
 
-      return new Response(streamBody, {
-        headers: { ...responseHeaders, "Content-Type": "text/event-stream" },
-      });
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please wait a moment." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.warn(`[AI-Chat] ClauseWiseAI AI failed: ${response.status}, trying fallbacks`);
+      } catch (e) {
+        console.warn("[AI-Chat] ClauseWiseAI AI exception, trying fallbacks:", e);
+      }
     }
 
-    // Non-streaming response
-    const data = await result.response.json();
-    const content = result.provider.parseResponse(data) || "";
-    const normalized = {
-      choices: [{ message: { role: "assistant", content } }]
-    };
-    return new Response(JSON.stringify(normalized), {
-      headers: { ...responseHeaders, "Content-Type": "application/json" },
-    });
+    // Fallback providers
+    const fallbackProviders = [
+      {
+        name: "Groq",
+        call: async () => {
+          const key = Deno.env.get("GROQ_API_KEY");
+          if (!key) return null;
+          return fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "llama-3.3-70b-versatile",
+              messages: enhancedMessages,
+              stream,
+              temperature: 0.3,
+              max_tokens: 4096,
+            }),
+          });
+        },
+        streaming: true,
+      },
+      {
+        name: "OpenAI",
+        call: async () => {
+          const key = Deno.env.get("OPENAI_API_KEY");
+          if (!key) return null;
+          return fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              messages: enhancedMessages,
+              stream,
+              temperature: 0.3,
+              max_tokens: 4096,
+            }),
+          });
+        },
+        streaming: true,
+      },
+    ];
+
+    for (const provider of fallbackProviders) {
+      try {
+        console.log(`[AI-Chat] Trying fallback: ${provider.name}`);
+        const response = await provider.call();
+        if (!response || !response.ok) continue;
+
+        const latency = Date.now() - startTime;
+        console.log(`[AI-Chat] ${provider.name} succeeded (${latency}ms)`);
+
+        if (stream && provider.streaming) {
+          return new Response(response.body, {
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "text/event-stream",
+              "X-Response-Time": `${latency}ms`,
+              "X-AI-Provider": provider.name,
+            },
+          });
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || "";
+        return new Response(JSON.stringify({ choices: [{ message: { role: "assistant", content } }] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json", "X-AI-Provider": provider.name },
+        });
+      } catch (e) {
+        console.error(`[AI-Chat] ${provider.name} failed:`, e);
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ error: "AI service temporarily unavailable.", code: "SERVICE_ERROR" }),
+      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
 
   } catch (e) {
-    const latency = Date.now() - startTime;
-    
     if (e instanceof ValidationError) {
       return createValidationErrorResponse(e, corsHeaders);
     }
 
-    console.error(`[AI-Chat] Error (${latency}ms):`, e);
-
+    console.error(`[AI-Chat] Error:`, e);
     return new Response(
       JSON.stringify({ error: "An unexpected error occurred", code: "INTERNAL_ERROR" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

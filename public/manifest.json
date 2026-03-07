@@ -10,9 +10,9 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "/favicon-v2.ico",
+      "sizes": "16x16 32x32 64x64",
+      "type": "image/x-icon"
     },
     {
       "src": "/clausewise-logo-192.png",
