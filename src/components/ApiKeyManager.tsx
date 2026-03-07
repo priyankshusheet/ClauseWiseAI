@@ -39,11 +39,11 @@ interface ApiKey {
 const generateApiKey = () => {
   const prefix = 'cw_';
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let key = prefix;
-  for (let i = 0; i < 32; i++) {
-    key += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return key;
+  const randomBytes = new Uint8Array(32);
+  crypto.getRandomValues(randomBytes);
+  return prefix + Array.from(randomBytes)
+    .map(b => chars[b % chars.length])
+    .join('');
 };
 
 const hashKey = async (key: string): Promise<string> => {
