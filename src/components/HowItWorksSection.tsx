@@ -1,41 +1,44 @@
 import { Upload, Search, MessageCircle, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 const HowItWorksSection = () => {
+  const { t } = useTranslation();
+
   const steps = [
     {
       icon: Upload,
-      title: 'Upload',
-      description: 'Drop your policy document or paste the text',
-      details: 'Supports PDF, images, and text formats',
+      title: t('how_it_works.steps.upload.title'),
+      description: t('how_it_works.steps.upload.description'),
+      details: t('how_it_works.steps.upload.details'),
       color: 'bg-primary',
       bgColor: 'bg-primary/10',
       step: '01'
     },
     {
       icon: Search,
-      title: 'Analyze',
-      description: 'AI scans and identifies key clauses instantly',
-      details: 'Advanced NLP extracts important terms',
+      title: t('how_it_works.steps.analyze.title'),
+      description: t('how_it_works.steps.analyze.description'),
+      details: t('how_it_works.steps.analyze.details'),
       color: 'bg-secondary',
       bgColor: 'bg-secondary/10',
       step: '02'
     },
     {
       icon: MessageCircle,
-      title: 'Chat',
-      description: 'Ask questions about specific terms or clauses',
-      details: 'Get explanations in simple language',
+      title: t('how_it_works.steps.chat.title'),
+      description: t('how_it_works.steps.chat.description'),
+      details: t('how_it_works.steps.chat.details'),
       color: 'bg-accent',
       bgColor: 'bg-accent/10',
       step: '03'
     },
     {
       icon: Check,
-      title: 'Decide',
-      description: 'Make informed decisions with clear insights',
-      details: 'Compare alternatives and recommendations',
+      title: t('how_it_works.steps.decide.title'),
+      description: t('how_it_works.steps.decide.description'),
+      details: t('how_it_works.steps.decide.details'),
       color: 'bg-primary',
       bgColor: 'bg-primary/10',
       step: '04'
@@ -47,10 +50,10 @@ const HowItWorksSection = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
-            How ClauseWise Works
+            {t('how_it_works.title')}
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Get from confusion to clarity in just 4 simple steps
+            {t('how_it_works.subtitle')}
           </p>
         </div>
 
@@ -62,7 +65,7 @@ const HowItWorksSection = () => {
             
             <div className="grid grid-cols-4 gap-8">
               {steps.map((step) => (
-                <div key={step.title} className="relative text-center group">
+                <div key={step.step} className="relative text-center group">
                   {/* Step number */}
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <div className={`w-12 h-12 ${step.color} rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg shadow-lg`}>
@@ -90,7 +93,7 @@ const HowItWorksSection = () => {
         {/* Mobile View */}
         <div className="lg:hidden space-y-8">
           {steps.map((step) => (
-            <div key={step.title} className="flex items-start space-x-4">
+            <div key={step.step} className="flex items-start space-x-4">
               {/* Step indicator */}
               <div className="flex-shrink-0">
                 <div className={`w-12 h-12 ${step.color} rounded-full flex items-center justify-center text-primary-foreground font-bold`}>
@@ -116,12 +119,12 @@ const HowItWorksSection = () => {
         {/* Demo CTA */}
         <div className="mt-16 text-center">
           <div className="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-2xl p-8 max-w-2xl mx-auto border border-border">
-            <h3 className="text-2xl font-bold text-foreground mb-4">Ready to Try It Out?</h3>
-            <p className="text-muted-foreground mb-6">Upload a sample document and see ClauseWise in action</p>
+            <h3 className="text-2xl font-bold text-foreground mb-4">{t('how_it_works.cta_title')}</h3>
+            <p className="text-muted-foreground mb-6">{t('how_it_works.cta_subtitle')}</p>
             <Link to="/upload">
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <Upload className="w-4 h-4 mr-2" />
-                Try Demo
+                {t('how_it_works.try_demo')}
               </Button>
             </Link>
           </div>

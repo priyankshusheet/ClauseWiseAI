@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
@@ -31,6 +32,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { tapFeedback, toggleFeedback, navFeedback, successFeedback } from '@/utils/haptics';
+import LanguageSelector from './LanguageSelector';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,6 +41,7 @@ const Navigation = () => {
   const { theme, toggleTheme } = useTheme();
   const { user, signOut, loading } = useAuth();
   const { canInstall, isInstalled, install } = usePWAInstall();
+  const { t } = useTranslation();
 
   const handleNavigation = (href: string) => {
     navFeedback();
@@ -77,19 +80,19 @@ const Navigation = () => {
 
   // Public nav items - always visible
   const publicNavItems = [
-    { name: 'Home', href: '/', icon: Home, isRoute: true },
-    { name: 'AI Chat', href: '/chat', icon: MessageCircle, isRoute: true },
-    { name: 'Upload', href: '/upload', icon: Upload, isRoute: true },
-    { name: 'Learn', href: '/learn', icon: BookOpen, isRoute: true },
-    { name: 'FAQ', href: '#faq', icon: Info, isRoute: false },
+    { name: t('common.nav.home'), href: '/', icon: Home, isRoute: true },
+    { name: t('common.nav.ai_chat'), href: '/chat', icon: MessageCircle, isRoute: true },
+    { name: t('common.nav.upload'), href: '/upload', icon: Upload, isRoute: true },
+    { name: t('common.nav.learn'), href: '/learn', icon: BookOpen, isRoute: true },
+    { name: t('common.nav.faq'), href: '#faq', icon: Info, isRoute: false },
   ];
 
   // Auth-only nav items
   const authNavItems = [
-    { name: 'Portfolio', href: '/portfolio', icon: FolderOpen, isRoute: true },
-    { name: 'Compare', href: '/compare', icon: GitCompare, isRoute: true },
-    { name: 'Settings', href: '/settings', icon: Settings, isRoute: true },
-    { name: 'History', href: '/history', icon: History, isRoute: true },
+    { name: t('common.nav.portfolio'), href: '/portfolio', icon: FolderOpen, isRoute: true },
+    { name: t('common.nav.compare'), href: '/compare', icon: GitCompare, isRoute: true },
+    { name: t('common.nav.settings'), href: '/settings', icon: Settings, isRoute: true },
+    { name: t('common.nav.history'), href: '/history', icon: History, isRoute: true },
   ];
 
   const visibleNavItems = user 
@@ -140,6 +143,11 @@ const Navigation = () => {
               )
             ))}
             
+            {/* Language Selector */}
+            <div className="flex items-center pr-2 border-r border-border">
+              <LanguageSelector />
+            </div>
+
             {/* Dark Mode Toggle */}
             <div className="flex items-center space-x-2 pl-2 border-l border-border">
               <Sun className="h-4 w-4 text-muted-foreground" />
@@ -173,20 +181,20 @@ const Navigation = () => {
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => { navFeedback(); navigate('/history'); }}>
                     <History className="w-4 h-4 mr-2" />
-                    Analysis History
+                    {t('common.nav.analysis_history')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { navFeedback(); navigate('/portfolio'); }}>
                     <FolderOpen className="w-4 h-4 mr-2" />
-                    Portfolio
+                    {t('common.nav.portfolio')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { navFeedback(); navigate('/settings'); }}>
                     <Settings className="w-4 h-4 mr-2" />
-                    Settings
+                    {t('common.nav.settings')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                     <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
+                    {t('common.buttons.sign_out')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -194,12 +202,12 @@ const Navigation = () => {
               <>
                 <Link to="/auth" onClick={() => navFeedback()}>
                   <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/5">
-                    Sign In
+                    {t('common.buttons.sign_in')}
                   </Button>
                 </Link>
                 <Link to="/upload" onClick={() => navFeedback()}>
                   <Button size="sm" className="bg-primary hover:bg-primary/90 shadow-md">
-                    Try Free
+                    {t('common.buttons.try_free')}
                   </Button>
                 </Link>
               </>
@@ -227,7 +235,7 @@ const Navigation = () => {
                       <p className="text-sm font-medium text-foreground truncate">
                         {user.email}
                       </p>
-                      <p className="text-xs text-muted-foreground">Signed in</p>
+                      <p className="text-xs text-muted-foreground">{t('common.signed_in')}</p>
                     </div>
                   </div>
                 )}
@@ -264,19 +272,25 @@ const Navigation = () => {
                     className="flex items-center space-x-3 text-primary font-medium transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-primary/10 border border-primary/20 mt-2"
                   >
                     <Download className="w-5 h-5" />
-                    <span>Install App</span>
+                    <span>{t('common.buttons.install_app')}</span>
                   </button>
                 )}
                 {isInstalled && (
                   <div className="flex items-center space-x-3 text-muted-foreground py-3 px-2 rounded-lg bg-muted/30 mt-2">
                     <Download className="w-5 h-5 text-secondary" />
-                    <span className="text-sm">App Installed ✓</span>
+                    <span className="text-sm">{t('common.buttons.app_installed')}</span>
                   </div>
                 )}
                 
+                {/* Mobile Language Selector */}
+                <div className="flex items-center justify-between py-3 px-2 border-t border-border mt-4">
+                  <span className="text-muted-foreground font-medium">{t('common.nav.language')}</span>
+                  <LanguageSelector />
+                </div>
+                
                 {/* Mobile Dark Mode Toggle */}
                 <div className="flex items-center justify-between py-3 px-2 border-t border-border mt-4">
-                  <span className="text-muted-foreground font-medium">Dark Mode</span>
+                  <span className="text-muted-foreground font-medium">{t('common.nav.dark_mode')}</span>
                   <div className="flex items-center space-x-2">
                     <Sun className="h-4 w-4 text-muted-foreground" />
                     <Switch
@@ -296,18 +310,18 @@ const Navigation = () => {
                       onClick={handleSignOut}
                     >
                       <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
+                      {t('common.buttons.sign_out')}
                     </Button>
                   ) : (
                     <>
                       <Link to="/auth" onClick={() => { navFeedback(); setIsOpen(false); }}>
                         <Button variant="outline" className="w-full border-primary/30 text-primary">
-                          Sign In
+                          {t('common.buttons.sign_in')}
                         </Button>
                       </Link>
                       <Link to="/upload" onClick={() => { navFeedback(); setIsOpen(false); }}>
                         <Button className="w-full bg-primary hover:bg-primary/90">
-                          Try Free
+                          {t('common.buttons.try_free')}
                         </Button>
                       </Link>
                     </>

@@ -4,28 +4,31 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, FileSearch, MessageSquare, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { tapFeedback } from '@/utils/haptics';
+import { useTranslation } from 'react-i18next';
 
 const HeroSection = () => {
+  const { t } = useTranslation();
+
   const capabilities = [
     { 
       icon: FileSearch, 
-      title: 'Document Analysis', 
-      description: 'Upload and analyze financial documents with AI-powered insights'
+      title: t('hero.capabilities.doc_analysis.title'), 
+      description: t('hero.capabilities.doc_analysis.description')
     },
     { 
       icon: MessageSquare, 
-      title: 'Interactive Chat', 
-      description: 'Ask questions about terms, clauses, and conditions in plain English'
+      title: t('hero.capabilities.interactive_chat.title'), 
+      description: t('hero.capabilities.interactive_chat.description')
     },
     { 
       icon: Shield, 
-      title: 'Risk Detection', 
-      description: 'Identify hidden fees, penalties, and potentially problematic clauses'
+      title: t('hero.capabilities.risk_detection.title'), 
+      description: t('hero.capabilities.risk_detection.description')
     },
     { 
       icon: Sparkles, 
-      title: 'Plain-Language Explanations', 
-      description: 'Complex financial jargon translated into simple terms'
+      title: t('hero.capabilities.plain_language.title'), 
+      description: t('hero.capabilities.plain_language.description')
     }
   ];
 
@@ -68,7 +71,7 @@ const HeroSection = () => {
               <div className="w-6 h-6 bg-gradient-to-br from-primary to-primary/70 rounded-lg flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-xs">CW</span>
               </div>
-              <span>AI-Powered Financial Document Analysis</span>
+              <span>{t('common.ai_powered')}</span>
             </div>
           </motion.div>
           
@@ -87,8 +90,7 @@ const HeroSection = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
-              Upload insurance policies, credit agreements, or loan documents and get instant, 
-              plain-English explanations of complex terms, hidden fees, and risks.
+              {t('hero.description')}
             </p>
           </motion.div>
 
@@ -106,7 +108,7 @@ const HeroSection = () => {
                   size="lg" 
                   className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
                 >
-                  Try Free Analysis
+                  {t('common.buttons.try_free_analysis')}
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </motion.div>
@@ -122,7 +124,7 @@ const HeroSection = () => {
                   size="lg" 
                   className="border-2 border-border px-8 py-6 text-lg font-semibold rounded-xl hover:bg-muted transition-all duration-300"
                 >
-                  Try AI Chat
+                  {t('common.buttons.try_ai_chat')}
                 </Button>
               </motion.div>
             </Link>
@@ -131,7 +133,7 @@ const HeroSection = () => {
           {/* Capabilities Grid */}
           <motion.div variants={itemVariants} className="pt-8">
             <p className="text-sm text-muted-foreground mb-6 font-medium uppercase tracking-wide">
-              What ClauseWise Can Do For You
+              {t('hero.capabilities_title')}
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
@@ -161,18 +163,17 @@ const HeroSection = () => {
           >
             <div className="flex items-center justify-center space-x-3 mb-3">
               <Shield className="w-6 h-6 text-secondary" />
-              <span className="font-semibold text-foreground">Secure & Private</span>
+              <span className="font-semibold text-foreground">{t('common.secure_private')}</span>
             </div>
             <p className="text-muted-foreground text-sm">
-              Your documents are processed securely and never stored permanently. 
-              We use bank-level encryption to protect your sensitive financial information.
+              {t('common.bank_level_encryption')}
             </p>
           </motion.div>
 
           {/* Trial Notice */}
           <motion.div variants={itemVariants} className="pt-4">
             <p className="text-sm text-muted-foreground">
-              No sign-up required to try. Analyze up to 2 documents free.
+              {t('common.trial_notice')}
             </p>
           </motion.div>
         </motion.div>
