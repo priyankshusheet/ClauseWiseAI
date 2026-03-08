@@ -31,6 +31,7 @@ import HelpCenter from "./pages/HelpCenter";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import SharedAnalysis from "./pages/SharedAnalysis";
+import AnalysisDetail from "./pages/AnalysisDetail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +73,14 @@ const AnimatedRoutes = () => {
           element={
             <ProtectedRoute>
               <AnalysisHistory />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/analysis/:id" 
+          element={
+            <ProtectedRoute>
+              <AnalysisDetail />
             </ProtectedRoute>
           } 
         />
