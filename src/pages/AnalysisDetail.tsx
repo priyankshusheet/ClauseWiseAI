@@ -402,11 +402,17 @@ const AnalysisDetail = () => {
                     {analysis.file_size && <><span>•</span><span>{(analysis.file_size / 1024 / 1024).toFixed(2)} MB</span></>}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button size="sm" onClick={handleDiscuss} className="gap-1.5">
                     <MessageCircle className="w-4 h-4" /> Discuss
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => navigate('/upload')} className="gap-1.5">
+                  <Button size="sm" variant="outline" onClick={downloadAnalysisReport} className="gap-1.5">
+                    <Download className="w-4 h-4" /> Download Report
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleCompareBaseline} className="gap-1.5">
+                    <GitCompare className="w-4 h-4" /> Compare Baseline
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => navigate('/upload')} className="gap-1.5">
                     <FileText className="w-4 h-4" /> Re-analyze
                   </Button>
                 </div>
