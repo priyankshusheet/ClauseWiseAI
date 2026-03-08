@@ -12,7 +12,7 @@ import {
   FileText, ArrowLeft, Clock, Eye, Zap, Loader2,
   AlertTriangle, CheckCircle, AlertCircle, Download,
   MessageCircle, Shield, DollarSign, Scale,
-  ChevronDown, ChevronUp, Tag,
+  ChevronDown, ChevronUp, Tag, GitCompare,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -21,6 +21,7 @@ import ClauseViewer from '@/components/ClauseViewer';
 import TLDRSummary from '@/components/TLDRSummary';
 import NegotiateClause from '@/components/NegotiateClause';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/hooks/use-toast';
 
 const DOCUMENT_CATEGORIES = [
   'Loan Agreement', 'Insurance Policy', 'Credit Card Agreement',
