@@ -28,6 +28,7 @@ import { enhancedOCRService } from '@/services/enhancedOCRService';
 import { pdfService } from '@/services/pdfService';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import RiskScoreGauge from '@/components/RiskScoreGauge';
 
 interface OCRAnalysisProps {
   file: File;
@@ -423,34 +424,29 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
               </AlertDescription>
             </Alert>
 
-            {/* Risk Score Hero */}
+            {/* Risk Score Hero with Gauge */}
             <Card className={`border-2 ${getRiskColor(analysis.riskLevel).border} ${getRiskColor(analysis.riskLevel).bg}`}>
               <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Risk Assessment</p>
-                    <p className={`text-3xl font-bold ${getRiskColor(analysis.riskLevel).text}`}>
-                      {analysis.riskScore}/100
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant={getRiskColor(analysis.riskLevel).badge} className="text-base px-4 py-1.5">
+                <div className="flex items-center gap-6">
+                  <RiskScoreGauge
+                    score={analysis.riskScore}
+                    riskLevel={analysis.riskLevel}
+                    size={140}
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Risk Assessment</p>
+                    <Badge variant={getRiskColor(analysis.riskLevel).badge} className="text-base px-4 py-1.5 mb-2">
                       {analysis.riskLevel?.toUpperCase()} RISK
                     </Badge>
                     {analysis.documentType && analysis.documentType !== 'unknown' && (
-                      <p className="text-xs text-muted-foreground mt-1 capitalize">{analysis.documentType} Document</p>
+                      <p className="text-xs text-muted-foreground mt-2 capitalize">{analysis.documentType} Document</p>
                     )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {analysis.riskScore <= 30 ? 'This document appears generally safe.' :
+                       analysis.riskScore <= 60 ? 'Some clauses need attention.' :
+                       'Multiple high-risk clauses detected.'}
+                    </p>
                   </div>
-                </div>
-                {/* Risk bar */}
-                <div className="mt-3 h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-1000 ${
-                      analysis.riskLevel === 'high' ? 'bg-destructive' :
-                      analysis.riskLevel === 'medium' ? 'bg-warning' : 'bg-success'
-                    }`}
-                    style={{ width: `${analysis.riskScore}%` }}
-                  />
                 </div>
               </CardContent>
             </Card>

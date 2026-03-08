@@ -140,16 +140,15 @@ const Navigation = () => {
               )
             ))}
             
-            {/* Dark Mode Toggle */}
-            <div className="flex items-center space-x-2 pl-2 border-l border-border">
-              <Sun className="h-4 w-4 text-muted-foreground" />
-              <Switch
-                checked={theme === 'dark'}
-                onCheckedChange={handleToggleTheme}
-                className="data-[state=checked]:bg-primary"
-              />
-              <Moon className="h-4 w-4 text-muted-foreground" />
-            </div>
+            {/* Dark Mode Toggle - Prominent Icon Button */}
+            <button
+              onClick={handleToggleTheme}
+              className="relative ml-2 p-2 rounded-full bg-muted hover:bg-accent/20 border border-border transition-all duration-300 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              <Sun className={`h-4 w-4 text-accent transition-all duration-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${theme === 'dark' ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
+              <Moon className={`h-4 w-4 text-primary transition-all duration-300 ${theme === 'dark' ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} />
+            </button>
           </div>
 
           {/* CTA Buttons / User Menu */}
@@ -277,15 +276,14 @@ const Navigation = () => {
                 {/* Mobile Dark Mode Toggle */}
                 <div className="flex items-center justify-between py-3 px-2 border-t border-border mt-4">
                   <span className="text-muted-foreground font-medium">Dark Mode</span>
-                  <div className="flex items-center space-x-2">
-                    <Sun className="h-4 w-4 text-muted-foreground" />
-                    <Switch
-                      checked={theme === 'dark'}
-                      onCheckedChange={handleToggleTheme}
-                      className="data-[state=checked]:bg-primary"
-                    />
-                    <Moon className="h-4 w-4 text-muted-foreground" />
-                  </div>
+                  <button
+                    onClick={handleToggleTheme}
+                    className="relative p-2.5 rounded-full bg-muted hover:bg-accent/20 border border-border transition-all duration-300"
+                    aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                  >
+                    <Sun className={`h-5 w-5 text-accent transition-all duration-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${theme === 'dark' ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
+                    <Moon className={`h-5 w-5 text-primary transition-all duration-300 ${theme === 'dark' ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} />
+                  </button>
                 </div>
                 
                 <div className="pt-4 border-t border-border space-y-3">
