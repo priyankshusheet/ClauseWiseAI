@@ -31,6 +31,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import RiskScoreGauge from '@/components/RiskScoreGauge';
 import { requestNotificationPermission, sendAnalysisCompleteNotification } from '@/utils/notifications';
 import ClauseViewer from '@/components/ClauseViewer';
+import TLDRSummary from '@/components/TLDRSummary';
+import NegotiateClause from '@/components/NegotiateClause';
 
 interface OCRAnalysisProps {
   file: File;
@@ -503,6 +505,17 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
               </CardContent>
             </Card>
 
+            {/* TL;DR Summary */}
+            <TLDRSummary
+              clauses={analysis.clauses || []}
+              riskScore={analysis.riskScore}
+              riskLevel={analysis.riskLevel}
+              keyTerms={analysis.keyTerms}
+              financialImplications={analysis.financialImplications}
+              consumerRights={analysis.consumerRights}
+              recommendations={analysis.recommendations}
+            />
+
             {/* Summary */}
             <Card>
               <CardHeader className="pb-2">
@@ -602,11 +615,18 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
                               exit={{ height: 0, opacity: 0 }}
                               className="px-3 pb-3"
                             >
-                              <div className="pt-2 border-t border-border/50">
+                              <div className="pt-2 border-t border-border/50 space-y-2">
                                 <p className="text-sm text-foreground mb-2 italic">"{clause.text}"</p>
                                 <p className="text-sm text-muted-foreground">
                                   <strong className="text-foreground">What this means:</strong> {clause.explanation}
                                 </p>
+                                <NegotiateClause
+                                  clauseText={clause.text}
+                                  clauseCategory={clause.category}
+                                  riskLevel={clause.riskLevel}
+                                  explanation={clause.explanation}
+                                  documentType={analysis.documentType}
+                                />
                               </div>
                             </motion.div>
                           )}
