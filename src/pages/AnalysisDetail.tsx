@@ -18,6 +18,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import RiskScoreGauge from '@/components/RiskScoreGauge';
 import ClauseViewer from '@/components/ClauseViewer';
+import TLDRSummary from '@/components/TLDRSummary';
+import NegotiateClause from '@/components/NegotiateClause';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const DOCUMENT_CATEGORIES = [
@@ -204,6 +206,21 @@ const AnalysisDetail = () => {
               </Card>
             )}
 
+            {/* TL;DR Summary */}
+            {clauses.length > 0 && (
+              <div className="mb-6">
+                <TLDRSummary
+                  clauses={clauses}
+                  riskScore={analysis.risk_score || 0}
+                  riskLevel={analysis.risk_level || 'medium'}
+                  keyTerms={keyTerms}
+                  financialImplications={financialImplications}
+                  consumerRights={consumerRights}
+                  recommendations={recommendations}
+                />
+              </div>
+            )}
+
             {/* Summary */}
             {analysis.analysis_summary && (
               <Card className="mb-6">
@@ -254,8 +271,15 @@ const AnalysisDetail = () => {
                         <AnimatePresence>
                           {isExpanded && (
                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="px-3 pb-3">
-                              <div className="pt-2 border-t border-border/50">
+                              <div className="pt-2 border-t border-border/50 space-y-2">
                                 <p className="text-sm text-muted-foreground"><strong className="text-foreground">What this means:</strong> {clause.explanation}</p>
+                                <NegotiateClause
+                                  clauseText={clause.text}
+                                  clauseCategory={clause.category}
+                                  riskLevel={clause.riskLevel}
+                                  explanation={clause.explanation}
+                                  documentType={ar.documentType}
+                                />
                               </div>
                             </motion.div>
                           )}
