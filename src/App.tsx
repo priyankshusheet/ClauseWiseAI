@@ -13,6 +13,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import SplashScreen from "@/components/SplashScreen";
 import ScrollToTop from "@/components/ScrollToTop";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
+import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import Index from "./pages/Index";
 import Chat from "./pages/Chat";
 import Upload from "./pages/Upload";
@@ -127,6 +128,7 @@ const App = () => {
                 <BrowserRouter>
                   <ScrollToTop />
                   <PWAInstallBanner />
+                  <KeyboardShortcuts />
                   <AnimatedRoutes />
                 </BrowserRouter>
               )}

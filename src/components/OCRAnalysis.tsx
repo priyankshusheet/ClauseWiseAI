@@ -63,6 +63,47 @@ interface StructuredAnalysis {
   extractedText: string;
 }
 
+const pipelineSteps = [
+  { key: 'validate', label: 'File validated', minProgress: 0 },
+  { key: 'prepare', label: 'Preparing document', minProgress: 10 },
+  { key: 'extract', label: 'Extracting text & visuals', minProgress: 25 },
+  { key: 'analyze', label: 'Analyzing clauses & risks', minProgress: 50 },
+  { key: 'results', label: 'Processing results', minProgress: 80 },
+  { key: 'done', label: 'Analysis complete', minProgress: 100 },
+];
+
+const PipelineSteps: React.FC<{ progress: number; currentStep: string }> = ({ progress }) => (
+  <div className="space-y-2">
+    {pipelineSteps.map((step) => {
+      const isDone = progress > step.minProgress;
+      const isActive = progress >= step.minProgress && progress <= (step.minProgress + 20) && progress < 100;
+
+      return (
+        <motion.div
+          key={step.key}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: step.minProgress * 0.003 }}
+          className={`flex items-center gap-3 text-sm py-1.5 px-3 rounded-lg transition-colors ${
+            isDone ? 'text-foreground' : isActive ? 'bg-primary/5 text-foreground' : 'text-muted-foreground/50'
+          }`}
+        >
+          {isDone && !isActive ? (
+            <CheckCircle className="w-4 h-4 text-secondary shrink-0" />
+          ) : isActive ? (
+            <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+          ) : (
+            <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+          )}
+          <span className={isDone && !isActive ? 'line-through opacity-60' : isActive ? 'font-medium' : ''}>
+            {step.label}
+          </span>
+        </motion.div>
+      );
+    })}
+  </div>
+);
+
 const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -403,15 +444,11 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
           </div>
         )}
 
-        {/* Processing State */}
+        {/* Processing State — Step-by-step pipeline */}
         {isProcessing && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Loader2 className="w-4 h-4 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">{currentStep}</span>
-            </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+            <PipelineSteps progress={progress} currentStep={currentStep} />
             <Progress value={progress} className="w-full" />
-            <p className="text-xs text-muted-foreground text-center">{progress}% complete</p>
           </motion.div>
         )}
 
@@ -732,6 +769,16 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
                   <p className="font-semibold">{analysis.clauses?.length || 0}</p>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Trust Disclaimer */}
+            <div className="rounded-lg border border-border bg-muted/30 p-4 mt-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">⚠️ Important:</strong> ClauseWise provides AI-assisted analysis for informational purposes only. 
+                This is <strong>not legal, financial, or professional advice.</strong> AI can miss nuances, misinterpret context, or produce inaccurate results. 
+                Always consult a qualified professional before making decisions based on this analysis.{' '}
+                <a href="/help" className="underline text-primary hover:text-primary/80 transition-colors">Learn more →</a>
+              </p>
             </div>
           </motion.div>
         )}

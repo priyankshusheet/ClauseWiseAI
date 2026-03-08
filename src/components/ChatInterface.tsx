@@ -596,7 +596,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
         </div>
         
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          Powered by AI • Responses are for informational purposes only
+          Powered by AI • Not legal or financial advice.{' '}
+          <a href="/help" className="underline hover:text-foreground transition-colors">Learn more</a>
         </p>
       </div>
     </Card>
