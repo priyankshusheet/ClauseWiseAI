@@ -403,15 +403,11 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
           </div>
         )}
 
-        {/* Processing State */}
+        {/* Processing State — Step-by-step pipeline */}
         {isProcessing && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Loader2 className="w-4 h-4 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">{currentStep}</span>
-            </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+            <PipelineSteps progress={progress} currentStep={currentStep} />
             <Progress value={progress} className="w-full" />
-            <p className="text-xs text-muted-foreground text-center">{progress}% complete</p>
           </motion.div>
         )}
 
@@ -732,6 +728,16 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
                   <p className="font-semibold">{analysis.clauses?.length || 0}</p>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Trust Disclaimer */}
+            <div className="rounded-lg border border-border bg-muted/30 p-4 mt-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">⚠️ Important:</strong> ClauseWise provides AI-assisted analysis for informational purposes only. 
+                This is <strong>not legal, financial, or professional advice.</strong> AI can miss nuances, misinterpret context, or produce inaccurate results. 
+                Always consult a qualified professional before making decisions based on this analysis.{' '}
+                <a href="/help" className="underline text-primary hover:text-primary/80 transition-colors">Learn more →</a>
+              </p>
             </div>
           </motion.div>
         )}
