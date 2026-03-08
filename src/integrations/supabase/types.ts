@@ -244,6 +244,7 @@ export type Database = {
           analysis_result: Json | null
           analysis_summary: string | null
           created_at: string
+          document_category: string | null
           file_name: string
           file_size: number | null
           file_type: string | null
@@ -259,6 +260,7 @@ export type Database = {
           analysis_result?: Json | null
           analysis_summary?: string | null
           created_at?: string
+          document_category?: string | null
           file_name: string
           file_size?: number | null
           file_type?: string | null
@@ -274,6 +276,7 @@ export type Database = {
           analysis_result?: Json | null
           analysis_summary?: string | null
           created_at?: string
+          document_category?: string | null
           file_name?: string
           file_size?: number | null
           file_type?: string | null
