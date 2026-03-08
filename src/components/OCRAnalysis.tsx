@@ -29,6 +29,7 @@ import { pdfService } from '@/services/pdfService';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import RiskScoreGauge from '@/components/RiskScoreGauge';
+import { requestNotificationPermission, sendAnalysisCompleteNotification } from '@/utils/notifications';
 
 interface OCRAnalysisProps {
   file: File;
@@ -95,6 +96,9 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
     setCurrentStep('');
     setAnalysis(null);
     setError(null);
+
+    // Request notification permission upfront
+    requestNotificationPermission();
 
     const startTime = Date.now();
 
