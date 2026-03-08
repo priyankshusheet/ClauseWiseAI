@@ -12,13 +12,13 @@ export const sendAnalysisCompleteNotification = (fileName: string) => {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   
   try {
-    const notification = new Notification('ClauseWise Analysis Complete', {
+    const options: NotificationOptions & Record<string, unknown> = {
       body: `Your analysis of "${fileName}" is ready to view.`,
       icon: '/clausewise-logo-192.png',
       badge: '/clausewise-logo-192.png',
       tag: 'analysis-complete',
-      renotify: true,
-    });
+    };
+    const notification = new Notification('ClauseWise Analysis Complete', options);
 
     notification.onclick = () => {
       window.focus();
