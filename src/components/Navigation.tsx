@@ -153,6 +153,17 @@ const Navigation = () => {
 
           {/* CTA Buttons / User Menu */}
           <div className="hidden md:flex items-center space-x-3">
+            {canInstall && !isInstalled && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleInstall}
+                className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Install
+              </Button>
+            )}
             {loading ? (
               <div className="w-20 h-9 bg-muted animate-pulse rounded-lg" />
             ) : user ? (
