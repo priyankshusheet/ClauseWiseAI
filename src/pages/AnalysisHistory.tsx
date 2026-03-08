@@ -24,6 +24,7 @@ import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
 import { ListSkeleton } from '@/components/LoadingStates';
 import { StaggerContainer, StaggerItem, FadeIn } from '@/components/PageTransition';
 import EmptyState from '@/components/EmptyState';
+import ShareAnalysis from '@/components/ShareAnalysis';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -229,6 +230,8 @@ const AnalysisHistory = () => {
                               <Bookmark className="w-5 h-5" />
                             )}
                           </Button>
+
+                          <ShareAnalysis analysisId={analysis.id} fileName={analysis.file_name} />
                           
                           <AlertDialog>
                             <AlertDialogTrigger asChild>

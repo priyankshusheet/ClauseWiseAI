@@ -29,6 +29,7 @@ import { pdfService } from '@/services/pdfService';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import RiskScoreGauge from '@/components/RiskScoreGauge';
+import { requestNotificationPermission, sendAnalysisCompleteNotification } from '@/utils/notifications';
 
 interface OCRAnalysisProps {
   file: File;
@@ -96,6 +97,9 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
     setAnalysis(null);
     setError(null);
 
+    // Request notification permission upfront
+    requestNotificationPermission();
+
     const startTime = Date.now();
 
     try {
@@ -152,6 +156,11 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
           setAnalysis(structured);
           setProgress(100);
           setCurrentStep('Analysis complete!');
+
+          // Send push notification if analysis took >5s
+          if (Date.now() - startTime > 5000) {
+            sendAnalysisCompleteNotification(file.name);
+          }
 
           const sections = enhancedOCRService.identifyDocumentSections(extractedText);
           const hiddenClauses = enhancedOCRService.analyzeForHiddenClauses(extractedText);
@@ -244,6 +253,11 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
       setProgress(100);
       setCurrentStep('Analysis complete!');
       setProcessingTime(Date.now() - startTime);
+
+      // Send push notification if analysis took >5s
+      if (Date.now() - startTime > 5000) {
+        sendAnalysisCompleteNotification(file.name);
+      }
 
       const sections = enhancedOCRService.identifyDocumentSections(extractedText);
       const hiddenClauses = enhancedOCRService.analyzeForHiddenClauses(extractedText);
