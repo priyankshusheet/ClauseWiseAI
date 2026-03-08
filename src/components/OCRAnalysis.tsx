@@ -30,6 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import RiskScoreGauge from '@/components/RiskScoreGauge';
 import { requestNotificationPermission, sendAnalysisCompleteNotification } from '@/utils/notifications';
+import ClauseViewer from '@/components/ClauseViewer';
 
 interface OCRAnalysisProps {
   file: File;
@@ -540,6 +541,11 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Interactive Clause Viewer */}
+            {analysis.extractedText && analysis.clauses && analysis.clauses.length > 0 && (
+              <ClauseViewer extractedText={analysis.extractedText} clauses={analysis.clauses} />
             )}
 
             {/* Clauses with Color Coding */}

@@ -59,18 +59,17 @@ const UploadPage = () => {
     if (isValid) {
       setSelectedFile(file);
       setOcrResult(null);
-      setShowOCR(false);
       setSavedAnalysisId(null);
-      toast({ title: "File ready for analysis", description: `${file.name} has been selected successfully.` });
+      toast({ title: "File accepted", description: `Starting analysis of ${file.name}...` });
+      
+      // Auto-start analysis immediately
+      if (!user && !canAnalyzeDocument) {
+        toast({ title: "Trial Limit Reached", description: "Please sign in to continue.", variant: "destructive" });
+        setShowOCR(false);
+        return;
+      }
+      setShowOCR(true);
     }
-  };
-
-  const startAnalysis = () => {
-    if (!user && !canAnalyzeDocument) {
-      toast({ title: "Trial Limit Reached", description: "Please sign in to continue.", variant: "destructive" });
-      return;
-    }
-    setShowOCR(true);
   };
 
   const handleOCRComplete = async (result: OCRAnalysisResult) => {
@@ -263,18 +262,11 @@ const UploadPage = () => {
                     <div>
                       <h3 className="text-lg font-semibold text-foreground">{selectedFile.name}</h3>
                       <p className="text-muted-foreground">Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      {showOCR && <p className="text-sm text-primary mt-1">Analysis in progress...</p>}
                     </div>
-                    <div className="flex justify-center space-x-4">
-                      {!showOCR && (
-                        <Button onClick={startAnalysis}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          Analyze Document
-                        </Button>
-                      )}
-                      <Button variant="outline" onClick={() => { setSelectedFile(null); setShowOCR(false); setOcrResult(null); }}>
-                        Select Different File
-                      </Button>
-                    </div>
+                    <Button variant="outline" onClick={() => { setSelectedFile(null); setShowOCR(false); setOcrResult(null); }}>
+                      Select Different File
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">

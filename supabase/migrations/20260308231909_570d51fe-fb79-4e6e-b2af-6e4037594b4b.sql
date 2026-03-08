@@ -1,0 +1,1 @@
+ALTER TABLE public.document_analyses ADD COLUMN IF NOT EXISTS document_category text DEFAULT NULL;
