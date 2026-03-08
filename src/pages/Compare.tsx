@@ -38,6 +38,19 @@ const ComparePage = () => {
     if (user) fetchDocuments();
   }, [user]);
 
+  // Handle pre-selected document from AnalysisDetail page
+  useEffect(() => {
+    const preSelectedId = localStorage.getItem('compareDocumentId');
+    if (preSelectedId && documents.length > 0) {
+      const doc = documents.find(d => d.id === preSelectedId);
+      if (doc) {
+        setSelectedDocA(doc);
+        setMode('baseline'); // Default to baseline comparison when coming from analysis
+        localStorage.removeItem('compareDocumentId');
+      }
+    }
+  }, [documents]);
+
   const fetchDocuments = async () => {
     try {
       const { data, error } = await supabase
