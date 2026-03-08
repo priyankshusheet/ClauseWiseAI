@@ -33,6 +33,7 @@ const AnalysisDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [expandedClauses, setExpandedClauses] = useState<Record<number, boolean>>({});
@@ -72,6 +73,263 @@ const AnalysisDetail = () => {
   };
 
   const toggleClause = (i: number) => setExpandedClauses(prev => ({ ...prev, [i]: !prev[i] }));
+
+  const downloadAnalysisReport = async () => {
+    if (!analysis) return;
+    const ar = analysis.analysis_result || {};
+
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      const lineHeight = 6;
+      let yPosition = margin;
+
+      const checkPageBreak = (requiredSpace: number = 20) => {
+        if (yPosition > pageHeight - requiredSpace) {
+          doc.addPage();
+          yPosition = margin;
+        }
+      };
+
+      const addWrappedText = (text: string, fontSize: number = 10, isBold: boolean = false, color: [number, number, number] = [0, 0, 0]) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        doc.setTextColor(...color);
+        const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
+        lines.forEach((line: string) => {
+          checkPageBreak();
+          doc.text(line, margin, yPosition);
+          yPosition += lineHeight;
+        });
+        yPosition += 2;
+      };
+
+      const addSection = (title: string, iconColor: [number, number, number] = [67, 56, 202]) => {
+        checkPageBreak(25);
+        yPosition += 5;
+        doc.setFillColor(...iconColor);
+        doc.roundedRect(margin - 2, yPosition - 4, 4, 4, 1, 1, 'F');
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 30);
+        doc.text(title, margin + 6, yPosition);
+        yPosition += 10;
+      };
+
+      const addRiskBadge = (riskLevel: string, x: number, y: number) => {
+        const colors: Record<string, [number, number, number]> = {
+          high: [220, 38, 38],
+          medium: [217, 119, 6],
+          low: [22, 163, 74],
+          safe: [22, 163, 74],
+        };
+        const color = colors[riskLevel?.toLowerCase()] || [100, 100, 100];
+        doc.setFillColor(...color);
+        const label = (riskLevel || 'N/A').toUpperCase();
+        const textWidth = doc.getTextWidth(label);
+        doc.roundedRect(x, y - 4, textWidth + 8, 6, 1.5, 1.5, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.text(label, x + 4, y);
+      };
+
+      // Header with gradient-like effect
+      doc.setFillColor(67, 56, 202);
+      doc.rect(0, 0, pageWidth, 35, 'F');
+      doc.setFillColor(99, 102, 241);
+      doc.rect(0, 30, pageWidth, 8, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ClauseWise Analysis Report', margin, 18);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, 28);
+
+      yPosition = 50;
+
+      // Document Info Card
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(margin - 5, yPosition - 5, pageWidth - 2 * margin + 10, 35, 3, 3, 'F');
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(margin - 5, yPosition - 5, pageWidth - 2 * margin + 10, 35, 3, 3, 'S');
+
+      doc.setFontSize(10);
+      doc.setTextColor(71, 85, 105);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Document: ${analysis.file_name}`, margin, yPosition + 5);
+      doc.text(`Type: ${analysis.file_type || 'Unknown'} | Size: ${analysis.file_size ? (analysis.file_size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}`, margin, yPosition + 12);
+      doc.text(`Category: ${(analysis as any).document_category || 'Uncategorized'}`, margin, yPosition + 19);
+
+      // Risk Score Display
+      const riskX = pageWidth - margin - 50;
+      doc.setFontSize(28);
+      doc.setFont('helvetica', 'bold');
+      const scoreColor: Record<string, [number, number, number]> = {
+        high: [220, 38, 38],
+        medium: [217, 119, 6],
+        low: [22, 163, 74],
+      };
+      doc.setTextColor(...(scoreColor[analysis.risk_level?.toLowerCase()] || [100, 100, 100]));
+      doc.text(`${analysis.risk_score || 0}`, riskX, yPosition + 8);
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text('/100', riskX + 20, yPosition + 8);
+      addRiskBadge(analysis.risk_level, riskX - 5, yPosition + 20);
+
+      yPosition += 45;
+
+      // Executive Summary
+      if (ar.summary || analysis.analysis_summary) {
+        addSection('Executive Summary', [67, 56, 202]);
+        addWrappedText(ar.summary || analysis.analysis_summary, 10, false, [71, 85, 105]);
+      }
+
+      // Key Clauses
+      const clauses = ar.clauses || [];
+      if (clauses.length > 0) {
+        addSection('Key Clauses Analysis', [239, 68, 68]);
+        clauses.forEach((clause: any, i: number) => {
+          checkPageBreak(30);
+          const riskColor: Record<string, [number, number, number]> = {
+            high: [254, 226, 226],
+            medium: [254, 243, 199],
+            low: [220, 252, 231],
+            safe: [220, 252, 231],
+          };
+          const borderColor: Record<string, [number, number, number]> = {
+            high: [220, 38, 38],
+            medium: [217, 119, 6],
+            low: [22, 163, 74],
+            safe: [22, 163, 74],
+          };
+          const bg = riskColor[clause.riskLevel?.toLowerCase()] || [248, 250, 252];
+          const border = borderColor[clause.riskLevel?.toLowerCase()] || [200, 200, 200];
+
+          doc.setFillColor(...bg);
+          doc.setDrawColor(...border);
+          doc.roundedRect(margin - 2, yPosition - 3, pageWidth - 2 * margin + 4, 28, 2, 2, 'FD');
+
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(30, 30, 30);
+          const clauseTitle = `${i + 1}. ${clause.category || 'General'}`;
+          doc.text(clauseTitle, margin + 2, yPosition + 3);
+          addRiskBadge(clause.riskLevel, margin + doc.getTextWidth(clauseTitle) + 6, yPosition + 3);
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(71, 85, 105);
+          const clauseText = doc.splitTextToSize(clause.text?.substring(0, 150) + (clause.text?.length > 150 ? '...' : ''), pageWidth - 2 * margin - 10);
+          doc.text(clauseText.slice(0, 2), margin + 2, yPosition + 11);
+
+          doc.setTextColor(100, 100, 100);
+          doc.setFontSize(7);
+          const explanation = doc.splitTextToSize('→ ' + (clause.explanation || '').substring(0, 100), pageWidth - 2 * margin - 10);
+          doc.text(explanation.slice(0, 1), margin + 2, yPosition + 22);
+
+          yPosition += 32;
+        });
+      }
+
+      // Risk Factors
+      const riskFactors = ar.riskFactors || [];
+      if (riskFactors.length > 0) {
+        addSection('Risk Factors', [220, 38, 38]);
+        riskFactors.forEach((rf: any, i: number) => {
+          checkPageBreak(15);
+          doc.setFillColor(254, 226, 226);
+          doc.roundedRect(margin - 2, yPosition - 3, pageWidth - 2 * margin + 4, 12, 2, 2, 'F');
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(185, 28, 28);
+          doc.text(`⚠ ${rf.factor}`, margin + 2, yPosition + 3);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(71, 85, 105);
+          const details = doc.splitTextToSize(rf.details || '', pageWidth - 2 * margin - 10);
+          doc.text(details.slice(0, 1), margin + 2, yPosition + 9);
+          yPosition += 16;
+        });
+      }
+
+      // Recommendations
+      const recommendations = ar.recommendations || [];
+      if (recommendations.length > 0) {
+        addSection('Recommendations', [22, 163, 74]);
+        recommendations.forEach((r: any, i: number) => {
+          checkPageBreak(15);
+          doc.setFillColor(220, 252, 231);
+          doc.roundedRect(margin - 2, yPosition - 3, pageWidth - 2 * margin + 4, 12, 2, 2, 'F');
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(21, 128, 61);
+          doc.text(`✓ ${r.action}`, margin + 2, yPosition + 3);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(71, 85, 105);
+          const reason = doc.splitTextToSize(r.reason || '', pageWidth - 2 * margin - 10);
+          doc.text(reason.slice(0, 1), margin + 2, yPosition + 9);
+          yPosition += 16;
+        });
+      }
+
+      // Financial Implications
+      const financialImplications = ar.financialImplications || [];
+      if (financialImplications.length > 0) {
+        addSection('Financial Implications', [217, 119, 6]);
+        // Table header
+        doc.setFillColor(254, 243, 199);
+        doc.roundedRect(margin - 2, yPosition - 3, pageWidth - 2 * margin + 4, 8, 1, 1, 'F');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(146, 64, 14);
+        doc.text('Item', margin + 2, yPosition + 2);
+        doc.text('Amount', margin + 60, yPosition + 2);
+        doc.text('Frequency', margin + 100, yPosition + 2);
+        doc.text('Impact', margin + 140, yPosition + 2);
+        yPosition += 10;
+
+        financialImplications.forEach((fi: any) => {
+          checkPageBreak(10);
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(71, 85, 105);
+          doc.text(fi.item?.substring(0, 25) || '', margin + 2, yPosition + 2);
+          doc.text(fi.amount || '', margin + 60, yPosition + 2);
+          doc.text(fi.frequency || '', margin + 100, yPosition + 2);
+          addRiskBadge(fi.impact, margin + 140, yPosition + 2);
+          yPosition += 8;
+        });
+      }
+
+      // Footer
+      doc.setFillColor(248, 250, 252);
+      doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Generated by ClauseWise AI Document Analyzer', margin, pageHeight - 10);
+      doc.text('This is AI-generated analysis, not legal advice.', margin, pageHeight - 5);
+      doc.text(`Page 1`, pageWidth - margin - 15, pageHeight - 10);
+
+      doc.save(`ClauseWise_${analysis.file_name.replace(/\.[^/.]+$/, "")}_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast({ title: "Report downloaded successfully" });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({ title: "Failed to generate report", variant: "destructive" });
+    }
+  };
+
+  const handleCompareBaseline = () => {
+    // Navigate to compare page with this document pre-selected
+    localStorage.setItem('compareDocumentId', id || '');
+    navigate('/compare');
+  };
 
   const handleDiscuss = () => {
     if (!analysis) return;
