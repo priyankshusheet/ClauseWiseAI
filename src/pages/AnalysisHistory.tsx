@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
 import { ListSkeleton } from '@/components/LoadingStates';
 import { StaggerContainer, StaggerItem, FadeIn } from '@/components/PageTransition';
+import EmptyState from '@/components/EmptyState';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -145,27 +146,22 @@ const AnalysisHistory = () => {
           {loading ? (
             <ListSkeleton count={5} />
           ) : filteredAnalyses.length === 0 ? (
-            <FadeIn delay={0.2}>
-              <Card className="text-center py-16">
-                <CardContent>
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FileText className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {searchQuery || filter !== 'all' ? 'No matching analyses' : 'No analyses yet'}
-                  </h3>
-                  <p className="text-muted-foreground mb-6">
-                    {searchQuery || filter !== 'all' 
-                      ? 'Try adjusting your search or filter' 
-                      : 'Upload a document to get started with your first analysis'}
-                  </p>
+            <Card>
+              <CardContent>
+                <EmptyState
+                  type="history"
+                  title={searchQuery || filter !== 'all' ? 'No matching analyses' : 'No analyses yet'}
+                  description={searchQuery || filter !== 'all' 
+                    ? 'Try adjusting your search or filter' 
+                    : 'Upload a document to get started with your first analysis'}
+                >
                   <Button onClick={() => navigate('/upload')} className="gap-2">
                     <Upload className="w-4 h-4" />
                     Upload Document
                   </Button>
-                </CardContent>
-              </Card>
-            </FadeIn>
+                </EmptyState>
+              </CardContent>
+            </Card>
           ) : (
             <StaggerContainer className="space-y-4">
               {filteredAnalyses.map((analysis) => (

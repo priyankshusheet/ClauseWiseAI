@@ -3,6 +3,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import PortfolioAnalysis from '@/components/PortfolioAnalysis';
 import { FadeIn } from '@/components/PageTransition';
+import EmptyState from '@/components/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -107,9 +108,11 @@ const PortfolioPage = () => {
                   {isLoading ? (
                     <p className="text-sm text-muted-foreground">Loading...</p>
                   ) : portfolios.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No saved portfolios yet. Create one above!
-                    </p>
+                    <EmptyState
+                      type="portfolio"
+                      title="No portfolios yet"
+                      description="Group documents together for aggregate risk insights."
+                    />
                   ) : (
                     <div className="space-y-3">
                       {portfolios.map(portfolio => (

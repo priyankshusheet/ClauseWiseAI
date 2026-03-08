@@ -3,6 +3,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import DocumentComparison from '@/components/DocumentComparison';
 import { FadeIn } from '@/components/PageTransition';
+import EmptyState from '@/components/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -90,9 +91,11 @@ const ComparePage = () => {
                   {isLoading ? (
                     <p className="text-sm text-muted-foreground">Loading...</p>
                   ) : documents.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No documents available. Upload documents first.
-                    </p>
+                    <EmptyState
+                      type="compare"
+                      title="No documents"
+                      description="Upload documents first to compare them."
+                    />
                   ) : (
                     <div className="space-y-2 max-h-[400px] overflow-y-auto">
                       {documents.map(doc => (
@@ -160,9 +163,11 @@ const ComparePage = () => {
                   {isLoading ? (
                     <p className="text-sm text-muted-foreground">Loading...</p>
                   ) : documents.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No documents available. Upload documents first.
-                    </p>
+                    <EmptyState
+                      type="compare"
+                      title="No documents"
+                      description="Upload documents first to compare them."
+                    />
                   ) : (
                     <div className="space-y-2 max-h-[400px] overflow-y-auto">
                       {documents.map(doc => (
