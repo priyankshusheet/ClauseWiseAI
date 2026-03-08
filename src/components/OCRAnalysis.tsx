@@ -63,6 +63,47 @@ interface StructuredAnalysis {
   extractedText: string;
 }
 
+const pipelineSteps = [
+  { key: 'validate', label: 'File validated', minProgress: 0 },
+  { key: 'prepare', label: 'Preparing document', minProgress: 10 },
+  { key: 'extract', label: 'Extracting text & visuals', minProgress: 25 },
+  { key: 'analyze', label: 'Analyzing clauses & risks', minProgress: 50 },
+  { key: 'results', label: 'Processing results', minProgress: 80 },
+  { key: 'done', label: 'Analysis complete', minProgress: 100 },
+];
+
+const PipelineSteps: React.FC<{ progress: number; currentStep: string }> = ({ progress }) => (
+  <div className="space-y-2">
+    {pipelineSteps.map((step) => {
+      const isDone = progress > step.minProgress;
+      const isActive = progress >= step.minProgress && progress <= (step.minProgress + 20) && progress < 100;
+
+      return (
+        <motion.div
+          key={step.key}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: step.minProgress * 0.003 }}
+          className={`flex items-center gap-3 text-sm py-1.5 px-3 rounded-lg transition-colors ${
+            isDone ? 'text-foreground' : isActive ? 'bg-primary/5 text-foreground' : 'text-muted-foreground/50'
+          }`}
+        >
+          {isDone && !isActive ? (
+            <CheckCircle className="w-4 h-4 text-secondary shrink-0" />
+          ) : isActive ? (
+            <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+          ) : (
+            <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+          )}
+          <span className={isDone && !isActive ? 'line-through opacity-60' : isActive ? 'font-medium' : ''}>
+            {step.label}
+          </span>
+        </motion.div>
+      );
+    })}
+  </div>
+);
+
 const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
