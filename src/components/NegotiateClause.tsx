@@ -28,6 +28,8 @@ const NegotiateClause: React.FC<NegotiateClauseProps> = ({
   const generateNegotiationAdvice = async () => {
     setIsLoading(true);
     setIsOpen(true);
+    setResponse(null);
+    
     try {
       const { data, error } = await supabase.functions.invoke('ai-chat', {
         body: {
@@ -54,18 +56,43 @@ Please provide:
 Keep it practical and consumer-friendly.`,
             },
           ],
+          stream: false, // Request non-streaming response
         },
       });
 
       if (error) throw error;
       
-      // Handle both streaming and non-streaming responses
-      if (typeof data === 'string') {
-        // Try to extract content from SSE stream
+      // Handle response - could be string (SSE), ReadableStream, or JSON object
+      let content = '';
+      
+      if (data instanceof ReadableStream || (data && typeof data.getReader === 'function')) {
+        // Handle streaming response by reading it
+        const reader = data.getReader();
+        const decoder = new TextDecoder();
+        let done = false;
+        
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+                try {
+                  const parsed = JSON.parse(line.slice(6));
+                  const delta = parsed.choices?.[0]?.delta?.content || '';
+                  content += delta;
+                } catch { /* skip parse errors */ }
+              }
+            }
+          }
+        }
+      } else if (typeof data === 'string') {
+        // Try to extract content from SSE stream string
         const lines = data.split('\n');
-        let content = '';
         for (const line of lines) {
-          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+          if (line.startsWith('data: ') && !line.includes('[DONE]')) {
             try {
               const parsed = JSON.parse(line.slice(6));
               const delta = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content || '';
@@ -73,11 +100,16 @@ Keep it practical and consumer-friendly.`,
             } catch { /* skip */ }
           }
         }
-        setResponse(content || data);
-      } else {
+        if (!content) content = data;
+      } else if (data && typeof data === 'object') {
         // Non-streaming JSON response
-        const content = data?.choices?.[0]?.message?.content || data?.response || data?.content || JSON.stringify(data);
+        content = data?.choices?.[0]?.message?.content || data?.response || data?.content || '';
+      }
+      
+      if (content) {
         setResponse(content);
+      } else {
+        setResponse('Unable to generate negotiation advice. Please try the Chat feature to discuss this clause.');
       }
     } catch (err) {
       console.error('Negotiation advice error:', err);
