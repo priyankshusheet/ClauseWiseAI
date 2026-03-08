@@ -128,6 +128,7 @@ const App = () => {
                 <BrowserRouter>
                   <ScrollToTop />
                   <PWAInstallBanner />
+                  <KeyboardShortcuts />
                   <AnimatedRoutes />
                 </BrowserRouter>
               )}
