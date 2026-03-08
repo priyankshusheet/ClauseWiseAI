@@ -157,6 +157,11 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
           setProgress(100);
           setCurrentStep('Analysis complete!');
 
+          // Send push notification if analysis took >5s
+          if (Date.now() - startTime > 5000) {
+            sendAnalysisCompleteNotification(file.name);
+          }
+
           const sections = enhancedOCRService.identifyDocumentSections(extractedText);
           const hiddenClauses = enhancedOCRService.analyzeForHiddenClauses(extractedText);
 
