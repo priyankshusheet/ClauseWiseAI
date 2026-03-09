@@ -1,7 +1,8 @@
-
 import React from "react";
-import { ChevronRight, Clock } from "lucide-react";
+import { ChevronRight, Clock, BookOpen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 
 interface ChapterCardProps {
   chapter: any;
@@ -10,48 +11,54 @@ interface ChapterCardProps {
   onClick: () => void;
 }
 
-export const ChapterCard: React.FC<ChapterCardProps> = ({ chapter, levelColors, levelIcons, onClick }) => {
+const levelBadgeVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  Beginner: "secondary",
+  Intermediate: "default",
+  Advanced: "destructive",
+};
+
+export const ChapterCard: React.FC<ChapterCardProps> = ({ chapter, onClick }) => {
+  const badgeVariant = levelBadgeVariant[chapter.level] ?? "outline";
+
   return (
-    <Card
-      className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-l-4"
-      style={{
-        borderLeftColor: chapter.level === "Beginner" ? "#10b981" : 
-                        chapter.level === "Intermediate" ? "#f59e0b" : "#ef4444"
-      }}
-      onClick={onClick}
+    <motion.div
+      whileHover={{ y: -4 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${levelColors[chapter.level]} flex items-center justify-center text-white font-bold text-sm`}>
-            {chapter.number}
+      <Card
+        className="group cursor-pointer hover:shadow-lg transition-shadow duration-300 border border-border bg-card h-full flex flex-col"
+        onClick={onClick}
+      >
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+              {chapter.number}
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
           </div>
-          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs">
-            <span className={`px-2 py-1 rounded-full text-white text-xs font-medium bg-gradient-to-r ${levelColors[chapter.level]}`}>
-              {levelIcons[chapter.level]} {chapter.level}
-            </span>
-            <span className="text-gray-500 flex items-center gap-1">
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            <Badge variant={badgeVariant} className="text-xs">
+              {chapter.level}
+            </Badge>
+            <span className="text-muted-foreground text-xs flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {chapter.readTime}
             </span>
           </div>
-          <CardTitle className="text-lg group-hover:text-blue-600 transition-colors">
+          <CardTitle className="text-base leading-snug text-foreground group-hover:text-primary transition-colors duration-200">
             {chapter.title}
           </CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p className="text-gray-600 text-sm leading-relaxed">
-          {chapter.description}
-        </p>
-        <div className="mt-4 flex items-center justify-between">
-          <span className="text-blue-600 text-sm font-medium group-hover:underline">
-            Start Reading →
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col justify-between">
+          <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+            {chapter.description}
+          </p>
+          <div className="flex items-center gap-1.5 text-primary text-sm font-medium">
+            <BookOpen className="w-4 h-4" />
+            <span>Start Reading</span>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };

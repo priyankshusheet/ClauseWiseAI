@@ -1,5 +1,6 @@
-
 import React from "react";
+import { TrendingUp, Zap, Award } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface CourseStatsProps {
   levelStats: {
@@ -9,28 +10,53 @@ interface CourseStatsProps {
   };
 }
 
+const stats = [
+  {
+    key: "Beginner" as const,
+    label: "Beginner Chapters",
+    sublabel: "Days 1–10",
+    icon: TrendingUp,
+    colorClass: "text-secondary",
+    bgClass: "bg-secondary/10",
+    borderClass: "border-secondary/20",
+  },
+  {
+    key: "Intermediate" as const,
+    label: "Intermediate Chapters",
+    sublabel: "Days 11–20",
+    icon: Zap,
+    colorClass: "text-accent",
+    bgClass: "bg-accent/10",
+    borderClass: "border-accent/20",
+  },
+  {
+    key: "Advanced" as const,
+    label: "Advanced Chapters",
+    sublabel: "Days 21–30",
+    icon: Award,
+    colorClass: "text-destructive",
+    bgClass: "bg-destructive/10",
+    borderClass: "border-destructive/20",
+  },
+];
+
 export const CourseStats: React.FC<CourseStatsProps> = ({ levelStats }) => {
   return (
-    <div className="mt-12 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8">
-      <div className="text-center">
-        <h3 className="text-2xl font-bold text-gray-900 mb-4">Course Overview</h3>
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">{levelStats.Beginner}</div>
-            <div className="text-gray-600">Beginner Chapters</div>
-            <div className="text-sm text-gray-500 mt-1">Days 1-10</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-orange-600">{levelStats.Intermediate}</div>
-            <div className="text-gray-600">Intermediate Chapters</div>
-            <div className="text-sm text-gray-500 mt-1">Days 11-20</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-red-600">{levelStats.Advanced}</div>
-            <div className="text-gray-600">Advanced Chapters</div>
-            <div className="text-sm text-gray-500 mt-1">Days 21-30</div>
-          </div>
-        </div>
+    <div className="mt-12">
+      <h3 className="text-xl font-semibold text-foreground mb-6 text-center">Course Overview</h3>
+      <div className="grid md:grid-cols-3 gap-4">
+        {stats.map(({ key, label, sublabel, icon: Icon, colorClass, bgClass, borderClass }) => (
+          <Card key={key} className={`border ${borderClass} bg-card`}>
+            <CardContent className="pt-6 text-center">
+              <div className={`w-12 h-12 rounded-xl ${bgClass} border ${borderClass} flex items-center justify-center mx-auto mb-3`}>
+                <Icon className={`w-6 h-6 ${colorClass}`} />
+              </div>
+              <div className={`text-3xl font-bold ${colorClass} mb-1`}>{levelStats[key]}</div>
+              <div className="text-sm font-medium text-foreground">{label}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{sublabel}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );
