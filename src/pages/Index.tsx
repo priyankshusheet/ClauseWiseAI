@@ -12,6 +12,7 @@ import { useSEO } from '@/hooks/useSEO';
 const Index = () => {
   useSEO({ path: '/' });
 
+  return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       <Navigation />
       <motion.div

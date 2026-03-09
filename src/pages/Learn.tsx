@@ -3,9 +3,11 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import Finance30Course from "@/components/Finance30Course";
 import { motion } from "framer-motion";
+import { useSEO } from '@/hooks/useSEO';
 
 const Learn = () => {
-  return (
+  useSEO({ title: 'Learn Finance', description: 'Master financial literacy in 30 days. Free interactive course covering budgeting, investing, insurance, and more.', path: '/learn' });
+
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       <Navigation />
       <motion.div
