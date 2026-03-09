@@ -52,7 +52,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isInitialRenderRef = useRef(true);
-  const shouldAutoScrollRef = useRef(true);
+  const shouldAutoScrollRef = useRef(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { canSendChatMessage, remainingChatMessages, recordChatMessage, limits } = useTrialUsage();
@@ -254,6 +254,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
     }
 
     setError(null);
+    shouldAutoScrollRef.current = true;
+
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       content: uploadedFile ? `[Attached: ${uploadedFile.name}]\n${inputValue}` : inputValue,
@@ -381,7 +383,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
   };
 
   return (
-    <Card className="flex flex-col h-[600px] bg-card border-border shadow-xl overflow-hidden">
+    <Card className="flex flex-col bg-card border-border shadow-xl overflow-hidden h-[min(900px,calc(100dvh-10rem))] min-h-[520px]">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-primary/5 to-accent/5">
         <div className="flex items-center space-x-3">
@@ -402,8 +404,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <ChatExport 
-            messages={messages} 
+          <ChatExport
+            messages={messages}
             documentContext={documentContext ? {
               fileName: documentContext.fileName,
               riskScore: documentContext.riskScore,
@@ -423,7 +425,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleMessagesScroll}
+        className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"
+      >
         <AnimatePresence mode="popLayout">
           {messages.map((message) => (
             <motion.div
@@ -468,7 +474,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
                           thead: ({ children }) => <thead className="bg-muted/50">{children}</thead>,
                           tbody: ({ children }) => <tbody className="divide-y divide-border bg-card">{children}</tbody>,
                           tr: ({ children }) => <tr className="hover:bg-muted/30 transition-colors">{children}</tr>,
-                          th: ({ children }) => <th className="px-3 py-2 text-left font-semibold text-foreground whitespace-nowrap">{children}</th>,
+                          th: ({ children }) => (
+                            <th className="px-3 py-2 text-left font-semibold text-foreground whitespace-nowrap">{children}</th>
+                          ),
                           td: ({ children }) => <td className="px-3 py-2 text-foreground">{children}</td>,
                         }}
                       >
@@ -478,9 +486,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
                         <div className="flex items-center gap-1.5 py-1">
                           <span className="text-sm text-muted-foreground italic">Thinking</span>
                           <span className="flex gap-0.5">
-                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            <span
+                              className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"
+                              style={{ animationDelay: '0ms' }}
+                            />
+                            <span
+                              className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"
+                              style={{ animationDelay: '150ms' }}
+                            />
+                            <span
+                              className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"
+                              style={{ animationDelay: '300ms' }}
+                            />
                           </span>
                         </div>
                       )}
@@ -497,7 +514,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
             </motion.div>
           ))}
         </AnimatePresence>
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Error Banner */}
