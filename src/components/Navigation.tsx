@@ -8,7 +8,6 @@ import {
   Upload, 
   MessageCircle, 
   BookOpen, 
-  Info, 
   Moon, 
   Sun, 
   History, 
