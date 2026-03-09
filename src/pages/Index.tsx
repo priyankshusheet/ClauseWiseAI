@@ -7,8 +7,11 @@ import UseCasesSection from '@/components/UseCasesSection';
 import TestimonialsSection from '@/components/TestimonialsSection';
 import FAQSection from '@/components/FAQSection';
 import Footer from '@/components/Footer';
+import { useSEO } from '@/hooks/useSEO';
 
 const Index = () => {
+  useSEO({ path: '/' });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       <Navigation />

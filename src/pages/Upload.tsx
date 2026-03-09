@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useSEO } from '@/hooks/useSEO';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, Eye, Download, Bookmark, History, Search, Zap, Shield, LogIn } from 'lucide-react';
@@ -42,6 +43,7 @@ const UploadPage = () => {
   const { saveAnalysis, toggleSaved } = useAnalysisHistory();
   const { validateWithToast } = useFileValidation();
   const { canAnalyzeDocument, remainingDocuments, recordDocumentAnalysis, limits } = useTrialUsage();
+  useSEO({ title: 'Upload & Analyze', description: 'Upload financial documents, contracts, and policies for instant AI-powered analysis. Detect hidden clauses and assess risk.', path: '/upload' });
 
   const handleDragEvents = {
     onDragOver: (e: React.DragEvent) => { e.preventDefault(); setIsDragOver(true); },
