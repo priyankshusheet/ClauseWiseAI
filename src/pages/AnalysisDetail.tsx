@@ -81,42 +81,43 @@ const AnalysisDetail = () => {
     try {
       const { default: jsPDF } = await import('jspdf');
       const doc = new jsPDF();
+
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 20;
-      const lineHeight = 6;
+      const footerHeight = 22;
+      const contentWidth = pageWidth - 2 * margin;
+
+      const safeText = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v));
+
       let yPosition = margin;
 
-      const checkPageBreak = (requiredSpace: number = 20) => {
-        if (yPosition > pageHeight - requiredSpace) {
-          doc.addPage();
-          yPosition = margin;
-        }
+      const addPage = () => {
+        doc.addPage();
+        yPosition = margin;
       };
 
-      const addWrappedText = (text: string, fontSize: number = 10, isBold: boolean = false, color: [number, number, number] = [0, 0, 0]) => {
+      const ensureSpace = (needed: number) => {
+        if (yPosition + needed > pageHeight - footerHeight) addPage();
+      };
+
+      const setTextStyle = (
+        fontSize: number,
+        style: 'normal' | 'bold' = 'normal',
+        color: [number, number, number] = [30, 30, 30]
+      ) => {
+        doc.setFont('helvetica', style);
         doc.setFontSize(fontSize);
-        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
         doc.setTextColor(...color);
-        const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
-        lines.forEach((line: string) => {
-          checkPageBreak();
-          doc.text(line, margin, yPosition);
-          yPosition += lineHeight;
-        });
-        yPosition += 2;
       };
 
-      const addSection = (title: string, iconColor: [number, number, number] = [67, 56, 202]) => {
-        checkPageBreak(25);
-        yPosition += 5;
-        doc.setFillColor(...iconColor);
-        doc.roundedRect(margin - 2, yPosition - 4, 4, 4, 1, 1, 'F');
-        doc.setFontSize(13);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(30, 30, 30);
-        doc.text(title, margin + 6, yPosition);
-        yPosition += 10;
+      const drawLines = (lines: string[], x: number, yStart: number, lineH: number) => {
+        let y = yStart;
+        lines.forEach((line) => {
+          doc.text(line, x, y);
+          y += lineH;
+        });
+        return y;
       };
 
       const addRiskBadge = (riskLevel: string, x: number, y: number) => {
@@ -127,75 +128,153 @@ const AnalysisDetail = () => {
           safe: [22, 163, 74],
         };
         const color = colors[riskLevel?.toLowerCase()] || [100, 100, 100];
-        doc.setFillColor(...color);
         const label = (riskLevel || 'N/A').toUpperCase();
+
+        setTextStyle(8, 'bold', [255, 255, 255]);
         const textWidth = doc.getTextWidth(label);
+        doc.setFillColor(...color);
         doc.roundedRect(x, y - 4, textWidth + 8, 6, 1.5, 1.5, 'F');
-        doc.setFontSize(8);
-        doc.setTextColor(255, 255, 255);
-        doc.setFont('helvetica', 'bold');
         doc.text(label, x + 4, y);
       };
 
-      // Header with gradient-like effect
+      const addSection = (title: string, iconColor: [number, number, number] = [67, 56, 202]) => {
+        ensureSpace(25);
+        yPosition += 5;
+        doc.setFillColor(...iconColor);
+        doc.roundedRect(margin - 2, yPosition - 4, 4, 4, 1, 1, 'F');
+        setTextStyle(13, 'bold', [30, 30, 30]);
+        doc.text(title, margin + 6, yPosition);
+        yPosition += 10;
+      };
+
+      const addWrappedParagraph = (
+        text: string,
+        options?: {
+          fontSize?: number;
+          style?: 'normal' | 'bold';
+          color?: [number, number, number];
+          lineH?: number;
+          gapAfter?: number;
+        }
+      ) => {
+        const fontSize = options?.fontSize ?? 10;
+        const style = options?.style ?? 'normal';
+        const color = options?.color ?? [71, 85, 105];
+        const lineH = options?.lineH ?? 6;
+        const gapAfter = options?.gapAfter ?? 2;
+
+        const clean = safeText(text).trim();
+        if (!clean) return;
+
+        setTextStyle(fontSize, style, color);
+        const lines = doc.splitTextToSize(clean, contentWidth) as string[];
+        lines.forEach((line) => {
+          ensureSpace(lineH);
+          doc.text(line, margin, yPosition);
+          yPosition += lineH;
+        });
+        yPosition += gapAfter;
+      };
+
+      // Header
       doc.setFillColor(67, 56, 202);
       doc.rect(0, 0, pageWidth, 35, 'F');
       doc.setFillColor(99, 102, 241);
       doc.rect(0, 30, pageWidth, 8, 'F');
 
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
+      setTextStyle(20, 'bold', [255, 255, 255]);
       doc.text('ClauseWise Analysis Report', margin, 18);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, 28);
+      setTextStyle(10, 'normal', [255, 255, 255]);
+      doc.text(
+        `Generated on ${new Date().toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })}`,
+        margin,
+        28
+      );
 
       yPosition = 50;
 
-      // Document Info Card
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(margin - 5, yPosition - 5, pageWidth - 2 * margin + 10, 35, 3, 3, 'F');
-      doc.setDrawColor(226, 232, 240);
-      doc.roundedRect(margin - 5, yPosition - 5, pageWidth - 2 * margin + 10, 35, 3, 3, 'S');
+      // Document Info Card (fixed height, but with safe truncation)
+      const fileNameSafe = safeText(analysis.file_name);
+      const fileNameShort = fileNameSafe.length > 85 ? fileNameSafe.slice(0, 82) + '…' : fileNameSafe;
 
-      doc.setFontSize(10);
-      doc.setTextColor(71, 85, 105);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Document: ${analysis.file_name}`, margin, yPosition + 5);
-      doc.text(`Type: ${analysis.file_type || 'Unknown'} | Size: ${analysis.file_size ? (analysis.file_size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}`, margin, yPosition + 12);
-      doc.text(`Category: ${(analysis as any).document_category || 'Uncategorized'}`, margin, yPosition + 19);
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(margin - 5, yPosition - 5, contentWidth + 10, 35, 3, 3, 'FD');
+
+      setTextStyle(10, 'normal', [71, 85, 105]);
+      doc.text(`Document: ${fileNameShort}`, margin, yPosition + 5);
+      doc.text(
+        `Type: ${safeText(analysis.file_type) || 'Unknown'} | Size: ${analysis.file_size ? (analysis.file_size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}`,
+        margin,
+        yPosition + 12
+      );
+      doc.text(`Category: ${safeText((analysis as any).document_category) || 'Uncategorized'}`, margin, yPosition + 19);
 
       // Risk Score Display
       const riskX = pageWidth - margin - 50;
-      doc.setFontSize(28);
-      doc.setFont('helvetica', 'bold');
-      const scoreColor: Record<string, [number, number, number]> = {
-        high: [220, 38, 38],
-        medium: [217, 119, 6],
-        low: [22, 163, 74],
-      };
-      doc.setTextColor(...(scoreColor[analysis.risk_level?.toLowerCase()] || [100, 100, 100]));
+      setTextStyle(28, 'bold', (() => {
+        const scoreColor: Record<string, [number, number, number]> = {
+          high: [220, 38, 38],
+          medium: [217, 119, 6],
+          low: [22, 163, 74],
+        };
+        return scoreColor[safeText(analysis.risk_level).toLowerCase()] || [100, 100, 100];
+      })());
       doc.text(`${analysis.risk_score || 0}`, riskX, yPosition + 8);
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
+      setTextStyle(10, 'normal', [100, 100, 100]);
       doc.text('/100', riskX + 20, yPosition + 8);
-      addRiskBadge(analysis.risk_level, riskX - 5, yPosition + 20);
+      addRiskBadge(safeText(analysis.risk_level), riskX - 5, yPosition + 20);
 
       yPosition += 45;
 
       // Executive Summary
       if (ar.summary || analysis.analysis_summary) {
         addSection('Executive Summary', [67, 56, 202]);
-        addWrappedText(ar.summary || analysis.analysis_summary, 10, false, [71, 85, 105]);
+        addWrappedParagraph(ar.summary || analysis.analysis_summary, { fontSize: 10 });
       }
 
       // Key Clauses
-      const clauses = ar.clauses || [];
+      const clauses = (ar.clauses || []) as any[];
       if (clauses.length > 0) {
         addSection('Key Clauses Analysis', [239, 68, 68]);
+
+        const cardPaddingX = 4;
+        const cardPaddingY = 5;
+        const titleLineH = 5;
+        const bodyLineH = 4;
+        const explLineH = 3.5;
+
         clauses.forEach((clause: any, i: number) => {
-          checkPageBreak(30);
+          const riskLevel = safeText(clause.riskLevel) || 'N/A';
+          const category = safeText(clause.category) || 'General';
+          const title = `${i + 1}. ${category}`;
+
+          const rawClauseText = safeText(clause.text).trim();
+          const clauseText = rawClauseText || '(No clause text extracted)';
+          const rawExplanation = safeText(clause.explanation).trim();
+          const explanationText = rawExplanation ? `→ ${rawExplanation}` : '→ (No explanation provided)';
+
+          setTextStyle(8, 'normal', [71, 85, 105]);
+          const bodyLines = (doc.splitTextToSize(clauseText, contentWidth - 2 * cardPaddingX) as string[]).slice(0, 3);
+
+          setTextStyle(7, 'normal', [100, 100, 100]);
+          const explLines = (doc.splitTextToSize(explanationText, contentWidth - 2 * cardPaddingX) as string[]).slice(0, 2);
+
+          const cardHeight =
+            cardPaddingY +
+            titleLineH +
+            2 +
+            bodyLines.length * bodyLineH +
+            2 +
+            explLines.length * explLineH +
+            cardPaddingY;
+
+          ensureSpace(cardHeight + 2);
+
           const riskColor: Record<string, [number, number, number]> = {
             high: [254, 226, 226],
             medium: [254, 243, 199],
@@ -208,87 +287,96 @@ const AnalysisDetail = () => {
             low: [22, 163, 74],
             safe: [22, 163, 74],
           };
-          const bg = riskColor[clause.riskLevel?.toLowerCase()] || [248, 250, 252];
-          const border = borderColor[clause.riskLevel?.toLowerCase()] || [200, 200, 200];
+          const bg = riskColor[riskLevel.toLowerCase()] || [248, 250, 252];
+          const border = borderColor[riskLevel.toLowerCase()] || [200, 200, 200];
 
           doc.setFillColor(...bg);
           doc.setDrawColor(...border);
-          doc.roundedRect(margin - 2, yPosition - 3, pageWidth - 2 * margin + 4, 28, 2, 2, 'FD');
+          doc.roundedRect(margin - 2, yPosition - 1, contentWidth + 4, cardHeight, 2, 2, 'FD');
 
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(30, 30, 30);
-          const clauseTitle = `${i + 1}. ${clause.category || 'General'}`;
-          doc.text(clauseTitle, margin + 2, yPosition + 3);
-          addRiskBadge(clause.riskLevel, margin + doc.getTextWidth(clauseTitle) + 6, yPosition + 3);
+          const titleY = yPosition + cardPaddingY;
+          setTextStyle(9, 'bold', [30, 30, 30]);
+          doc.text(title, margin + cardPaddingX, titleY);
 
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(8);
-          doc.setTextColor(71, 85, 105);
-          const clauseText = doc.splitTextToSize(clause.text?.substring(0, 150) + (clause.text?.length > 150 ? '...' : ''), pageWidth - 2 * margin - 10);
-          doc.text(clauseText.slice(0, 2), margin + 2, yPosition + 11);
+          const badgeX = margin + cardPaddingX + doc.getTextWidth(title) + 4;
+          const badgeY = titleY;
+          if (badgeX < pageWidth - margin - 25) addRiskBadge(riskLevel, badgeX, badgeY);
 
-          doc.setTextColor(100, 100, 100);
-          doc.setFontSize(7);
-          const explanation = doc.splitTextToSize('→ ' + (clause.explanation || '').substring(0, 100), pageWidth - 2 * margin - 10);
-          doc.text(explanation.slice(0, 1), margin + 2, yPosition + 22);
+          let cursorY = titleY + 6;
+          setTextStyle(8, 'normal', [71, 85, 105]);
+          cursorY = drawLines(bodyLines, margin + cardPaddingX, cursorY, bodyLineH);
 
-          yPosition += 32;
+          cursorY += 2;
+          setTextStyle(7, 'normal', [100, 100, 100]);
+          drawLines(explLines, margin + cardPaddingX, cursorY, explLineH);
+
+          yPosition += cardHeight + 6;
         });
       }
 
       // Risk Factors
-      const riskFactors = ar.riskFactors || [];
+      const riskFactors = (ar.riskFactors || []) as any[];
       if (riskFactors.length > 0) {
         addSection('Risk Factors', [220, 38, 38]);
-        riskFactors.forEach((rf: any, i: number) => {
-          checkPageBreak(15);
+        riskFactors.forEach((rf: any) => {
+          const factor = safeText(rf.factor).trim() || 'Risk factor';
+          const detailsText = safeText(rf.details).trim();
+
+          setTextStyle(8, 'normal', [71, 85, 105]);
+          const detailLines = (doc.splitTextToSize(detailsText || '(No details provided)', contentWidth - 8) as string[]).slice(0, 2);
+          const boxHeight = 10 + detailLines.length * 4;
+
+          ensureSpace(boxHeight + 2);
+
           doc.setFillColor(254, 226, 226);
-          doc.roundedRect(margin - 2, yPosition - 3, pageWidth - 2 * margin + 4, 12, 2, 2, 'F');
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(185, 28, 28);
-          doc.text(`⚠ ${rf.factor}`, margin + 2, yPosition + 3);
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(8);
-          doc.setTextColor(71, 85, 105);
-          const details = doc.splitTextToSize(rf.details || '', pageWidth - 2 * margin - 10);
-          doc.text(details.slice(0, 1), margin + 2, yPosition + 9);
-          yPosition += 16;
+          doc.roundedRect(margin - 2, yPosition - 1, contentWidth + 4, boxHeight, 2, 2, 'F');
+
+          setTextStyle(9, 'bold', [185, 28, 28]);
+          doc.text(`⚠ ${factor}`, margin + 2, yPosition + 4);
+
+          setTextStyle(8, 'normal', [71, 85, 105]);
+          drawLines(detailLines, margin + 2, yPosition + 9, 4);
+
+          yPosition += boxHeight + 6;
         });
       }
 
       // Recommendations
-      const recommendations = ar.recommendations || [];
+      const recommendations = (ar.recommendations || []) as any[];
       if (recommendations.length > 0) {
         addSection('Recommendations', [22, 163, 74]);
-        recommendations.forEach((r: any, i: number) => {
-          checkPageBreak(15);
+        recommendations.forEach((r: any) => {
+          const action = safeText(r.action).trim() || 'Recommendation';
+          const reasonText = safeText(r.reason).trim();
+
+          setTextStyle(8, 'normal', [71, 85, 105]);
+          const reasonLines = (doc.splitTextToSize(reasonText || '(No reason provided)', contentWidth - 8) as string[]).slice(0, 2);
+          const boxHeight = 10 + reasonLines.length * 4;
+
+          ensureSpace(boxHeight + 2);
+
           doc.setFillColor(220, 252, 231);
-          doc.roundedRect(margin - 2, yPosition - 3, pageWidth - 2 * margin + 4, 12, 2, 2, 'F');
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(21, 128, 61);
-          doc.text(`✓ ${r.action}`, margin + 2, yPosition + 3);
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(8);
-          doc.setTextColor(71, 85, 105);
-          const reason = doc.splitTextToSize(r.reason || '', pageWidth - 2 * margin - 10);
-          doc.text(reason.slice(0, 1), margin + 2, yPosition + 9);
-          yPosition += 16;
+          doc.roundedRect(margin - 2, yPosition - 1, contentWidth + 4, boxHeight, 2, 2, 'F');
+
+          setTextStyle(9, 'bold', [21, 128, 61]);
+          doc.text(`✓ ${action}`, margin + 2, yPosition + 4);
+
+          setTextStyle(8, 'normal', [71, 85, 105]);
+          drawLines(reasonLines, margin + 2, yPosition + 9, 4);
+
+          yPosition += boxHeight + 6;
         });
       }
 
       // Financial Implications
-      const financialImplications = ar.financialImplications || [];
+      const financialImplications = (ar.financialImplications || []) as any[];
       if (financialImplications.length > 0) {
         addSection('Financial Implications', [217, 119, 6]);
-        // Table header
+
+        ensureSpace(20);
         doc.setFillColor(254, 243, 199);
-        doc.roundedRect(margin - 2, yPosition - 3, pageWidth - 2 * margin + 4, 8, 1, 1, 'F');
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(146, 64, 14);
+        doc.roundedRect(margin - 2, yPosition - 3, contentWidth + 4, 8, 1, 1, 'F');
+        setTextStyle(8, 'bold', [146, 64, 14]);
         doc.text('Item', margin + 2, yPosition + 2);
         doc.text('Amount', margin + 60, yPosition + 2);
         doc.text('Frequency', margin + 100, yPosition + 2);
@@ -296,32 +384,35 @@ const AnalysisDetail = () => {
         yPosition += 10;
 
         financialImplications.forEach((fi: any) => {
-          checkPageBreak(10);
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(71, 85, 105);
-          doc.text(fi.item?.substring(0, 25) || '', margin + 2, yPosition + 2);
-          doc.text(fi.amount || '', margin + 60, yPosition + 2);
-          doc.text(fi.frequency || '', margin + 100, yPosition + 2);
-          addRiskBadge(fi.impact, margin + 140, yPosition + 2);
+          ensureSpace(10);
+          setTextStyle(8, 'normal', [71, 85, 105]);
+          doc.text(safeText(fi.item).substring(0, 25) || '', margin + 2, yPosition + 2);
+          doc.text(safeText(fi.amount) || '', margin + 60, yPosition + 2);
+          doc.text(safeText(fi.frequency) || '', margin + 100, yPosition + 2);
+          addRiskBadge(safeText(fi.impact), margin + 140, yPosition + 2);
           yPosition += 8;
         });
       }
 
-      // Footer
-      doc.setFillColor(248, 250, 252);
-      doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
-      doc.setFontSize(8);
-      doc.setTextColor(148, 163, 184);
-      doc.text('Generated by ClauseWise AI Document Analyzer', margin, pageHeight - 10);
-      doc.text('This is AI-generated analysis, not legal advice.', margin, pageHeight - 5);
-      doc.text(`Page 1`, pageWidth - margin - 15, pageHeight - 10);
+      // Footer (page numbers on every page)
+      const totalPages = doc.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        doc.setFillColor(248, 250, 252);
+        doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
+        setTextStyle(8, 'normal', [148, 163, 184]);
+        doc.text('Generated by ClauseWise AI Document Analyzer', margin, pageHeight - 10);
+        doc.text('This is AI-generated analysis, not legal advice.', margin, pageHeight - 5);
+        doc.text(`Page ${p} of ${totalPages}`, pageWidth - margin - 28, pageHeight - 10);
+      }
 
-      doc.save(`ClauseWise_${analysis.file_name.replace(/\.[^/.]+$/, "")}_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-      toast({ title: "Report downloaded successfully" });
+      doc.save(
+        `ClauseWise_${fileNameSafe.replace(/\.[^/.]+$/, '')}_Report_${new Date().toISOString().split('T')[0]}.pdf`
+      );
+      toast({ title: 'Report downloaded successfully' });
     } catch (error) {
       console.error('PDF generation error:', error);
-      toast({ title: "Failed to generate report", variant: "destructive" });
+      toast({ title: 'Failed to generate report', variant: 'destructive' });
     }
   };
 
