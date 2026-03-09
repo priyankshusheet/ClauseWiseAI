@@ -78,23 +78,74 @@ const UploadPage = () => {
 
     if (!user) recordDocumentAnalysis();
 
+    const sanitizeFileNameForStorage = (name: string) =>
+      name.replace(/[^a-zA-Z0-9._-]+/g, "_");
+
     // Auto-save to history
     if (user && selectedFile && result.structuredAnalysis) {
       setIsSaving(true);
       const sa = result.structuredAnalysis;
-      const savedRecord = await saveAnalysis({
-        file_name: selectedFile.name,
-        file_type: selectedFile.type,
-        file_size: selectedFile.size,
-        risk_score: sa.riskScore || 50,
-        risk_level: sa.riskLevel || 'medium',
-        analysis_summary: sa.summary || 'Analysis complete',
-        analysis_result: sa as unknown as Record<string, unknown>,
-        ocr_result: result as unknown as Record<string, unknown>,
-        is_saved: false,
-      });
-      if (savedRecord) setSavedAnalysisId(savedRecord.id);
-      setIsSaving(false);
+
+      try {
+        const savedRecord = await saveAnalysis({
+          file_name: selectedFile.name,
+          file_type: selectedFile.type,
+          file_size: selectedFile.size,
+          risk_score: sa.riskScore || 50,
+          risk_level: sa.riskLevel || 'medium',
+          analysis_summary: sa.summary || 'Analysis complete',
+          analysis_result: sa as unknown as Record<string, unknown>,
+          ocr_result: result as unknown as Record<string, unknown>,
+          is_saved: false,
+        });
+
+        if (savedRecord) {
+          setSavedAnalysisId(savedRecord.id);
+
+          // Attach original file to the saved analysis so Analysis History can render the PDF annotator.
+          // Stored as: documents/{user_id}/{analysis_id}/{fileName}
+          try {
+            const storageFileName = sanitizeFileNameForStorage(selectedFile.name);
+            const storagePath = `${user.id}/${savedRecord.id}/${storageFileName}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from('documents')
+              .upload(storagePath, selectedFile, {
+                upsert: true,
+                contentType: selectedFile.type || undefined,
+              });
+
+            if (uploadError) throw uploadError;
+
+            const analysisWithSourceFile = {
+              ...(sa as Record<string, unknown>),
+              sourceFile: {
+                bucket: 'documents',
+                path: storagePath,
+                originalName: selectedFile.name,
+                mimeType: selectedFile.type,
+                size: selectedFile.size,
+              },
+            };
+
+            const { error: updateError } = await supabase
+              .from('document_analyses')
+              .update({ analysis_result: analysisWithSourceFile } as any)
+              .eq('id', savedRecord.id);
+
+            if (updateError) throw updateError;
+          } catch (e) {
+            console.error('[Upload] Failed to attach original file to analysis:', e);
+            toast({
+              title: 'Saved, but PDF viewer unavailable',
+              description: 'We saved the analysis, but could not attach the original PDF for inline highlights.',
+              variant: 'destructive',
+            });
+          }
+        }
+      } finally {
+        setIsSaving(false);
+      }
     }
 
     toast({ title: "Analysis Complete", description: `Analyzed with ${result.confidence.toFixed(0)}% confidence` });
