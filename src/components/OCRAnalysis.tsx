@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { 
-  FileText, 
-  Eye, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  FileText,
+  Eye,
+  AlertTriangle,
+  CheckCircle,
   Loader2,
   Clock,
   Zap,
@@ -31,6 +31,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import RiskScoreGauge from '@/components/RiskScoreGauge';
 import { requestNotificationPermission, sendAnalysisCompleteNotification } from '@/utils/notifications';
 import ClauseViewer from '@/components/ClauseViewer';
+import PdfClauseAnnotator from '@/components/PdfClauseAnnotator';
 import TLDRSummary from '@/components/TLDRSummary';
 import NegotiateClause from '@/components/NegotiateClause';
 
@@ -558,7 +559,11 @@ const OCRAnalysis: React.FC<OCRAnalysisProps> = ({ file, onAnalysisComplete }) =
 
             {/* Interactive Clause Viewer */}
             {analysis.extractedText && analysis.clauses && analysis.clauses.length > 0 && (
-              <ClauseViewer extractedText={analysis.extractedText} clauses={analysis.clauses} />
+              file.type.toLowerCase().includes('pdf') ? (
+                <PdfClauseAnnotator file={file} clauses={analysis.clauses} />
+              ) : (
+                <ClauseViewer extractedText={analysis.extractedText} clauses={analysis.clauses} />
+              )
             )}
 
             {/* Clauses with Color Coding */}
