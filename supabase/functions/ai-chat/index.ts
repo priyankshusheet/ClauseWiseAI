@@ -165,7 +165,7 @@ IMPORTANT: Base all your answers on the actual document text above. Quote specif
     // Use ClauseWiseAI AI Gateway as primary
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (LOVABLE_API_KEY && stream) {
+    if (LOVABLE_API_KEY) {
       try {
         const response = await fetch("https://ai.gateway.clausewiseai.dev/v1/chat/completions", {
           method: "POST",
@@ -176,22 +176,32 @@ IMPORTANT: Base all your answers on the actual document text above. Quote specif
           body: JSON.stringify({
             model: "google/gemini-3-flash-preview",
             messages: enhancedMessages,
-            stream: true,
+            stream,
             temperature: 0.3,
           }),
         });
 
-        if (response.ok && response.body) {
+        if (response.ok) {
           const latency = Date.now() - startTime;
-          console.log(`[AI-Chat] ClauseWiseAI AI streaming response (${latency}ms)`);
-          return new Response(response.body, {
-            headers: {
-              ...corsHeaders,
-              "Content-Type": "text/event-stream",
-              "X-Response-Time": `${latency}ms`,
-              "X-AI-Provider": "ClauseWiseAI AI",
-            },
-          });
+          console.log(`[AI-Chat] ClauseWiseAI AI response (stream=${stream}, ${latency}ms)`);
+
+          if (stream && response.body) {
+            return new Response(response.body, {
+              headers: {
+                ...corsHeaders,
+                "Content-Type": "text/event-stream",
+                "X-Response-Time": `${latency}ms`,
+                "X-AI-Provider": "ClauseWiseAI AI",
+              },
+            });
+          } else {
+            // Non-streaming: return JSON directly
+            const data = await response.json();
+            const content = data.choices?.[0]?.message?.content || "";
+            return new Response(JSON.stringify({ choices: [{ message: { role: "assistant", content } }] }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json", "X-AI-Provider": "ClauseWiseAI AI" },
+            });
+          }
         }
 
         if (response.status === 429) {
