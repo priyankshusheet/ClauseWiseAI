@@ -643,10 +643,45 @@ const AnalysisDetail = () => {
               </Card>
             )}
 
-            {/* Interactive Clause Viewer */}
-            {extractedText && clauses.length > 0 && (
+            {/* Interactive Document Viewer */}
+            {clauses.length > 0 && (
               <div className="mb-6">
-                <ClauseViewer extractedText={extractedText} clauses={clauses} />
+                {pdfFile ? (
+                  <PdfClauseAnnotator file={pdfFile} clauses={clauses} />
+                ) : (String(analysis.file_type || '').toLowerCase().includes('pdf') || String(analysis.file_name || '').toLowerCase().endsWith('.pdf')) ? (
+                  <div className="space-y-3">
+                    {pdfLoadError && (
+                      <Alert>
+                        <AlertDescription>{pdfLoadError}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    {!pdfLoading && !pdfLoadError && (
+                      <Alert>
+                        <AlertDescription>
+                          This analysis doesn’t have the original PDF attached yet, so we’re showing the text-based viewer instead.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {pdfLoading ? (
+                      <Card className="border-border">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-primary" /> Interactive Document Viewer
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-[500px] rounded-lg border border-border bg-muted/20" />
+                        </CardContent>
+                      </Card>
+                    ) : extractedText ? (
+                      <ClauseViewer extractedText={extractedText} clauses={clauses} />
+                    ) : null}
+                  </div>
+                ) : extractedText ? (
+                  <ClauseViewer extractedText={extractedText} clauses={clauses} />
+                ) : null}
               </div>
             )}
 
