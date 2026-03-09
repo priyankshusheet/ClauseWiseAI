@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import RiskScoreGauge from '@/components/RiskScoreGauge';
 import ClauseViewer from '@/components/ClauseViewer';
+import PdfClauseAnnotator from '@/components/PdfClauseAnnotator';
 import TLDRSummary from '@/components/TLDRSummary';
 import NegotiateClause from '@/components/NegotiateClause';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,6 +40,10 @@ const AnalysisDetail = () => {
   const [expandedClauses, setExpandedClauses] = useState<Record<number, boolean>>({});
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfLoadError, setPdfLoadError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetch = async () => {
       if (!id || !user) return;
@@ -54,6 +59,53 @@ const AnalysisDetail = () => {
     };
     fetch();
   }, [id, user]);
+
+  // If the analysis has the original PDF attached in Storage, download it so we can render the PDF annotator.
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPdf = async () => {
+      setPdfFile(null);
+      setPdfLoadError(null);
+
+      if (!analysis || !user) return;
+
+      const fileType = String(analysis.file_type || '');
+      const fileName = String(analysis.file_name || '');
+      const isPdf = fileType.toLowerCase().includes('pdf') || fileName.toLowerCase().endsWith('.pdf');
+
+      const ar = analysis.analysis_result || {};
+      const sourceFile = (ar as any)?.sourceFile as { bucket?: string; path?: string } | undefined;
+      if (!isPdf || !sourceFile?.bucket || !sourceFile?.path) return;
+
+      setPdfLoading(true);
+      try {
+        const { data, error } = await supabase.storage
+          .from(sourceFile.bucket)
+          .download(sourceFile.path);
+
+        if (error) throw error;
+
+        const blob = data as unknown as Blob;
+        const nextFile = new File([blob], fileName || 'document.pdf', {
+          type: fileType || 'application/pdf',
+        });
+
+        if (!cancelled) setPdfFile(nextFile);
+      } catch (e) {
+        console.error('[AnalysisDetail] Failed to download source PDF:', e);
+        if (!cancelled) setPdfLoadError('Unable to load the original PDF for inline highlights.');
+      } finally {
+        if (!cancelled) setPdfLoading(false);
+      }
+    };
+
+    loadPdf();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [analysis, user]);
 
   const updateCategory = async (category: string) => {
     if (!id) return;
@@ -591,10 +643,45 @@ const AnalysisDetail = () => {
               </Card>
             )}
 
-            {/* Interactive Clause Viewer */}
-            {extractedText && clauses.length > 0 && (
+            {/* Interactive Document Viewer */}
+            {clauses.length > 0 && (
               <div className="mb-6">
-                <ClauseViewer extractedText={extractedText} clauses={clauses} />
+                {pdfFile ? (
+                  <PdfClauseAnnotator file={pdfFile} clauses={clauses} />
+                ) : (String(analysis.file_type || '').toLowerCase().includes('pdf') || String(analysis.file_name || '').toLowerCase().endsWith('.pdf')) ? (
+                  <div className="space-y-3">
+                    {pdfLoadError && (
+                      <Alert>
+                        <AlertDescription>{pdfLoadError}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    {!pdfLoading && !pdfLoadError && (
+                      <Alert>
+                        <AlertDescription>
+                          This analysis doesn’t have the original PDF attached yet, so we’re showing the text-based viewer instead.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {pdfLoading ? (
+                      <Card className="border-border">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-primary" /> Interactive Document Viewer
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-[500px] rounded-lg border border-border bg-muted/20" />
+                        </CardContent>
+                      </Card>
+                    ) : extractedText ? (
+                      <ClauseViewer extractedText={extractedText} clauses={clauses} />
+                    ) : null}
+                  </div>
+                ) : extractedText ? (
+                  <ClauseViewer extractedText={extractedText} clauses={clauses} />
+                ) : null}
               </div>
             )}
 
