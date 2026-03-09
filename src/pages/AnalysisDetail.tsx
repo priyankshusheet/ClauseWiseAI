@@ -21,6 +21,7 @@ import ClauseViewer from '@/components/ClauseViewer';
 import PdfClauseAnnotator from '@/components/PdfClauseAnnotator';
 import TLDRSummary from '@/components/TLDRSummary';
 import NegotiateClause from '@/components/NegotiateClause';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 
 const DOCUMENT_CATEGORIES = [
