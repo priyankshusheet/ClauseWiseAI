@@ -150,14 +150,16 @@ export const ListSkeleton: React.FC<{ count?: number }> = ({ count = 3 }) => {
   return (
     <div className="space-y-3">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
-          <Skeleton className="w-10 h-10 rounded-lg" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-3 w-1/2" />
+        <Card key={i} className="overflow-hidden">
+          <div className="flex items-center gap-4 p-4">
+            <Skeleton className="w-12 h-12 rounded-xl" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+            <Skeleton className="h-8 w-20 rounded-full" />
           </div>
-          <Skeleton className="h-8 w-20" />
-        </div>
+        </Card>
       ))}
     </div>
   );
@@ -174,6 +176,133 @@ export const NavSkeleton: React.FC = () => {
         <Skeleton className="w-16 h-4" />
       </div>
       <Skeleton className="w-24 h-9 rounded-lg" />
+    </div>
+  );
+};
+
+// Portfolio card skeleton
+export const PortfolioCardSkeleton: React.FC = () => {
+  return (
+    <div className="p-3 rounded-lg bg-muted border-2 border-transparent">
+      <div className="flex items-start justify-between">
+        <div className="space-y-2 flex-1">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+        <Skeleton className="h-6 w-14 rounded-full" />
+      </div>
+      <div className="flex gap-2 mt-3">
+        <Skeleton className="h-7 w-24" />
+        <Skeleton className="h-7 w-16" />
+      </div>
+    </div>
+  );
+};
+
+// Document selector skeleton
+export const DocumentSelectorSkeleton: React.FC<{ count?: number }> = ({ count = 4 }) => {
+  return (
+    <div className="space-y-2 max-h-[400px] overflow-hidden">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="p-3 rounded-lg border-2 border-border">
+          <div className="flex items-center gap-2">
+            <Skeleton className="w-4 h-4" />
+            <Skeleton className="h-4 flex-1" />
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <Skeleton className="h-5 w-14 rounded-full" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Risk trend chart skeleton
+export const ChartSkeleton: React.FC = () => {
+  return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-5 w-40" />
+        <Skeleton className="h-4 w-64" />
+      </CardHeader>
+      <CardContent>
+        <div className="h-[200px] flex items-end justify-between gap-2 pt-4">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton 
+              key={i} 
+              className="flex-1 rounded-t" 
+              style={{ height: `${30 + Math.random() * 60}%` }} 
+            />
+          ))}
+        </div>
+        <div className="flex justify-between mt-2">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} className="h-3 w-8" />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Analysis detail skeleton
+export const AnalysisDetailSkeleton: React.FC = () => {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4">
+            <Skeleton className="w-14 h-14 rounded-xl" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="h-10 w-10 rounded-full" />
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Stats row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <StatsSkeleton key={i} />
+        ))}
+      </div>
+      
+      {/* Content */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+                <Skeleton className="w-8 h-8 rounded" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-3/4" />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-28" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/6" />
+            <Skeleton className="h-4 w-full" />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -7,12 +7,13 @@ import EmptyState from '@/components/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { GitCompare, FileText, ArrowRight, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { GitCompare, FileText, ArrowRight, Shield, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { formatDistanceToNow } from 'date-fns';
 import { industryBaselines, type IndustryBaseline } from '@/data/industryBaselines';
+import { DocumentSelectorSkeleton } from '@/components/LoadingStates';
 
 interface Document {
   id: string;
@@ -167,9 +168,9 @@ const ComparePage = () => {
                   </CardHeader>
                   <CardContent>
                     {isLoading ? (
-                      <p className="text-sm text-muted-foreground">Loading...</p>
+                      <DocumentSelectorSkeleton count={4} />
                     ) : documents.length === 0 ? (
-                      <EmptyState type="compare" title="No documents" description="Upload documents first." />
+                      <EmptyState type="documents" title="No documents" description="Upload documents first to compare them." />
                     ) : (
                       <DocList onSelect={setSelectedDocA} selected={selectedDocA} disabled={mode === 'documents' ? selectedDocB : undefined} />
                     )}
@@ -226,9 +227,9 @@ const ComparePage = () => {
                         ))}
                       </div>
                     ) : isLoading ? (
-                      <p className="text-sm text-muted-foreground">Loading...</p>
+                      <DocumentSelectorSkeleton count={4} />
                     ) : documents.length === 0 ? (
-                      <EmptyState type="compare" title="No documents" description="Upload documents first." />
+                      <EmptyState type="documents" title="No documents" description="Upload documents first to compare them." />
                     ) : (
                       <DocList onSelect={setSelectedDocB} selected={selectedDocB} disabled={selectedDocA} />
                     )}
