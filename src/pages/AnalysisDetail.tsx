@@ -40,6 +40,10 @@ const AnalysisDetail = () => {
   const [expandedClauses, setExpandedClauses] = useState<Record<number, boolean>>({});
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfLoadError, setPdfLoadError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetch = async () => {
       if (!id || !user) return;
