@@ -707,6 +707,36 @@ export type Database = {
         }
         Relationships: []
       }
+      top_10_lists: {
+        Row: {
+          category: string
+          generated_at: string
+          generated_by: string | null
+          id: string
+          metadata: Json | null
+          products: Json
+          refresh_frequency: string | null
+        }
+        Insert: {
+          category: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          metadata?: Json | null
+          products?: Json
+          refresh_frequency?: string | null
+        }
+        Update: {
+          category?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          metadata?: Json | null
+          products?: Json
+          refresh_frequency?: string | null
+        }
+        Relationships: []
+      }
       user_analytics: {
         Row: {
           chat_messages_sent: number | null
