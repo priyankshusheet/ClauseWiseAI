@@ -859,10 +859,8 @@ const Auth = () => {
         </Card>
 
         <div className="mt-6 text-center text-xs text-muted-foreground">
-          By signing up, you agree to our{' '}
-          <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
-          {' '}and{' '}
-          <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+          Need help?{' '}
+          <Link to="/help" className="text-primary hover:underline">Visit our Help Center</Link>
         </div>
       </motion.div>
     </div>
