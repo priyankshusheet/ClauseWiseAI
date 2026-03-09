@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 type AuthView = 'signin' | 'signup' | 'verify-otp' | 'forgot-password' | 'reset-password';
 
@@ -22,6 +24,7 @@ const Auth = () => {
   const [otpValue, setOtpValue] = useState('');
   const [pendingEmail, setPendingEmail] = useState('');
   const [otpType, setOtpType] = useState<'signup' | 'recovery'>('signup');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -123,6 +126,11 @@ const Auth = () => {
 
     if (!formData.email || !formData.password || !formData.confirmPassword || !formData.fullName) {
       setAuthError("Please fill in all fields");
+      return;
+    }
+
+    if (!agreedToTerms) {
+      setAuthError("Please agree to the Privacy Policy and Terms of Service to create an account");
       return;
     }
 
@@ -730,7 +738,22 @@ const Auth = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            {/* Terms and Privacy Checkbox */}
+            <div className="flex items-start space-x-2 py-2">
+              <Checkbox 
+                id="terms" 
+                checked={agreedToTerms}
+                onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+              />
+              <Label htmlFor="terms" className="text-sm text-muted-foreground leading-tight cursor-pointer">
+                I agree to the{' '}
+                <Link to="/privacy" target="_blank" className="text-primary hover:underline">Privacy Policy</Link>
+                {' '}and{' '}
+                <Link to="/terms" target="_blank" className="text-primary hover:underline">Terms of Service</Link>
+              </Label>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading || !agreedToTerms}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -836,10 +859,8 @@ const Auth = () => {
         </Card>
 
         <div className="mt-6 text-center text-xs text-muted-foreground">
-          By signing up, you agree to our{' '}
-          <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
-          {' '}and{' '}
-          <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+          Need help?{' '}
+          <Link to="/help" className="text-primary hover:underline">Visit our Help Center</Link>
         </div>
       </motion.div>
     </div>
