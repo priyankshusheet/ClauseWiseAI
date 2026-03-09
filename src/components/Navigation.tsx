@@ -75,20 +75,18 @@ const Navigation = () => {
     return user.email.charAt(0).toUpperCase();
   };
 
-  // Public nav items - always visible
+  // Public nav items - core features always visible
   const publicNavItems = [
     { name: 'Home', href: '/', icon: Home, isRoute: true },
     { name: 'AI Chat', href: '/chat', icon: MessageCircle, isRoute: true },
     { name: 'Upload', href: '/upload', icon: Upload, isRoute: true },
     { name: 'Learn', href: '/learn', icon: BookOpen, isRoute: true },
-    { name: 'FAQ', href: '#faq', icon: Info, isRoute: false },
   ];
 
-  // Auth-only nav items
+  // Auth-only nav items - feature pages
   const authNavItems = [
     { name: 'Portfolio', href: '/portfolio', icon: FolderOpen, isRoute: true },
     { name: 'Compare', href: '/compare', icon: GitCompare, isRoute: true },
-    { name: 'Settings', href: '/settings', icon: Settings, isRoute: true },
     { name: 'History', href: '/history', icon: History, isRoute: true },
   ];
 
