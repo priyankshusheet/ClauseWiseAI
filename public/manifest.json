@@ -1,4 +1,3 @@
-
 {
   "name": "ClauseWise - AI Financial Buddy",
   "short_name": "ClauseWise",
@@ -10,21 +9,33 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon-v2.ico",
-      "sizes": "16x16 32x32 64x64",
-      "type": "image/x-icon"
+      "src": "/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
     },
     {
       "src": "/clausewise-logo-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/clausewise-logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/clausewise-logo-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/clausewise-logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["finance", "productivity", "business"],
