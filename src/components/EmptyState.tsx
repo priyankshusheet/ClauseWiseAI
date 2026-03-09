@@ -1,14 +1,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
+type EmptyStateType = 'history' | 'portfolio' | 'compare' | 'chat' | 'search' | 'documents' | 'notifications';
+
 interface EmptyStateProps {
-  type: 'history' | 'portfolio' | 'compare';
+  type: EmptyStateType;
   title: string;
   description: string;
   children?: React.ReactNode;
 }
 
-const illustrations: Record<string, React.FC<{ className?: string }>> = {
+const illustrations: Record<EmptyStateType, React.FC<{ className?: string }>> = {
   history: ({ className }) => (
     <svg className={className} viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Stack of documents with clock */}
@@ -68,6 +70,59 @@ const illustrations: Record<string, React.FC<{ className?: string }>> = {
           <path d="M0 0 L6 3 L0 6" fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5" />
         </marker>
       </defs>
+    </svg>
+  ),
+  chat: ({ className }) => (
+    <svg className={className} viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Main chat bubble */}
+      <path d="M30 30 L170 30 C175 30 180 35 180 40 L180 100 C180 105 175 110 170 110 L50 110 L30 130 L30 40 C30 35 35 30 40 30 Z" fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth="2" />
+      {/* Message lines */}
+      <rect x="50" y="50" width="80" height="6" rx="3" fill="hsl(var(--muted-foreground) / 0.3)" />
+      <rect x="50" y="64" width="60" height="6" rx="3" fill="hsl(var(--muted-foreground) / 0.2)" />
+      <rect x="50" y="78" width="90" height="6" rx="3" fill="hsl(var(--muted-foreground) / 0.15)" />
+      {/* Bot avatar */}
+      <circle cx="160" cy="55" r="16" fill="hsl(var(--primary) / 0.15)" stroke="hsl(var(--primary))" strokeWidth="2" />
+      <circle cx="155" cy="52" r="2" fill="hsl(var(--primary))" />
+      <circle cx="165" cy="52" r="2" fill="hsl(var(--primary))" />
+      <path d="M154 60 Q160 65 166 60" stroke="hsl(var(--primary))" strokeWidth="2" strokeLinecap="round" fill="none" />
+    </svg>
+  ),
+  search: ({ className }) => (
+    <svg className={className} viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Magnifying glass */}
+      <circle cx="85" cy="70" r="40" fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth="3" />
+      <circle cx="85" cy="70" r="28" fill="hsl(var(--muted) / 0.5)" stroke="hsl(var(--primary))" strokeWidth="2" />
+      <line x1="115" y1="100" x2="155" y2="140" stroke="hsl(var(--primary))" strokeWidth="8" strokeLinecap="round" />
+      {/* Question mark inside */}
+      <text x="78" y="80" fontSize="32" fontWeight="bold" fill="hsl(var(--muted-foreground) / 0.4)">?</text>
+    </svg>
+  ),
+  documents: ({ className }) => (
+    <svg className={className} viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Document stack */}
+      <rect x="45" y="25" width="90" height="110" rx="6" fill="hsl(var(--muted))" stroke="hsl(var(--border))" strokeWidth="2" />
+      <rect x="55" y="35" width="90" height="110" rx="6" fill="hsl(var(--muted))" stroke="hsl(var(--border))" strokeWidth="2" />
+      <rect x="65" y="45" width="90" height="110" rx="6" fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth="2" />
+      {/* Document content lines */}
+      <rect x="80" y="65" width="55" height="5" rx="2.5" fill="hsl(var(--muted-foreground) / 0.3)" />
+      <rect x="80" y="78" width="45" height="5" rx="2.5" fill="hsl(var(--muted-foreground) / 0.2)" />
+      <rect x="80" y="91" width="50" height="5" rx="2.5" fill="hsl(var(--muted-foreground) / 0.2)" />
+      <rect x="80" y="104" width="35" height="5" rx="2.5" fill="hsl(var(--muted-foreground) / 0.15)" />
+      {/* Upload arrow */}
+      <circle cx="155" cy="40" r="18" fill="hsl(var(--primary) / 0.15)" stroke="hsl(var(--primary))" strokeWidth="2" />
+      <path d="M155 48 L155 32 M148 39 L155 32 L162 39" stroke="hsl(var(--primary))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  notifications: ({ className }) => (
+    <svg className={className} viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Bell */}
+      <path d="M100 30 C70 30 55 55 55 80 L55 100 L45 110 L155 110 L145 100 L145 80 C145 55 130 30 100 30 Z" fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth="2" />
+      <circle cx="100" cy="125" r="10" fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth="2" />
+      <circle cx="100" cy="30" r="6" fill="hsl(var(--primary))" />
+      {/* Zzz indicating no notifications */}
+      <text x="145" y="55" fontSize="18" fontWeight="bold" fill="hsl(var(--muted-foreground) / 0.4)">z</text>
+      <text x="155" y="45" fontSize="14" fontWeight="bold" fill="hsl(var(--muted-foreground) / 0.3)">z</text>
+      <text x="162" y="38" fontSize="10" fontWeight="bold" fill="hsl(var(--muted-foreground) / 0.2)">z</text>
     </svg>
   ),
 };

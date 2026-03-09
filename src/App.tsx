@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +11,7 @@ import NetworkStatus from "@/components/NetworkStatus";
 import { PageTransition } from "@/components/PageTransition";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import SplashScreen from "@/components/SplashScreen";
+import RefreshTransition from "@/components/RefreshTransition";
 import ScrollToTop from "@/components/ScrollToTop";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
@@ -42,6 +43,16 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Check if this is a fresh session (first visit) vs a refresh
+const isFirstVisit = () => {
+  const hasVisited = sessionStorage.getItem('clausewise_visited');
+  if (!hasVisited) {
+    sessionStorage.setItem('clausewise_visited', 'true');
+    return true;
+  }
+  return false;
+};
 
 // Animated routes wrapper
 const AnimatedRoutes = () => {
@@ -116,10 +127,28 @@ const AnimatedRoutes = () => {
 };
 
 const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
+  const [showRefresh, setShowRefresh] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const firstVisit = isFirstVisit();
+    if (firstVisit) {
+      setShowSplash(true);
+    } else {
+      // Show quick refresh animation for returning visitors
+      setShowRefresh(true);
+    }
+  }, []);
 
   const handleSplashComplete = () => {
     setShowSplash(false);
+    setIsReady(true);
+  };
+
+  const handleRefreshComplete = () => {
+    setShowRefresh(false);
+    setIsReady(true);
   };
 
   return (
@@ -133,6 +162,8 @@ const App = () => {
               <Sonner />
               {showSplash ? (
                 <SplashScreen onComplete={handleSplashComplete} />
+              ) : showRefresh ? (
+                <RefreshTransition onComplete={handleRefreshComplete} />
               ) : (
                 <BrowserRouter>
                   <ScrollToTop />

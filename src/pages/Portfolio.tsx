@@ -8,11 +8,12 @@ import EmptyState from '@/components/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FolderOpen, FileText, Trash2, Eye } from 'lucide-react';
+import { FolderOpen, Trash2, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { PortfolioCardSkeleton, ChartSkeleton } from '@/components/LoadingStates';
 
 interface Portfolio {
   id: string;
@@ -79,7 +80,11 @@ const PortfolioPage = () => {
           {/* Risk Trend Chart — full width */}
           <FadeIn delay={0.1}>
             <div className="mb-8">
-              <RiskTrendChart portfolioId={selectedPortfolioId} />
+              {isLoading ? (
+                <ChartSkeleton />
+              ) : (
+                <RiskTrendChart portfolioId={selectedPortfolioId} />
+              )}
             </div>
           </FadeIn>
 
@@ -100,9 +105,17 @@ const PortfolioPage = () => {
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
-                    <p className="text-sm text-muted-foreground">Loading...</p>
+                    <div className="space-y-3">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <PortfolioCardSkeleton key={i} />
+                      ))}
+                    </div>
                   ) : portfolios.length === 0 ? (
-                    <EmptyState type="portfolio" title="No portfolios yet" description="Group documents together for aggregate risk insights." />
+                    <EmptyState 
+                      type="portfolio" 
+                      title="No portfolios yet" 
+                      description="Group documents together for aggregate risk insights." 
+                    />
                   ) : (
                     <div className="space-y-3">
                       {portfolios.map(portfolio => (
