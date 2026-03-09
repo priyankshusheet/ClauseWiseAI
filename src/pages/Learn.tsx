@@ -2,18 +2,22 @@ import React from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import Finance30Course from "@/components/Finance30Course";
-import { FadeIn } from "@/components/PageTransition";
+import { motion } from "framer-motion";
 
 const Learn = () => {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       <Navigation />
-      <main className="flex-1 pb-10">
-        <FadeIn>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <main className="pt-28 pb-16">
           <Finance30Course />
-        </FadeIn>
-      </main>
-      <Footer />
+        </main>
+        <Footer />
+      </motion.div>
     </div>
   );
 };
