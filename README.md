@@ -413,174 +413,152 @@ Where `S_a` and `S_b` are the sets of normalized clause tokens in documents D_a 
 
 **Fig. 5.1: Overall System Architecture**
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLIENT (Browser)                         │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────────────┐ │
-│  │ React    │ │ PDF.js   │ │Tesseract │ │ Service Worker     │ │
-│  │ SPA      │ │ Engine   │ │ OCR      │ │ (Offline/Caching)  │ │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────────────────────┘ │
-│       │             │            │                               │
-│       └─────────────┼────────────┘                               │
-│                     │                                            │
-└─────────────────────┼────────────────────────────────────────────┘
-                      │ HTTPS / REST API
-┌─────────────────────┼────────────────────────────────────────────┐
-│                 SUPABASE BACKEND                                 │
-│  ┌──────────────────┼──────────────────────────────────────────┐ │
-│  │            Edge Functions (Deno)                             │ │
-│  │  ┌────────────┐ ┌────────────┐ ┌────────────────────┐      │ │
-│  │  │ ai-chat    │ │ analyze-   │ │ document-analysis  │      │ │
-│  │  │            │ │ document   │ │                    │      │ │
-│  │  └─────┬──────┘ └─────┬──────┘ └─────┬──────────────┘      │ │
-│  │        │              │              │                      │ │
-│  │        └──────────────┼──────────────┘                      │ │
-│  │                       │                                     │ │
-│  │  ┌────────────────────┼───────────────────────────────────┐ │ │
-│  │  │         Multi-Provider AI Fallback Layer               │ │ │
-│  │  │  Gemini → OpenAI → Groq → Cohere                      │ │ │
-│  │  └────────────────────────────────────────────────────────┘ │ │
-│  └─────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │              PostgreSQL Database                            │ │
-│  │  ┌────────────┐ ┌────────────┐ ┌────────────────────┐      │ │
-│  │  │ Profiles   │ │ Documents  │ │ Chat Sessions      │      │ │
-│  │  │ Auth/Roles │ │ Analyses   │ │ Learning Progress  │      │ │
-│  │  └────────────┘ └────────────┘ └────────────────────┘      │ │
-│  │                   Row-Level Security (RLS)                  │ │
-│  └─────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Client["CLIENT (Browser)"]
+        React["React SPA"]
+        PDFjs["PDF.js Engine"]
+        Tesseract["Tesseract OCR"]
+        SW["Service Worker"]
+    end
+    
+    subgraph Supabase["SUPABASE BACKEND"]
+        subgraph EdgeFunctions["Edge Functions (Deno)"]
+            AIChat["ai-chat"]
+            AnalyzeDoc["analyze-document"]
+            DocAnalysis["document-analysis"]
+        end
+        
+        subgraph AILayer["Multi-Provider AI Fallback Layer"]
+            Gemini["Gemini"]
+            OpenAI["OpenAI"]
+            Groq["Groq"]
+            Cohere["Cohere"]
+        end
+        
+        subgraph Database["PostgreSQL Database"]
+            Profiles["Profiles / Auth / Roles"]
+            Documents["Documents / Analyses"]
+            Sessions["Chat Sessions / Learning Progress"]
+        end
+        RLS["Row-Level Security (RLS)"]
+    end
+    
+    React --> PDFjs
+    React --> Tesseract
+    React --> SW
+    React -->|"HTTPS / REST API"| EdgeFunctions
+    EdgeFunctions --> AILayer
+    EdgeFunctions --> Database
+    Gemini --> OpenAI
+    OpenAI --> Groq
+    Groq --> Cohere
 ```
 
 ### 5.2 Data Flow Diagram — Level 0
 
 **Fig. 5.2: Context Diagram**
 
-```
-                    ┌─────────┐
-   Upload Document  │         │  Analysis Report
-   ─────────────────►         ├──────────────────►
-                    │         │
-   Chat Query       │ClauseWise│  AI Response
-   ─────────────────►   AI    ├──────────────────►
-                    │         │
-   Browse Products  │         │  Product Data
-   ─────────────────►         ├──────────────────►
-      [User]        │         │     [User]
-                    └────┬────┘
-                         │
-                    ┌────▼────┐
-                    │ AI APIs │
-                    │ Database│
-                    └─────────┘
+```mermaid
+graph LR
+    User((User))
+    CW[ClauseWise AI]
+    External[(AI APIs / Database)]
+    
+    User -->|"Upload Document"| CW
+    User -->|"Chat Query"| CW
+    User -->|"Browse Products"| CW
+    CW -->|"Analysis Report"| User
+    CW -->|"AI Response"| User
+    CW -->|"Product Data"| User
+    CW <-->|"Data Exchange"| External
 ```
 
 ### 5.3 Data Flow Diagram — Level 1
 
 **Fig. 5.3: Level 1 DFD**
 
-```
-┌──────┐    Document     ┌────────────┐    Raw Text    ┌────────────┐
-│      ├────────────────►│ 1.0 Text   ├───────────────►│ 2.0 AI     │
-│      │                 │ Extraction │                │ Analysis   │
-│      │                 │ (PDF/OCR)  │                │ Engine     │
-│      │                 └────────────┘                └─────┬──────┘
-│      │                                                     │
-│ User │                                               Risk Report
-│      │    Chat Message  ┌────────────┐    Response         │
-│      ├─────────────────►│ 3.0 AI     ├────────────────┐    │
-│      │                  │ Chat       │                │    │
-│      │                  └────┬───────┘                │    │
-│      │                       │                        │    │
-│      │◄──────────────────────┘                        │    │
-│      │◄───────────────────────────────────────────────┘    │
-│      │                                                     │
-│      │    Compare Docs  ┌────────────┐    Diff Report      │
-│      ├─────────────────►│ 4.0 Doc    ├────────────────►    │
-│      │                  │ Comparison │                     │
-│      │                  └────────────┘                     │
-│      │                                                     │
-│      │    Quiz Answer   ┌────────────┐    Progress         │
-│      ├─────────────────►│ 5.0 Learn  ├────────────────►    │
-│      │                  │ Module     │                     │
-└──────┘                  └────────────┘                     │
-                                                        ┌────▼────┐
-                                                        │Database │
-                                                        └─────────┘
+```mermaid
+graph TB
+    User((User))
+    DB[(Database)]
+    
+    subgraph Processes
+        P1["1.0 Text Extraction (PDF/OCR)"]
+        P2["2.0 AI Analysis Engine"]
+        P3["3.0 AI Chat"]
+        P4["4.0 Doc Comparison"]
+        P5["5.0 Learn Module"]
+    end
+    
+    User -->|"Document"| P1
+    P1 -->|"Raw Text"| P2
+    P2 -->|"Risk Report"| User
+    P2 -->|"Store Result"| DB
+    
+    User -->|"Chat Message"| P3
+    P3 -->|"Response"| User
+    
+    User -->|"Compare Docs"| P4
+    P4 -->|"Diff Report"| User
+    
+    User -->|"Quiz Answer"| P5
+    P5 -->|"Progress"| User
+    P5 -->|"Store Progress"| DB
 ```
 
 ### 5.4 Use Case Diagram
 
 **Fig. 5.4: Use Case Diagram**
 
-```
-                         ┌─────────────────────────────────────┐
-                         │           ClauseWise AI              │
-                         │                                     │
-    ┌──────┐             │  ┌──────────────────────┐           │
-    │      │─────────────┼─►│ Register / Login     │           │
-    │      │             │  └──────────────────────┘           │
-    │      │             │  ┌──────────────────────┐           │
-    │      │─────────────┼─►│ Upload Document      │           │
-    │      │             │  └──────────────────────┘           │
-    │      │             │  ┌──────────────────────┐           │
-    │      │─────────────┼─►│ View Analysis Report │           │
-    │      │             │  └──────────────────────┘           │
-    │ User │             │  ┌──────────────────────┐           │
-    │      │─────────────┼─►│ Chat with AI         │           │
-    │      │             │  └──────────────────────┘           │
-    │      │             │  ┌──────────────────────┐           │
-    │      │─────────────┼─►│ Compare Documents    │           │
-    │      │             │  └──────────────────────┘           │
-    │      │             │  ┌──────────────────────┐           │
-    │      │─────────────┼─►│ Manage Portfolio     │           │
-    │      │             │  └──────────────────────┘           │
-    │      │             │  ┌──────────────────────┐           │
-    │      │─────────────┼─►│ Take Financial Course│           │
-    │      │             │  └──────────────────────┘           │
-    │      │             │  ┌──────────────────────┐           │
-    │      │─────────────┼─►│ Browse Products      │           │
-    │      │             │  └──────────────────────┘           │
-    │      │             │  ┌──────────────────────┐           │
-    │      │─────────────┼─►│ Download Report      │           │
-    └──────┘             │  └──────────────────────┘           │
-                         │                                     │
-                         └─────────────────────────────────────┘
+```mermaid
+graph TB
+    User((User))
+    
+    subgraph ClauseWiseAI["ClauseWise AI"]
+        UC1["Register / Login"]
+        UC2["Upload Document"]
+        UC3["View Analysis Report"]
+        UC4["Chat with AI"]
+        UC5["Compare Documents"]
+        UC6["Manage Portfolio"]
+        UC7["Take Financial Course"]
+        UC8["Browse Products"]
+        UC9["Download Report"]
+    end
+    
+    User --> UC1
+    User --> UC2
+    User --> UC3
+    User --> UC4
+    User --> UC5
+    User --> UC6
+    User --> UC7
+    User --> UC8
+    User --> UC9
 ```
 
 ### 5.5 Sequence Diagram — Document Analysis Flow
 
 **Fig. 5.5: Document Analysis Sequence Diagram**
 
-```
-User          Browser/React     Edge Function      AI Provider      Database
- │                 │                  │                  │              │
- │  Upload File    │                  │                  │              │
- ├────────────────►│                  │                  │              │
- │                 │ Validate File    │                  │              │
- │                 │ (size, type,     │                  │              │
- │                 │  magic bytes)    │                  │              │
- │                 │                  │                  │              │
- │                 │ Extract Text     │                  │              │
- │                 │ (PDF.js/OCR)     │                  │              │
- │                 │                  │                  │              │
- │                 │ POST /analyze    │                  │              │
- │                 ├─────────────────►│                  │              │
- │                 │                  │ Call AI API      │              │
- │                 │                  ├─────────────────►│              │
- │                 │                  │                  │              │
- │                 │                  │ AI Response      │              │
- │                 │                  │◄─────────────────┤              │
- │                 │                  │                  │              │
- │                 │                  │ Store Result     │              │
- │                 │                  ├─────────────────────────────────►
- │                 │                  │                  │              │
- │                 │  Analysis Result │                  │              │
- │                 │◄─────────────────┤                  │              │
- │  Display Report │                  │                  │              │
- │◄────────────────┤                  │                  │              │
- │                 │                  │                  │              │
+```mermaid
+sequenceDiagram
+    participant User
+    participant Browser as Browser/React
+    participant Edge as Edge Function
+    participant AI as AI Provider
+    participant DB as Database
+    
+    User->>Browser: Upload File
+    Browser->>Browser: Validate File (size, type, magic bytes)
+    Browser->>Browser: Extract Text (PDF.js/OCR)
+    Browser->>Edge: POST /analyze
+    Edge->>AI: Call AI API
+    AI-->>Edge: AI Response
+    Edge->>DB: Store Result
+    Edge-->>Browser: Analysis Result
+    Browser-->>User: Display Report
 ```
 
 ### 5.6 Database Design
@@ -620,25 +598,14 @@ All tables implement Row-Level Security (RLS) policies ensuring users can only a
 
 **Fig. 6.1: Proposed Methodology Workflow**
 
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Document    │────►│  Text        │────►│  AI-Powered  │
-│  Upload &    │     │  Extraction  │     │  Analysis    │
-│  Validation  │     │  (PDF/OCR)   │     │  Engine      │
-└──────────────┘     └──────────────┘     └──────┬───────┘
-                                                  │
-                     ┌──────────────┐              │
-                     │  Interactive │◄─────────────┘
-                     │  Report &    │
-                     │  AI Chat     │
-                     └──────┬───────┘
-                            │
-          ┌─────────────────┼─────────────────┐
-          │                 │                 │
-    ┌─────▼─────┐    ┌─────▼─────┐    ┌─────▼─────┐
-    │ PDF Report│    │ Portfolio │    │ Document  │
-    │ Download  │    │ Analysis  │    │ Comparison│
-    └───────────┘    └───────────┘    └───────────┘
+```mermaid
+graph LR
+    A["Document Upload & Validation"] --> B["Text Extraction (PDF/OCR)"]
+    B --> C["AI-Powered Analysis Engine"]
+    C --> D["Interactive Report & AI Chat"]
+    D --> E["PDF Report Download"]
+    D --> F["Portfolio Analysis"]
+    D --> G["Document Comparison"]
 ```
 
 ### 6.2 Step-by-Step Process
@@ -681,33 +648,17 @@ All tables implement Row-Level Security (RLS) policies ensuring users can only a
 
 **Fig. 6.2: Multi-Provider AI Fallback Chain**
 
-```
-Request ──► ClauseWiseAI AI Gateway (Gemini)
-                    │
-                    ├── Success ──► Return Response
-                    │
-                    └── Fail (429/402/5xx)
-                            │
-                            ▼
-                    OpenAI (gpt-4o-mini)
-                            │
-                            ├── Success ──► Return Response
-                            │
-                            └── Fail
-                                    │
-                                    ▼
-                            Groq (llama-3.3-70b)
-                                    │
-                                    ├── Success ──► Return Response
-                                    │
-                                    └── Fail
-                                            │
-                                            ▼
-                                    Cohere (command-r-plus)
-                                            │
-                                            ├── Success ──► Return Response
-                                            │
-                                            └── Fail ──► Error Response
+```mermaid
+graph TD
+    Request["Incoming Request"] --> Primary["Primary AI Gateway (Gemini)"]
+    Primary -->|"Success"| Return1["Return Response"]
+    Primary -->|"Fail (429/402/5xx)"| OpenAI["OpenAI (gpt-4o-mini)"]
+    OpenAI -->|"Success"| Return2["Return Response"]
+    OpenAI -->|"Fail"| Groq["Groq (llama-3.3-70b)"]
+    Groq -->|"Success"| Return3["Return Response"]
+    Groq -->|"Fail"| Cohere["Cohere (command-r-plus)"]
+    Cohere -->|"Success"| Return4["Return Response"]
+    Cohere -->|"Fail"| Error["Error Response"]
 ```
 
 ### 6.4 Technology Stack Summary
@@ -735,7 +686,7 @@ Request ──► ClauseWiseAI AI Gateway (Gemini)
 ### 7.1 Experimental Setup
 
 The platform was deployed on Supabase Cloud infrastructure with the following configuration:
-- **Frontend:** Hosted via ClauseWiseAI Cloud with global CDN distribution
+- **Frontend:** Hosted via Vercel CDN with global edge distribution
 - **Backend:** 10 Supabase Edge Functions handling AI inference, document analysis, GDPR operations, webhooks, and API management
 - **Database:** PostgreSQL with 20 tables, comprehensive RLS policies, and automated triggers
 - **Testing:** Manual testing across Chrome, Firefox, Safari; mobile testing on iOS and Android devices
@@ -746,21 +697,21 @@ The platform was deployed on Supabase Cloud infrastructure with the following co
 
 | TC ID | Test Case Description | Input | Expected Output | Actual Output | Status |
 |-------|----------------------|-------|-----------------|---------------|--------|
-| TC-01 | User registration with OTP | Valid email | OTP sent, account created | OTP sent, account created | ✅ Pass |
-| TC-02 | PDF document upload (5 MB) | Valid PDF | Text extracted, analysis displayed | Text extracted, analysis displayed | ✅ Pass |
-| TC-03 | Scanned image OCR | 300 DPI JPEG | Text extracted with >80% confidence | Text extracted, 87% confidence | ✅ Pass |
-| TC-04 | File size validation | 15 MB PDF | Rejection with error message | File rejected, error shown | ✅ Pass |
-| TC-05 | Invalid file type | .exe file | Rejection via magic-byte check | File rejected | ✅ Pass |
-| TC-06 | AI chat with document context | Risk query | Context-aware response | Accurate context-aware response | ✅ Pass |
-| TC-07 | Voice input in chat | Spoken query | Text transcription + AI response | Correctly transcribed and answered | ✅ Pass |
-| TC-08 | Document comparison | Two PDFs | Side-by-side diff view | Differences highlighted correctly | ✅ Pass |
-| TC-09 | Portfolio risk aggregation | 3 documents | Aggregate risk score | Weighted aggregate computed | ✅ Pass |
-| TC-10 | PDF report download | Analysis result | Formatted PDF file | Branded PDF generated | ✅ Pass |
-| TC-11 | AI provider fallback | Primary API down | Seamless fallback to secondary | Transparent failover to OpenAI | ✅ Pass |
-| TC-12 | Offline mode basic query | No internet | Cached response from local data | Local data response served | ✅ Pass |
-| TC-13 | GDPR data export | Export request | JSON data download | Complete data export generated | ✅ Pass |
-| TC-14 | Course quiz completion | Quiz answers | Score calculated, progress updated | Score and progress recorded | ✅ Pass |
-| TC-15 | Leaked password detection | Compromised password | Registration blocked | User warned, registration blocked | ✅ Pass |
+| TC-01 | User registration with OTP | Valid email | OTP sent, account created | OTP sent, account created | Pass |
+| TC-02 | PDF document upload (5 MB) | Valid PDF | Text extracted, analysis displayed | Text extracted, analysis displayed | Pass |
+| TC-03 | Scanned image OCR | 300 DPI JPEG | Text extracted with >80% confidence | Text extracted, 87% confidence | Pass |
+| TC-04 | File size validation | 15 MB PDF | Rejection with error message | File rejected, error shown | Pass |
+| TC-05 | Invalid file type | .exe file | Rejection via magic-byte check | File rejected | Pass |
+| TC-06 | AI chat with document context | Risk query | Context-aware response | Accurate context-aware response | Pass |
+| TC-07 | Voice input in chat | Spoken query | Text transcription + AI response | Correctly transcribed and answered | Pass |
+| TC-08 | Document comparison | Two PDFs | Side-by-side diff view | Differences highlighted correctly | Pass |
+| TC-09 | Portfolio risk aggregation | 3 documents | Aggregate risk score | Weighted aggregate computed | Pass |
+| TC-10 | PDF report download | Analysis result | Formatted PDF file | Branded PDF generated | Pass |
+| TC-11 | AI provider fallback | Primary API down | Seamless fallback to secondary | Transparent failover to OpenAI | Pass |
+| TC-12 | Offline mode basic query | No internet | Cached response from local data | Local data response served | Pass |
+| TC-13 | GDPR data export | Export request | JSON data download | Complete data export generated | Pass |
+| TC-14 | Course quiz completion | Quiz answers | Score calculated, progress updated | Score and progress recorded | Pass |
+| TC-15 | Leaked password detection | Compromised password | Registration blocked | User warned, registration blocked | Pass |
 
 ### 7.3 Performance Evaluation
 
@@ -831,7 +782,11 @@ ClauseWise AI has been successfully designed, developed, and deployed as a compr
 
 7. **Enterprise-Grade Architecture:** Global error boundaries, offline detection, service workers, RLS-protected database, GDPR compliance tools (data export, deletion requests, retention policies), and comprehensive audit logging.
 
-8. **PWA Deployment:** Installable progressive web application with offline capability, responsive design across all device form factors, and SEO optimization.
+8. **PWA Deployment:** Installable progressive web application with offline capability, responsive design across all device form factors, and SEO optimization with Open Graph social sharing support.
+
+9. **Feature-Focused Navigation:** Streamlined navigation bar prioritizing core features (AI Chat, Upload, Learn) for improved user experience and discoverability.
+
+10. **Optimized PWA Assets:** Professional app icons without white-space artifacts for seamless home screen installation across devices.
 
 ### 8.2 Limitations
 
@@ -914,7 +869,7 @@ ClauseWise AI has been successfully designed, developed, and deployed as a compr
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 <img width="1440" alt="Screenshot 2025-05-31 at 12 11 25 AM" src="https://github.com/user-attachments/assets/ffac37e0-415e-4ab2-afca-6e07ce5ab475" />
 <img width="1440" alt="Screenshot 2025-05-31 at 12 11 36 AM" src="https://github.com/user-attachments/assets/5ec8a3d0-5724-42cd-a602-b814bba01bb9" />
@@ -925,7 +880,7 @@ ClauseWise AI has been successfully designed, developed, and deployed as a compr
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ```bash
 # Clone the repo
