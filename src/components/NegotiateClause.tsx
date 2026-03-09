@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, MessageSquare, X, Copy, CheckCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
@@ -31,8 +30,18 @@ const NegotiateClause: React.FC<NegotiateClauseProps> = ({
     setResponse(null);
     
     try {
-      const { data, error } = await supabase.functions.invoke('ai-chat', {
-        body: {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const functionUrl = `https://${projectId}.supabase.co/functions/v1/ai-chat`;
+
+      const res = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': anonKey,
+          'Authorization': `Bearer ${anonKey}`,
+        },
+        body: JSON.stringify({
           messages: [
             {
               role: 'system',
@@ -56,55 +65,18 @@ Please provide:
 Keep it practical and consumer-friendly.`,
             },
           ],
-          stream: false, // Request non-streaming response
-        },
+          stream: false,
+        }),
       });
 
-      if (error) throw error;
-      
-      // Handle response - could be string (SSE), ReadableStream, or JSON object
-      let content = '';
-      
-      if (data instanceof ReadableStream || (data && typeof data.getReader === 'function')) {
-        // Handle streaming response by reading it
-        const reader = data.getReader();
-        const decoder = new TextDecoder();
-        let done = false;
-        
-        while (!done) {
-          const { value, done: readerDone } = await reader.read();
-          done = readerDone;
-          if (value) {
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-            for (const line of lines) {
-              if (line.startsWith('data: ') && !line.includes('[DONE]')) {
-                try {
-                  const parsed = JSON.parse(line.slice(6));
-                  const delta = parsed.choices?.[0]?.delta?.content || '';
-                  content += delta;
-                } catch { /* skip parse errors */ }
-              }
-            }
-          }
-        }
-      } else if (typeof data === 'string') {
-        // Try to extract content from SSE stream string
-        const lines = data.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ') && !line.includes('[DONE]')) {
-            try {
-              const parsed = JSON.parse(line.slice(6));
-              const delta = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content || '';
-              content += delta;
-            } catch { /* skip */ }
-          }
-        }
-        if (!content) content = data;
-      } else if (data && typeof data === 'object') {
-        // Non-streaming JSON response
-        content = data?.choices?.[0]?.message?.content || data?.response || data?.content || '';
+      if (!res.ok) {
+        if (res.status === 429) throw new Error('Rate limit exceeded');
+        if (res.status === 402) throw new Error('AI credits exhausted');
+        throw new Error(`Request failed: ${res.status}`);
       }
+
+      const data = await res.json();
+      const content = data?.choices?.[0]?.message?.content || '';
       
       if (content) {
         setResponse(content);
