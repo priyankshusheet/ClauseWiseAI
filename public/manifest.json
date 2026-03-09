@@ -1,11 +1,11 @@
 {
-  "name": "ClauseWise - AI Financial Buddy",
+  "name": "ClauseWise – AI Financial Document Analyzer",
   "short_name": "ClauseWise",
-  "description": "Your AI companion for understanding financial documents and terms",
+  "description": "Instantly analyze financial documents, decode complex clauses, and understand terms & conditions with AI.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "background_color": "#0a0a2e",
+  "theme_color": "#1a1a4e",
   "orientation": "portrait-primary",
   "icons": [
     {
