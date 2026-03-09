@@ -49,18 +49,40 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentContext })
   const [error, setError] = useState<string | null>(null);
   const [isExtractingFile, setIsExtractingFile] = useState(false);
   
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isInitialRenderRef = useRef(true);
+  const shouldAutoScrollRef = useRef(true);
   const { toast } = useToast();
   const { user } = useAuth();
   const { canSendChatMessage, remainingChatMessages, recordChatMessage, limits } = useTrialUsage();
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior,
+    });
+  }, []);
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    shouldAutoScrollRef.current = distanceFromBottom < 80;
   }, []);
 
   useEffect(() => {
-    scrollToBottom();
+    if (isInitialRenderRef.current) {
+      isInitialRenderRef.current = false;
+      return;
+    }
+
+    if (!shouldAutoScrollRef.current) return;
+    scrollToBottom(streamingContent ? 'auto' : 'smooth');
   }, [messages, streamingContent, scrollToBottom]);
 
   // Load document context from localStorage
