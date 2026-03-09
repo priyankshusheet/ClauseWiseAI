@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 type AuthView = 'signin' | 'signup' | 'verify-otp' | 'forgot-password' | 'reset-password';
 
@@ -22,6 +24,7 @@ const Auth = () => {
   const [otpValue, setOtpValue] = useState('');
   const [pendingEmail, setPendingEmail] = useState('');
   const [otpType, setOtpType] = useState<'signup' | 'recovery'>('signup');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
