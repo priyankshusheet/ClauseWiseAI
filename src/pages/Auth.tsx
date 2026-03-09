@@ -129,6 +129,11 @@ const Auth = () => {
       return;
     }
 
+    if (!agreedToTerms) {
+      setAuthError("Please agree to the Privacy Policy and Terms of Service to create an account");
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setAuthError("Passwords do not match");
       return;
@@ -733,7 +738,22 @@ const Auth = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            {/* Terms and Privacy Checkbox */}
+            <div className="flex items-start space-x-2 py-2">
+              <Checkbox 
+                id="terms" 
+                checked={agreedToTerms}
+                onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+              />
+              <Label htmlFor="terms" className="text-sm text-muted-foreground leading-tight cursor-pointer">
+                I agree to the{' '}
+                <Link to="/privacy" target="_blank" className="text-primary hover:underline">Privacy Policy</Link>
+                {' '}and{' '}
+                <Link to="/terms" target="_blank" className="text-primary hover:underline">Terms of Service</Link>
+              </Label>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading || !agreedToTerms}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
