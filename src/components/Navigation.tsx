@@ -153,6 +153,7 @@ const Navigation = () => {
 
           {/* CTA Buttons / User Menu */}
           <div className="hidden md:flex items-center space-x-3">
+            {/* PWA Install Button - Always show on desktop when available */}
             {canInstall && !isInstalled && (
               <Button
                 variant="outline"
@@ -161,8 +162,14 @@ const Navigation = () => {
                 className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
               >
                 <Download className="w-3.5 h-3.5" />
-                Install
+                Install App
               </Button>
+            )}
+            {isInstalled && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Download className="w-3 h-3 text-secondary" />
+                Installed
+              </span>
             )}
             {loading ? (
               <div className="w-20 h-9 bg-muted animate-pulse rounded-lg" />
