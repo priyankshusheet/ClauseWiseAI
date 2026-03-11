@@ -162,66 +162,7 @@ IMPORTANT: Base all your answers on the actual document text above. Quote specif
 
     console.log(`[AI-Chat] User: ${userId || 'anonymous'}, Messages: ${messages.length}, stream=${stream}, hasDocContext=${!!documentContext}`);
 
-    // Use ClauseWiseAI AI Gateway as primary
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    if (LOVABLE_API_KEY) {
-      try {
-        const response = await fetch("https://ai.gateway.clausewiseai.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
-            messages: enhancedMessages,
-            stream,
-            temperature: 0.3,
-          }),
-        });
-
-        if (response.ok) {
-          const latency = Date.now() - startTime;
-          console.log(`[AI-Chat] ClauseWiseAI AI response (stream=${stream}, ${latency}ms)`);
-
-          if (stream && response.body) {
-            return new Response(response.body, {
-              headers: {
-                ...corsHeaders,
-                "Content-Type": "text/event-stream",
-                "X-Response-Time": `${latency}ms`,
-                "X-AI-Provider": "ClauseWiseAI AI",
-              },
-            });
-          } else {
-            // Non-streaming: return JSON directly
-            const data = await response.json();
-            const content = data.choices?.[0]?.message?.content || "";
-            return new Response(JSON.stringify({ choices: [{ message: { role: "assistant", content } }] }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json", "X-AI-Provider": "ClauseWiseAI AI" },
-            });
-          }
-        }
-
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please wait a moment." }), {
-            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
-            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        console.warn(`[AI-Chat] ClauseWiseAI AI failed: ${response.status}, trying fallbacks`);
-      } catch (e) {
-        console.warn("[AI-Chat] ClauseWiseAI AI exception, trying fallbacks:", e);
-      }
-    }
-
-    // Fallback providers
+    // AI providers
     const fallbackProviders = [
       {
         name: "Groq",

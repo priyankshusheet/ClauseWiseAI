@@ -6,7 +6,7 @@ interface SEOProps {
   path?: string;
 }
 
-const BASE_URL = 'https://clausewise.clausewiseai.app';
+const BASE_URL = 'https://clausewise.app';
 const DEFAULT_TITLE = 'ClauseWise – AI Financial Document Analyzer';
 const DEFAULT_DESCRIPTION = 'Instantly analyze financial documents, decode complex clauses, and understand terms & conditions with AI. Free to try.';
 const OG_IMAGE = `${BASE_URL}/og-banner.png`;

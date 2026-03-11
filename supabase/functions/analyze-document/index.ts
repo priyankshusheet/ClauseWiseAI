@@ -169,59 +169,7 @@ serve(async (req) => {
     let structuredResult: any = null;
     let rawAnalysis: string | null = null;
 
-    // Use ClauseWiseAI AI Gateway (primary) for analysis
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    if (isMultimodal && LOVABLE_API_KEY) {
-      // MULTIMODAL PATH: Send image directly to vision model
-      try {
-        console.log(`[Analyze-Document] Using ClauseWiseAI AI Gateway for multimodal analysis`);
-        
-        const messages: any[] = [{
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: { url: `data:${fileMimeType};base64,${fileBase64}` }
-            },
-            {
-              type: "text",
-              text: `Analyze this financial document "${fileName}". ${STRUCTURED_ANALYSIS_PROMPT}`
-            }
-          ]
-        }];
-
-        const response = await fetch("https://ai.gateway.clausewiseai.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages,
-            temperature: 0.2,
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          rawAnalysis = data.choices?.[0]?.message?.content || null;
-          if (rawAnalysis) {
-            structuredResult = parseAIResponse(rawAnalysis);
-            console.log(`[Analyze-Document] ClauseWiseAI AI multimodal analysis complete`);
-          }
-        } else {
-          const status = response.status;
-          const errText = await response.text();
-          console.error(`[Analyze-Document] ClauseWiseAI AI error: ${status} - ${errText.substring(0, 200)}`);
-        }
-      } catch (e) {
-        console.error(`[Analyze-Document] ClauseWiseAI AI multimodal exception:`, e);
-      }
-    }
-
-    // Fallback: Direct Gemini Vision for multimodal
+    // Direct Gemini Vision for multimodal
     if (!structuredResult && isMultimodal) {
       const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
       if (geminiApiKey) {
@@ -266,7 +214,7 @@ serve(async (req) => {
     const textForAnalysis = sanitizedText || structuredResult?.extractedText || '';
     
     if (!structuredResult && textForAnalysis) {
-      structuredResult = await performTextAnalysis(fileName!, textForAnalysis, ocrConfidence || 0, documentType || 'unknown', LOVABLE_API_KEY);
+      structuredResult = await performTextAnalysis(fileName!, textForAnalysis, ocrConfidence || 0, documentType || 'unknown');
     }
 
     // Pattern-based analysis
@@ -359,8 +307,7 @@ async function performTextAnalysis(
   fileName: string,
   text: string,
   ocrConfidence: number,
-  documentType: string,
-  clausewiseaiKey: string | undefined,
+  documentType: string
 ): Promise<any> {
   const contextPrompt = `Analyze this financial document: "${fileName}"
 Document type: ${documentType}
@@ -371,36 +318,7 @@ ${text.substring(0, 15000)}
 
 ${STRUCTURED_ANALYSIS_PROMPT}`;
 
-  // Try ClauseWiseAI AI Gateway first
-  if (clausewiseaiKey) {
-    try {
-      const response = await fetch("https://ai.gateway.clausewiseai.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${clausewiseaiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [{ role: "user", content: contextPrompt }],
-          temperature: 0.2,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        if (content) {
-          const parsed = parseAIResponse(content);
-          if (parsed) return parsed;
-        }
-      }
-    } catch (e) {
-      console.error('[Analyze-Document] ClauseWiseAI AI text analysis failed:', e);
-    }
-  }
-
-  // Fallback providers
+  // Primary providers
   const providers = [
     {
       name: "Groq",
