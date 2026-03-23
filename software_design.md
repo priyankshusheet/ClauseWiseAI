@@ -2,10 +2,6 @@
 
 ## ClauseWise — AI-Powered Financial Document Analyser
 
-**Version:** 1.0
-**Date:** March 2026
-**Author:** ClauseWise Team
-
 ---
 
 ## Table of Contents
